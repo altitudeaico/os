@@ -288,7 +288,41 @@
   .roundup-row .rr-rank{font-size:12px; color:var(--text-secondary); margin-top:1px;}
   .roundup-row .rr-stars{font-size:14px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; white-space:nowrap;}
   .roundup-thumbs{display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;}
-  .roundup-thumbs img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; background:var(--paper-dark);}
+  .roundup-thumbs img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; background:var(--paper-dark); cursor:pointer;}
+  .gallery-card img{cursor:pointer;}
+
+  /* ---------- Lightbox / slideshow ---------- */
+  .lightbox-overlay{
+    position:fixed; inset:0; background:rgba(10,10,12,0.95); z-index:200;
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .2s ease;
+  }
+  .lightbox-overlay.show{display:flex; opacity:1;}
+  .lightbox-topbar{
+    position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between;
+    padding:14px 14px; z-index:2;
+  }
+  .lightbox-icon-btn{
+    background:rgba(255,255,255,0.14); border:none; color:#fff; width:40px; height:40px; border-radius:50%;
+    font-size:16px; display:flex; align-items:center; justify-content:center;
+  }
+  .lightbox-icon-btn:active{transform:scale(0.92);}
+  .lightbox-counter{color:rgba(255,255,255,0.8); font-size:13px; font-weight:600; font-variant-numeric:tabular-nums;}
+  .lightbox-stage{width:100%; flex:1; display:flex; align-items:center; justify-content:center; padding:60px 54px; min-height:0;}
+  .lightbox-stage img{max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; box-shadow:0 20px 50px rgba(0,0,0,0.5); user-select:none; -webkit-user-drag:none;}
+  .lightbox-nav-btn{
+    position:absolute; top:50%; transform:translateY(-50%); z-index:2; background:rgba(255,255,255,0.12); color:#fff;
+    border:none; width:44px; height:44px; border-radius:50%; font-size:24px; display:flex; align-items:center; justify-content:center; line-height:1;
+  }
+  .lightbox-nav-btn:active{transform:translateY(-50%) scale(0.9);}
+  .lightbox-prev{left:10px;}
+  .lightbox-next{right:10px;}
+  .lightbox-caption{
+    position:absolute; bottom:0; left:0; right:0; padding:16px 20px 22px; text-align:center;
+    background:linear-gradient(0deg, rgba(0,0,0,0.55), transparent); color:#fff;
+  }
+  .lightbox-caption .lc-who{font-weight:700; font-size:14px;}
+  .lightbox-caption .lc-text{font-size:13px; color:rgba(255,255,255,0.75); margin-top:2px;}
 
   .sync-pill{
     display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:4px 10px;
@@ -434,6 +468,20 @@
 </div>
 
 <div class="points-toast" id="pointsToast">+10 ⭐</div>
+
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="lightboxBackdropClick(event)">
+  <div class="lightbox-topbar">
+    <button class="lightbox-icon-btn" onclick="toggleSlideshow()" id="lightboxPlayBtn">▶️</button>
+    <span class="lightbox-counter" id="lightboxCounter">1 / 1</span>
+    <button class="lightbox-icon-btn" onclick="closeLightbox()">✕</button>
+  </div>
+  <button class="lightbox-nav-btn lightbox-prev" onclick="lightboxPrev()">‹</button>
+  <div class="lightbox-stage" id="lightboxStage">
+    <img id="lightboxImg" src="" alt="Zoo Quest photo">
+  </div>
+  <button class="lightbox-nav-btn lightbox-next" onclick="lightboxNext()">›</button>
+  <div class="lightbox-caption" id="lightboxCaption"></div>
+</div>
 
 <script>
 /* ================= DATA ================= */
@@ -811,9 +859,9 @@ function renderGalleryGrid(){
     grid.innerHTML = `<p class="gallery-empty">No photos yet today.<br>Try a Memory Mission! 📸</p>`;
     return;
   }
-  grid.innerHTML = `<div class="gallery-grid">${galleryPhotos.map(p => `
+  grid.innerHTML = `<div class="gallery-grid">${galleryPhotos.map((p,i) => `
     <div class="gallery-card">
-      <img src="${p.image_data}" alt="Zoo Quest photo" loading="lazy">
+      <img src="${p.image_data}" alt="Zoo Quest photo" loading="lazy" onclick="openLightbox(${i})">
       <div class="gc-meta">
         <div class="gc-who">${p.avatar ? escapeHtml(p.avatar) : '📸'} ${escapeHtml(p.explorer_name)}</div>
         ${p.caption ? `<div class="gc-caption">${escapeHtml(p.caption)}</div>` : ''}
@@ -821,6 +869,90 @@ function renderGalleryGrid(){
     </div>
   `).join('')}</div>`;
 }
+
+/* ================= LIGHTBOX / SLIDESHOW ================= */
+let lightboxIndex = 0;
+let lightboxTimer = null;
+let lightboxTouchStartX = null;
+
+function openLightbox(index){
+  if(!galleryPhotos.length) return;
+  lightboxIndex = index;
+  renderLightboxFrame();
+  document.getElementById('lightboxOverlay').classList.add('show');
+}
+
+function closeLightbox(){
+  stopSlideshow();
+  document.getElementById('lightboxOverlay').classList.remove('show');
+}
+
+function lightboxBackdropClick(e){
+  if(e.target.id === 'lightboxOverlay' || e.target.id === 'lightboxStage') closeLightbox();
+}
+
+function lightboxNext(){
+  stopSlideshow();
+  lightboxIndex = (lightboxIndex + 1) % galleryPhotos.length;
+  renderLightboxFrame();
+}
+
+function lightboxPrev(){
+  stopSlideshow();
+  lightboxIndex = (lightboxIndex - 1 + galleryPhotos.length) % galleryPhotos.length;
+  renderLightboxFrame();
+}
+
+function renderLightboxFrame(){
+  const p = galleryPhotos[lightboxIndex];
+  if(!p) return;
+  document.getElementById('lightboxImg').src = p.image_data;
+  document.getElementById('lightboxCounter').textContent = `${lightboxIndex+1} / ${galleryPhotos.length}`;
+  const who = `${p.avatar ? escapeHtml(p.avatar) : '📸'} ${escapeHtml(p.explorer_name)}`;
+  const caption = p.caption ? `<div class="lc-text">${escapeHtml(p.caption)}</div>` : '';
+  document.getElementById('lightboxCaption').innerHTML = `<div class="lc-who">${who}</div>${caption}`;
+}
+
+function toggleSlideshow(){
+  if(lightboxTimer) stopSlideshow();
+  else startSlideshow();
+}
+
+function startSlideshow(){
+  if(galleryPhotos.length < 2) return;
+  document.getElementById('lightboxPlayBtn').textContent = '⏸️';
+  lightboxTimer = setInterval(() => {
+    lightboxIndex = (lightboxIndex + 1) % galleryPhotos.length;
+    renderLightboxFrame();
+  }, 3200);
+}
+
+function stopSlideshow(){
+  if(lightboxTimer){ clearInterval(lightboxTimer); lightboxTimer = null; }
+  const btn = document.getElementById('lightboxPlayBtn');
+  if(btn) btn.textContent = '▶️';
+}
+
+// Manual nav (tap arrows or swipe) pauses any running slideshow, since
+// auto-advance fighting a manual swipe feels broken.
+document.getElementById('lightboxStage').addEventListener('touchstart', (e) => {
+  lightboxTouchStartX = e.changedTouches[0].clientX;
+}, { passive:true });
+document.getElementById('lightboxStage').addEventListener('touchend', (e) => {
+  if(lightboxTouchStartX === null) return;
+  const dx = e.changedTouches[0].clientX - lightboxTouchStartX;
+  lightboxTouchStartX = null;
+  if(Math.abs(dx) < 40) return;
+  stopSlideshow();
+  if(dx < 0) lightboxNext(); else lightboxPrev();
+}, { passive:true });
+
+document.addEventListener('keydown', (e) => {
+  if(!document.getElementById('lightboxOverlay').classList.contains('show')) return;
+  if(e.key === 'Escape') closeLightbox();
+  if(e.key === 'ArrowRight'){ stopSlideshow(); lightboxNext(); }
+  if(e.key === 'ArrowLeft'){ stopSlideshow(); lightboxPrev(); }
+});
 
 /* ================= PARENT ZONE ================= */
 // This PIN is a soft gate only, to keep the bulk-upload area out of kids'
@@ -1360,7 +1492,7 @@ async function renderRoundup(){
     galleryPhotos = data || [];
     if(galleryPhotos.length){
       photoBox.style.padding = '10px';
-      photoBox.innerHTML = `<div class="roundup-thumbs">${galleryPhotos.map(p=>`<img src="${p.image_data}" alt="Zoo Quest photo" loading="lazy">`).join('')}</div>`;
+      photoBox.innerHTML = `<div class="roundup-thumbs">${galleryPhotos.map((p,i)=>`<img src="${p.image_data}" alt="Zoo Quest photo" loading="lazy" onclick="openLightbox(${i})">`).join('')}</div>`;
     } else {
       photoBox.innerHTML = `<p style="color:var(--text-secondary); font-size:13px; margin:0;">No photos yet today.<br>Try a Memory Mission! 📸</p>`;
     }
