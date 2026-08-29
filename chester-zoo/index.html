@@ -292,6 +292,7 @@
       <p style="margin:0; font-size:13.5px; color:var(--text-secondary); line-height:1.5;">Earn Academy Stars for every animal you spot, question you crack, and wild challenge you complete around the zoo today.</p>
       <button class="btn btn-primary btn-start" onclick="goTo('explorers')">Begin the Quest →</button>
     </div>
+    <button class="back-link" style="margin:14px auto 0; display:flex;" onclick="openParentZone()">👪 Parent Zone</button>
   </section>
 
   <!-- SCREEN: EXPLORER SELECT -->
@@ -341,6 +342,7 @@
       <button class="btn btn-ghost" onclick="goTo('certificates')">🏆 Passports</button>
       <button class="btn btn-ghost" onclick="goTo('gallery')">🖼️ Gallery</button>
     </div>
+    <button class="back-link" style="margin:10px auto 0; display:flex;" onclick="openParentZone()">👪 Parent Zone</button>
     <p class="footer-note">Olatoye Academy OS · Field Passport v1<br>Built for today's expedition — have fun out there! 🐾</p>
   </section>
 
@@ -364,6 +366,24 @@
       <p style="margin:6px 0 0; font-size:13px; color:var(--text-secondary);">Every Memory Mission photo from today, from everyone's turn.</p>
     </div>
     <div id="galleryGrid" style="margin-top:14px;"></div>
+  </section>
+
+  <!-- SCREEN: PARENT ZONE -->
+  <section class="screen" id="screen-parent">
+    <button class="back-link" onclick="goBack('dashboard')">← Back to map</button>
+    <div class="card" style="text-align:center;">
+      <p style="margin:0; font-weight:700; font-size:16px;">👪 Parent Zone</p>
+      <p style="margin:6px 0 0; font-size:13px; color:var(--text-secondary);">Bulk-upload photos from your camera roll straight into the Family Gallery — no stars, no turn-taking, just photos.</p>
+    </div>
+    <div class="card" id="parentUploadCard">
+      <input type="file" accept="image/*" multiple id="bulkPhotoInput" style="display:none" onchange="handleBulkPhotosSelected(event)">
+      <button class="camera-trigger" onclick="document.getElementById('bulkPhotoInput').click()">
+        <span class="emoji-big-btn">🖼️</span>
+        <span>Choose Photos</span>
+      </button>
+      <div id="bulkUploadStatus"></div>
+    </div>
+    <button class="btn btn-ghost" style="margin-top:14px;" onclick="goTo('gallery')">🖼️ View Gallery</button>
   </section>
 
 </div>
@@ -757,6 +777,71 @@ function renderGalleryGrid(){
   `).join('')}</div>`;
 }
 
+/* ================= PARENT ZONE ================= */
+// This PIN is a soft gate only, to keep the bulk-upload area out of kids'
+// way — it is NOT real security. The whole app already uses fully open
+// Supabase access (same trust model as the rest of the Academy's tools), and
+// anyone reading the page source can see this constant. Ask Claude to change
+// it any time — just say the word and a new PIN.
+const PARENT_PIN = '2026';
+
+function openParentZone(){
+  const entered = prompt('Parent PIN:');
+  if(entered === null) return;
+  if(entered.trim() !== PARENT_PIN){
+    alert("That PIN isn't right.");
+    return;
+  }
+  goTo('parent');
+}
+
+function resetParentZone(){
+  const status = document.getElementById('bulkUploadStatus');
+  if(status) status.innerHTML = '';
+  const input = document.getElementById('bulkPhotoInput');
+  if(input) input.value = '';
+}
+
+async function handleBulkPhotosSelected(event){
+  const files = Array.from(event.target.files || []);
+  if(!files.length) return;
+  const status = document.getElementById('bulkUploadStatus');
+
+  if(!sb){
+    status.innerHTML = `<p style="color:var(--sunset); text-align:center; margin-top:12px; font-size:13px;">⚠️ Can't connect right now. Check your internet and try again.</p>`;
+    return;
+  }
+
+  let succeeded = 0;
+  const failures = [];
+  for(let i = 0; i < files.length; i++){
+    status.innerHTML = `<p style="text-align:center; color:var(--text-secondary); font-size:13px; margin-top:12px;">Uploading ${i+1} of ${files.length}…</p>`;
+    try{
+      const dataUrl = await compressImageFile(files[i]);
+      const insertPromise = sb.from('academy_zoo_quest_photos').insert({
+        session_date: todayISO(),
+        explorer_id: 'family',
+        explorer_name: 'Family',
+        avatar: '👪',
+        caption: null,
+        image_data: dataUrl,
+      });
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout — took too long')), 15000));
+      const { error } = await Promise.race([insertPromise, timeoutPromise]);
+      if(error) throw error;
+      succeeded++;
+    }catch(e){
+      console.warn('Bulk photo upload failed for', files[i] && files[i].name, e);
+      failures.push((files[i] && files[i].name) || `photo ${i+1}`);
+    }
+  }
+
+  status.innerHTML = failures.length
+    ? `<p style="text-align:center; color:var(--sunset); font-size:13px; margin-top:12px; line-height:1.5;">Uploaded ${succeeded} of ${files.length}.<br>Couldn't upload: ${escapeHtml(failures.join(', '))}.<br>Check your connection and try those again.</p>`
+    : `<p style="text-align:center; color:var(--emma); font-size:14px; font-weight:700; margin-top:12px;">✅ Uploaded all ${succeeded} photo${succeeded===1?'':'s'}!</p>`;
+  event.target.value = '';
+}
+
 /* Central helper: every place that awards stars goes through here so local UI,
    localStorage, and Supabase all stay in lockstep. */
 function awardStars(ex, pts, zoneId){
@@ -879,6 +964,7 @@ function renderScreen(name){
   if(name==='dashboard') renderDashboard();
   if(name==='certificates') renderCertificates();
   if(name==='gallery') renderGallery();
+  if(name==='parent') resetParentZone();
 }
 
 /* Forward navigation — pushes onto our own stack (always works) and mirrors
