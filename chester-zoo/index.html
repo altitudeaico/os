@@ -591,7 +591,7 @@ function escapeHtml(s){
 
 /* Resize + recompress a captured photo client-side before upload, so a full
    camera-resolution photo doesn't choke on patchy zoo wifi. */
-function compressImageFile(file, maxDim=900, quality=0.72){
+function compressImageFile(file, maxDim=720, quality=0.65){
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -665,22 +665,49 @@ async function savePhoto(btn){
   const captionEl = document.getElementById('photoCaption');
   const caption = captionEl ? captionEl.value.trim().slice(0,200) : '';
   const photoData = pendingPhotoDataUrl;
-  pendingPhotoDataUrl = null;
-  if(sb){
-    try{
-      const { error } = await sb.from('academy_zoo_quest_photos').insert({
-        session_date: todayISO(),
-        explorer_id: ex.id,
-        explorer_name: ex.name,
-        avatar: ex.avatar || null,
-        caption: caption || null,
-        image_data: photoData,
-      });
-      if(error) throw error;
-    }catch(e){ console.warn('Photo upload failed — stars still count, but this photo may not appear in the gallery', e); }
+
+  if(!sb){
+    showPhotoError(btn, "Can't connect right now. Check your internet and tap Save again.");
+    return;
   }
+
+  try{
+    const insertPromise = sb.from('academy_zoo_quest_photos').insert({
+      session_date: todayISO(),
+      explorer_id: ex.id,
+      explorer_name: ex.name,
+      avatar: ex.avatar || null,
+      caption: caption || null,
+      image_data: photoData,
+    });
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
+    const { error } = await Promise.race([insertPromise, timeoutPromise]);
+    if(error) throw error;
+  }catch(e){
+    console.warn('Photo upload failed', e);
+    showPhotoError(btn, "Couldn't save that photo. Check your internet and tap Save again.");
+    return;
+  }
+
+  // Only clear the pending photo and move on once the save has actually
+  // succeeded — on failure we keep everything in place so nothing is lost
+  // and the person can just try again.
+  pendingPhotoDataUrl = null;
   awardStars(ex, 15, null);
   goBack('dashboard');
+}
+
+function showPhotoError(btn, message){
+  if(btn){ btn.disabled = false; btn.textContent = 'Save to Gallery! +15 ⭐'; }
+  let errEl = document.getElementById('photoErrorMsg');
+  if(!errEl){
+    errEl = document.createElement('p');
+    errEl.id = 'photoErrorMsg';
+    errEl.style.cssText = 'color:var(--sunset); font-size:13px; text-align:center; margin-top:10px; line-height:1.4;';
+    const area = document.getElementById('photoPreviewArea');
+    if(area) area.appendChild(errEl);
+  }
+  errEl.textContent = '⚠️ ' + message;
 }
 
 async function renderGallery(){
@@ -691,10 +718,12 @@ async function renderGallery(){
     return;
   }
   try{
-    const { data, error } = await sb.from('academy_zoo_quest_photos')
+    const fetchPromise = sb.from('academy_zoo_quest_photos')
       .select('*')
       .eq('session_date', todayISO())
       .order('created_at', { ascending:false });
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
     if(error) throw error;
     galleryPhotos = data || [];
   }catch(e){
