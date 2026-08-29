@@ -650,9 +650,13 @@ function handlePhotoSelected(event){
       <button class="btn btn-primary" style="background:var(--cousin3); margin-top:10px;" onclick="savePhoto(this)">Save to Gallery! +15 ⭐</button>
       <button class="btn btn-ghost" style="margin-top:8px;" onclick="document.getElementById('photoFileInput').click()">Retake</button>
     `;
-  }).catch(()=>{
+  }).catch((err)=>{
+    console.warn('Photo processing failed', err);
     area.innerHTML = `
-      <p style="text-align:center; color:var(--sunset); font-size:13px; padding:20px 0;">Couldn't load that photo — try again.</p>
+      <p style="text-align:center; color:var(--sunset); font-size:13px; padding:20px 0; line-height:1.4;">
+        Couldn't load that photo — try again.<br>
+        <span style="opacity:0.6; font-size:11px;">(${escapeHtml((err && err.message) || String(err))})</span>
+      </p>
       <button class="btn btn-ghost" onclick="document.getElementById('photoFileInput').click()">Try Again</button>
     `;
   });
@@ -667,7 +671,7 @@ async function savePhoto(btn){
   const photoData = pendingPhotoDataUrl;
 
   if(!sb){
-    showPhotoError(btn, "Can't connect right now. Check your internet and tap Save again.");
+    showPhotoError(btn, "Can't connect right now. Check your internet and tap Save again.", 'Supabase library did not load — check your connection or try reloading the page.');
     return;
   }
 
@@ -680,12 +684,13 @@ async function savePhoto(btn){
       caption: caption || null,
       image_data: photoData,
     });
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout — the request took too long')), 15000));
     const { error } = await Promise.race([insertPromise, timeoutPromise]);
     if(error) throw error;
   }catch(e){
     console.warn('Photo upload failed', e);
-    showPhotoError(btn, "Couldn't save that photo. Check your internet and tap Save again.");
+    const detail = (e && (e.message || e.details || e.hint || e.code)) || JSON.stringify(e);
+    showPhotoError(btn, "Couldn't save that photo. Check your internet and tap Save again.", detail);
     return;
   }
 
@@ -697,7 +702,7 @@ async function savePhoto(btn){
   goBack('dashboard');
 }
 
-function showPhotoError(btn, message){
+function showPhotoError(btn, message, detail){
   if(btn){ btn.disabled = false; btn.textContent = 'Save to Gallery! +15 ⭐'; }
   let errEl = document.getElementById('photoErrorMsg');
   if(!errEl){
@@ -707,7 +712,8 @@ function showPhotoError(btn, message){
     const area = document.getElementById('photoPreviewArea');
     if(area) area.appendChild(errEl);
   }
-  errEl.textContent = '⚠️ ' + message;
+  const detailHtml = detail ? `<br><span style="opacity:0.6; font-size:11px; word-break:break-word;">(${escapeHtml(String(detail))})</span>` : '';
+  errEl.innerHTML = '⚠️ ' + escapeHtml(message) + detailHtml;
 }
 
 async function renderGallery(){
