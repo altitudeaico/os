@@ -265,6 +265,16 @@
 
   .footer-note{text-align:center; color:var(--text-tertiary); font-size:11.5px; margin-top:22px; line-height:1.5;}
 
+  /* ---------- Round Up ---------- */
+  .roundup-row{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--hairline);}
+  .roundup-row:last-child{border-bottom:none;}
+  .roundup-row .rr-info{flex:1; min-width:0;}
+  .roundup-row .rr-name{font-weight:700; font-size:14.5px;}
+  .roundup-row .rr-rank{font-size:12px; color:var(--text-secondary); margin-top:1px;}
+  .roundup-row .rr-stars{font-size:14px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .roundup-thumbs{display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;}
+  .roundup-thumbs img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px; background:var(--paper-dark);}
+
   .sync-pill{
     display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:4px 10px;
     border-radius:100px; background:var(--paper-dark); color:var(--text-secondary);
@@ -338,9 +348,10 @@
       <button class="special-btn" onclick="openMemoryMission()"><span class="emoji">📸</span>Memory Mission</button>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:18px;">
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:18px;">
       <button class="btn btn-ghost" onclick="goTo('certificates')">🏆 Passports</button>
       <button class="btn btn-ghost" onclick="goTo('gallery')">🖼️ Gallery</button>
+      <button class="btn btn-ghost" onclick="goTo('roundup')">📋 Round Up</button>
     </div>
     <button class="back-link" style="margin:10px auto 0; display:flex;" onclick="openParentZone()">👪 Parent Zone</button>
     <p class="footer-note">Olatoye Academy OS · Field Passport v1<br>Built for today's expedition — have fun out there! 🐾</p>
@@ -384,6 +395,25 @@
       <div id="bulkUploadStatus"></div>
     </div>
     <button class="btn btn-ghost" style="margin-top:14px;" onclick="goTo('gallery')">🖼️ View Gallery</button>
+  </section>
+
+  <!-- SCREEN: ROUND UP -->
+  <section class="screen" id="screen-roundup">
+    <button class="back-link" onclick="goTo('dashboard')">← Back to map</button>
+    <div class="passport-cover" style="margin-top:10px;">
+      <div class="crest-img olatoye-crest" style="width:56px; height:56px;"></div>
+      <p class="eyebrow">Chester Zoo Wild Quest</p>
+      <h1 class="title display" style="font-size:26px;">Today's Round Up</h1>
+      <p class="subtitle" id="roundupMessage">Loading…</p>
+    </div>
+    <div class="card" id="roundupRoster"></div>
+    <p class="section-label">Photo Highlights</p>
+    <div class="card" id="roundupPhotos" style="text-align:center; color:var(--text-secondary); font-size:13px; padding:30px 18px;">Loading photos…</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
+      <button class="btn btn-ghost" onclick="goTo('certificates')">🏆 Full Passports</button>
+      <button class="btn btn-ghost" onclick="goTo('gallery')">🖼️ Full Gallery</button>
+    </div>
+    <button class="btn btn-primary" style="margin-top:10px;" onclick="goTo('dashboard')">🔄 Keep Exploring</button>
   </section>
 
 </div>
@@ -965,6 +995,7 @@ function renderScreen(name){
   if(name==='certificates') renderCertificates();
   if(name==='gallery') renderGallery();
   if(name==='parent') resetParentZone();
+  if(name==='roundup') renderRoundup();
 }
 
 /* Forward navigation — pushes onto our own stack (always works) and mirrors
@@ -1258,6 +1289,72 @@ function renderCertificates(){
   });
 }
 
+/* ================= ROUND UP ================= */
+function roundupMessageFor(total){
+  if(total >= FAMILY_GOAL) return "🏆 FAMILY GOAL SMASHED — you're all Wildlife Legends today!";
+  if(total >= FAMILY_GOAL * 0.75) return "So close to the family goal — amazing day!";
+  if(total >= FAMILY_GOAL * 0.4) return "Brilliant progress today, explorers!";
+  if(total > 0) return "A great start on today's adventure!";
+  return "Ready for a new adventure?";
+}
+
+async function renderRoundup(){
+  const total = teamTotal();
+  document.getElementById('roundupMessage').textContent = roundupMessageFor(total);
+
+  const rosterHtml = state.roster.map(ex => {
+    const rank = rankFor(ex.stars);
+    const avatarBlock = AVATAR_PHOTOS[ex.id]
+      ? avatarHtml(ex,'sm')
+      : `<span class="avatar-sm" style="background:var(${ex.light})">${ex.avatar}</span>`;
+    return `<div class="roundup-row">
+      ${avatarBlock}
+      <div class="rr-info">
+        <div class="rr-name">${ex.name}</div>
+        <div class="rr-rank">${rank.emoji} ${rank.name} · ${ex.completedZones.length}/${ZONES.length} zones</div>
+      </div>
+      <div class="rr-stars">${ex.stars}⭐</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('roundupRoster').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
+      <span style="font-size:12px; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; color:var(--text-secondary);">Family Total</span>
+      <span style="font-size:20px; font-weight:800;">${total} / ${FAMILY_GOAL}</span>
+    </div>
+    <div class="meter-track" style="margin-bottom:10px;"><div class="meter-fill" style="width:${Math.min(100,total/FAMILY_GOAL*100)}%"></div></div>
+    ${rosterHtml}
+  `;
+
+  const photoBox = document.getElementById('roundupPhotos');
+  photoBox.style.padding = '30px 18px';
+  photoBox.textContent = 'Loading photos…';
+  if(!sb){
+    photoBox.innerHTML = `<p style="color:var(--text-secondary); font-size:13px; margin:0;">Photos need an internet connection to load.</p>`;
+    return;
+  }
+  try{
+    const fetchPromise = sb.from('academy_zoo_quest_photos')
+      .select('*')
+      .eq('session_date', todayISO())
+      .order('created_at', { ascending:false })
+      .limit(6);
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+    if(error) throw error;
+    galleryPhotos = data || [];
+    if(galleryPhotos.length){
+      photoBox.style.padding = '10px';
+      photoBox.innerHTML = `<div class="roundup-thumbs">${galleryPhotos.map(p=>`<img src="${p.image_data}" alt="Zoo Quest photo" loading="lazy">`).join('')}</div>`;
+    } else {
+      photoBox.innerHTML = `<p style="color:var(--text-secondary); font-size:13px; margin:0;">No photos yet today.<br>Try a Memory Mission! 📸</p>`;
+    }
+  }catch(e){
+    console.warn('Roundup photo fetch failed', e);
+    photoBox.innerHTML = `<p style="color:var(--text-secondary); font-size:13px; margin:0;">Couldn't load photos right now.</p>`;
+  }
+}
+
 /* ================= TOAST ================= */
 function showToast(text){
   const toast = document.getElementById('pointsToast');
@@ -1268,7 +1365,17 @@ function showToast(text){
 }
 
 /* ================= INIT ================= */
-renderExplorerSelect();
+// If this device already has progress saved for today (the app was opened
+// earlier and someone's played), greet with the Round Up instead of the
+// blank welcome screen — that's the natural "how did today go" re-entry
+// point, whether that's reopening at the end of the day or just mid-visit.
+const hasProgressToday = state.roster.some(e => e.stars > 0);
+if(hasProgressToday){
+  navStack = ['roundup'];
+  renderScreen('roundup');
+} else {
+  renderExplorerSelect();
+}
 </script>
 </body>
 </html>
