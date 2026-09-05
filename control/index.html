@@ -236,11 +236,11 @@ details[open] summary::before{content:'▾ '}
 
 <!-- DIAGNOSTIC: visible lifecycle tracker — remove after auth confirmed working -->
 <div id="diag" style="
-  position:fixed;bottom:0;left:0;right:0;z-index:99999;
+  position:fixed;top:0;left:0;right:0;z-index:99999;
   background:rgba(0,0,0,0.92);color:#30d158;
   font-family:monospace;font-size:11px;padding:8px 12px;
   max-height:120px;overflow-y:auto;
-  border-top:1px solid rgba(48,209,88,0.3);
+  border-bottom:1px solid rgba(48,209,88,0.3);
   pointer-events:none;
 ">DIAG: Page ready</div>
 <script>
@@ -1348,7 +1348,7 @@ loadSDKThenInit();  // loads SDK dynamically then runs auth init
 </script>
 
 <!-- SCREEN PAIRING APPROVAL PANEL -->
-<div id="pairing-panel" style="display:none;position:fixed;bottom:80px;left:16px;right:16px;z-index:888;
+<div id="pairing-panel" style="display:none;position:fixed;bottom:16px;left:16px;right:16px;z-index:888;
   background:#1a1f1a;border:1px solid rgba(201,168,76,0.4);border-radius:16px;padding:20px;
   box-shadow:0 8px 32px rgba(0,0,0,0.6);">
   <div style="color:#C9A84C;font-size:11px;font-weight:700;letter-spacing:0.15em;margin-bottom:12px;">
