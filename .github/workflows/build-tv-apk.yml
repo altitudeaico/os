@@ -1,10 +1,3 @@
-# Family OS TV — Android Debug APK Build
-#
-# Builds the Family OS Android TV shell from source.
-# Triggered manually only — no automatic deployments.
-# No Supabase or Family OS secrets required — the APK contains no credentials.
-# All Family OS configuration lives in the web client at olatoyefamily.com/hub/
-
 name: Build Family OS TV APK
 
 on:
@@ -31,6 +24,9 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@v2
 
@@ -39,9 +35,8 @@ jobs:
 
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
         env:
-          # No secrets needed — APK contains no credentials
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
 
       - name: Upload debug APK
