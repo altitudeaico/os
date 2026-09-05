@@ -218,9 +218,48 @@ details[open] summary::before{content:'▾ '}
 /* ── MISC ── */
 .divider{height:.5px;background:var(--sep)}
 .hint{font-size:12px;color:var(--lbl3);line-height:1.4;padding:0}
+
+  /* Auth gate: write controls disabled until signed in */
+  .write-control:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  /* Auth badge hover */
+  #auth-badge:hover { opacity: 0.8; }
+
 </style>
+
+<!-- Supabase JS for Auth -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
+
+<!-- Auth gate overlay -->
+<div id="auth-overlay" style="
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,0.92);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;
+  padding:32px;
+">
+  <img src="https://altitudeaico.github.io/olatoyeacademy/logo.jpg"
+       style="width:72px;height:72px;border-radius:16px;object-fit:cover;" alt="Academy">
+  <div style="color:#fff;font-size:20px;font-weight:700;text-align:center">Academy Hub</div>
+  <div style="color:rgba(255,255,255,0.55);font-size:13px;text-align:center;max-width:260px">
+    Sign in with your Family OS Google account to control the displays.
+  </div>
+  <button onclick="signIn()" style="
+    background:#fff;color:#000;border:none;border-radius:12px;
+    padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:10px;
+  ">
+    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+    Sign in with Google
+  </button>
+  <div id="auth-error" style="color:#ff453a;font-size:12px;display:none;text-align:center"></div>
+</div>
+
 
 <!-- Nav -->
 <div class="nav">
@@ -228,7 +267,10 @@ details[open] summary::before{content:'▾ '}
     <div class="nav-title">Academy Hub</div>
     <div class="nav-sub">Control Room</div>
   </div>
-  <div class="live-badge"><div class="live-dot"></div>Live</div>
+  <div id="auth-badge" class="live-badge" onclick="handleAuthClick()" style="cursor:pointer;gap:6px;min-width:80px;justify-content:flex-end;">
+    <div class="live-dot" id="auth-dot" style="background:var(--red)"></div>
+    <span id="auth-label" style="font-size:11px">Sign in</span>
+  </div>
 </div>
 
 <!-- Display status -->
@@ -262,15 +304,15 @@ details[open] summary::before{content:'▾ '}
     </div>
     <div class="card-body">
       <div class="idle-row">
-        <button class="idle-btn d1" onclick="sendTo('idle',{},1)">
+        <button class="write-control" class="idle-btn d1" onclick="sendTo('idle',{},1)">
           <span>Display 1</span>
           <span class="idle-btn-label">SET IDLE</span>
         </button>
-        <button class="idle-btn d2" onclick="sendTo('idle',{},2)">
+        <button class="write-control" class="idle-btn d2" onclick="sendTo('idle',{},2)">
           <span>Display 2</span>
           <span class="idle-btn-label">SET IDLE</span>
         </button>
-        <button class="idle-btn both" onclick="sendTo('idle',{},'both')">
+        <button class="write-control" class="idle-btn both" onclick="sendTo('idle',{},'both')">
           <span>Both</span>
           <span class="idle-btn-label">SET IDLE</span>
         </button>
@@ -298,9 +340,9 @@ details[open] summary::before{content:'▾ '}
       <input id="custom-author" placeholder="Author (optional)">
       <input id="custom-pillar" placeholder="Pillar (optional)">
       <div class="send-row">
-        <button class="send-btn d1" onclick="sendQuoteTo(1)">↗ Display 1</button>
-        <button class="send-btn d2" onclick="sendQuoteTo(2)">↗ Display 2</button>
-        <button class="send-btn both" onclick="sendQuoteTo('both')">↗ Both</button>
+        <button class="write-control" class="send-btn d1" onclick="sendQuoteTo(1)">↗ Display 1</button>
+        <button class="write-control" class="send-btn d2" onclick="sendQuoteTo(2)">↗ Display 2</button>
+        <button class="write-control" class="send-btn both" onclick="sendQuoteTo('both')">↗ Both</button>
       </div>
     </div>
   </div>
@@ -314,9 +356,9 @@ details[open] summary::before{content:'▾ '}
     </div>
     <div class="card-body">
       <div class="send-row">
-        <button class="send-btn d1" onclick="sendTo('creed',{},1)">↗ Display 1</button>
-        <button class="send-btn d2" onclick="sendTo('creed',{},2)">↗ Display 2</button>
-        <button class="send-btn both" onclick="sendTo('creed',{},'both')">↗ Both</button>
+        <button class="write-control" class="send-btn d1" onclick="sendTo('creed',{},1)">↗ Display 1</button>
+        <button class="write-control" class="send-btn d2" onclick="sendTo('creed',{},2)">↗ Display 2</button>
+        <button class="write-control" class="send-btn both" onclick="sendTo('creed',{},'both')">↗ Both</button>
       </div>
     </div>
   </div>
@@ -338,9 +380,9 @@ details[open] summary::before{content:'▾ '}
         <textarea id="announce-body" placeholder="Additional detail…" rows="2"></textarea>
       </div>
       <div class="send-row">
-        <button class="send-btn d1" onclick="sendAnnouncementTo(1)">↗ Display 1</button>
-        <button class="send-btn d2" onclick="sendAnnouncementTo(2)">↗ Display 2</button>
-        <button class="send-btn both" onclick="sendAnnouncementTo('both')">↗ Both</button>
+        <button class="write-control" class="send-btn d1" onclick="sendAnnouncementTo(1)">↗ Display 1</button>
+        <button class="write-control" class="send-btn d2" onclick="sendAnnouncementTo(2)">↗ Display 2</button>
+        <button class="write-control" class="send-btn both" onclick="sendAnnouncementTo('both')">↗ Both</button>
       </div>
     </div>
   </div>
@@ -358,9 +400,9 @@ details[open] summary::before{content:'▾ '}
         <input id="yt-url" placeholder="https://youtu.be/… or video ID">
       </div>
       <div class="send-row">
-        <button class="send-btn d1" onclick="sendYoutubeTo(1)">▶ Display 1</button>
-        <button class="send-btn d2" onclick="sendYoutubeTo(2)">▶ Display 2</button>
-        <button class="send-btn both" onclick="sendYoutubeTo('both')">▶ Both</button>
+        <button class="write-control" class="send-btn d1" onclick="sendYoutubeTo(1)">▶ Display 1</button>
+        <button class="write-control" class="send-btn d2" onclick="sendYoutubeTo(2)">▶ Display 2</button>
+        <button class="write-control" class="send-btn both" onclick="sendYoutubeTo('both')">▶ Both</button>
       </div>
     </div>
   </div>
@@ -402,9 +444,9 @@ details[open] summary::before{content:'▾ '}
         </div>
       </div>
       <div class="send-row">
-        <button class="send-btn d1" onclick="sendGalleryTo(1)">↗ Display 1</button>
-        <button class="send-btn d2" onclick="sendGalleryTo(2)">↗ Display 2</button>
-        <button class="send-btn both" onclick="sendGalleryTo('both')">↗ Both</button>
+        <button class="write-control" class="send-btn d1" onclick="sendGalleryTo(1)">↗ Display 1</button>
+        <button class="write-control" class="send-btn d2" onclick="sendGalleryTo(2)">↗ Display 2</button>
+        <button class="write-control" class="send-btn both" onclick="sendGalleryTo('both')">↗ Both</button>
       </div>
     </div>
   </div>
@@ -426,9 +468,9 @@ details[open] summary::before{content:'▾ '}
       </div>
 
       <div class="send-row">
-        <button class="send-btn d1" onclick="sendPresentationTo(1)">▶ Display 1</button>
-        <button class="send-btn d2" onclick="sendPresentationTo(2)">▶ Display 2</button>
-        <button class="send-btn both" onclick="sendPresentationTo('both')">▶ Both</button>
+        <button class="write-control" class="send-btn d1" onclick="sendPresentationTo(1)">▶ Display 1</button>
+        <button class="write-control" class="send-btn d2" onclick="sendPresentationTo(2)">▶ Display 2</button>
+        <button class="write-control" class="send-btn both" onclick="sendPresentationTo('both')">▶ Both</button>
       </div>
 
       <div id="pres-controls" style="display:none">
@@ -461,7 +503,7 @@ details[open] summary::before{content:'▾ '}
             <input type="file" id="pres-file" accept=".html" onchange="onPresFileSelected(this)" style="padding:10px 14px;cursor:pointer">
             <div class="status-text" id="pres-file-label"></div>
           </div>
-          <button id="pres-push-btn" onclick="pushPresentation()" disabled style="height:44px;background:var(--bg4);border:0.5px solid var(--sep);border-radius:var(--rsm);color:var(--lbl2);font-size:14px;font-weight:600;cursor:pointer;opacity:.5">Upload to GitHub Pages</button>
+          <button class="write-control" id="pres-push-btn" onclick="pushPresentation()" disabled style="height:44px;background:var(--bg4);border:0.5px solid var(--sep);border-radius:var(--rsm);color:var(--lbl2);font-size:14px;font-weight:600;cursor:pointer;opacity:.5">Upload to GitHub Pages</button>
           <div class="status-text" id="pres-push-status"></div>
           <div class="hint">Uploads a single self-contained HTML file. For decks with images, ask Claude to package and register them.</div>
         </div>
@@ -503,22 +545,132 @@ details[open] summary::before{content:'▾ '}
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL  = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
+/* ══════════════════════════════════════════════════════════════
+   OLATOYE FAMILY OS — Hub Controller
+   Auth: Supabase Google OAuth (parent JWT required for writes)
+   Architecture: Controller → authenticated write → hub_state
+   Next: Controller → Guardian/command boundary → hub_state
+   ══════════════════════════════════════════════════════════════ */
+
+const SUPABASE_URL     = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
 
+/* ── Supabase Auth client ── */
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,           // survives page reload
+    autoRefreshToken: true,         // refreshes before expiry
+    storageKey: 'family-os-hub-controller',
+    storage: window.localStorage,
+    flowType: 'implicit'
+  }
+});
+
+/* ── Auth state ── */
+let _session = null;   // null = signed out
+let _user    = null;
+
+/* ── Auth headers ── */
+/* Reads use anon key (Gallery, Quotes, Presentations — no private data)
+   Writes use parent JWT — RLS enforces this on hub_state             */
+function readHeaders() {
+  return { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+}
+function writeHeaders() {
+  if (!_session?.access_token) throw new Error('Not authenticated — please sign in');
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: 'Bearer ' + _session.access_token,
+    'Content-Type': 'application/json'
+  };
+}
+
+/* ── Auth UI ── */
+function setAuthUI(session) {
+  _session = session;
+  _user    = session?.user ?? null;
+
+  const overlay  = document.getElementById('auth-overlay');
+  const dot      = document.getElementById('auth-dot');
+  const label    = document.getElementById('auth-label');
+  const controls = document.querySelectorAll('.write-control');
+
+  if (session) {
+    // Signed in
+    const name = _user?.user_metadata?.full_name?.split(' ')[0] || _user?.email || 'Parent';
+    overlay.style.display  = 'none';
+    dot.style.background   = 'var(--green, #30d158)';
+    label.textContent      = name;
+    controls.forEach(el => el.removeAttribute('disabled'));
+    loadCurrentState();
+    loadQuotes();
+    loadPresentations();
+    loadAlbums();
+  } else {
+    // Signed out
+    overlay.style.display  = 'flex';
+    dot.style.background   = 'var(--red, #ff453a)';
+    label.textContent      = 'Sign in';
+    controls.forEach(el => el.setAttribute('disabled', 'disabled'));
+  }
+}
+
+async function signIn() {
+  document.getElementById('auth-error').style.display = 'none';
+  const { error } = await _sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.href.split('#')[0],
+      queryParams: { prompt: 'select_account' }
+    }
+  });
+  if (error) {
+    const el = document.getElementById('auth-error');
+    el.textContent = error.message;
+    el.style.display = 'block';
+  }
+}
+
+async function signOut() {
+  await _sb.auth.signOut();
+  setAuthUI(null);
+  showToast('Signed out');
+}
+
+function handleAuthClick() {
+  if (_session) signOut();
+  else signIn();
+}
+
+/* ── Session init — runs on every page load ── */
+async function initAuth() {
+  // 1. Check for OAuth redirect hash
+  const { data: { session }, error } = await _sb.auth.getSession();
+  if (error) console.warn('Auth session error:', error.message);
+  setAuthUI(session);
+
+  // 2. Listen for future auth events (token refresh, sign-out)
+  _sb.auth.onAuthStateChange((_event, newSession) => {
+    setAuthUI(newSession);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODE / DISPLAY LABELS
+   ═══════════════════════════════════════════════════════════ */
 const modeLabels = {
-  idle:'Idle',quote:'Quote',creed:'Creed',
-  announcement:'Announcement',youtube:'Video',
+  idle:'Idle', quote:'Quote', creed:'Creed',
+  announcement:'Announcement', youtube:'Video',
   'gallery-spotlight':'Gallery — Spotlight',
-  'gallery-grid':'Gallery — Grid',presentation:'Presentation'
+  'gallery-grid':'Gallery — Grid', presentation:'Presentation'
 };
 
-/* ── CARD ACCORDION ── */
+/* ── Card accordion ── */
 function toggleCard(header) {
   header.closest('.card').classList.toggle('open');
 }
 
-/* ── TOAST ── */
+/* ── Toast ── */
 let toastTimer;
 function showToast(msg, type='') {
   const t = document.getElementById('toast');
@@ -528,26 +680,45 @@ function showToast(msg, type='') {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-/* ── SUPABASE UPSERT ── */
+/* ═══════════════════════════════════════════════════════════
+   SUPABASE WRITE — authenticated parent JWT required
+   ═══════════════════════════════════════════════════════════ */
 async function patchRow(id, mode, content) {
   const payload = { mode, content, updated_at: new Date().toISOString() };
-  const h = {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-    'Content-Type': 'application/json'
-  };
+  let h;
+  try { h = writeHeaders(); }
+  catch(e) { throw new Error('Write blocked: ' + e.message); }
 
-  // 1) Try UPDATE, asking for the affected rows back so we can tell if it hit anything
   const r = await fetch(SUPABASE_URL + '/rest/v1/hub_state?id=eq.' + id, {
     method: 'PATCH',
     headers: Object.assign({}, h, { Prefer: 'return=representation' }),
     body: JSON.stringify(payload)
   });
-  if (!r.ok) throw new Error('update failed (' + r.status + ')');
-  const rows = await r.json();
-  if (Array.isArray(rows) && rows.length > 0) return; // updated fine
 
-  // 2) Row didn't exist — create it
+  if (r.status === 401 || r.status === 403) {
+    // Token may have expired — try refresh
+    const { data: { session } } = await _sb.auth.refreshSession();
+    if (!session) {
+      setAuthUI(null);
+      throw new Error('Session expired — please sign in again');
+    }
+    setAuthUI(session);
+    // Retry once with refreshed token
+    const retry = await fetch(SUPABASE_URL + '/rest/v1/hub_state?id=eq.' + id, {
+      method: 'PATCH',
+      headers: Object.assign({}, writeHeaders(), { Prefer: 'return=representation' }),
+      body: JSON.stringify(payload)
+    });
+    if (!retry.ok) throw new Error('Write rejected after token refresh (' + retry.status + ')');
+    const rows2 = await retry.json();
+    if (Array.isArray(rows2) && rows2.length > 0) return;
+  }
+
+  if (!r.ok) throw new Error('Write rejected (' + r.status + ')');
+  const rows = await r.json();
+  if (Array.isArray(rows) && rows.length > 0) return;
+
+  // Row didn't exist — create it
   const ins = await fetch(SUPABASE_URL + '/rest/v1/hub_state', {
     method: 'POST',
     headers: Object.assign({}, h, { Prefer: 'return=minimal' }),
@@ -555,11 +726,11 @@ async function patchRow(id, mode, content) {
   });
   if (!ins.ok) {
     const txt = await ins.text().catch(() => '');
-    throw new Error('row ' + id + ' missing and could not be created (' + ins.status + ') ' + txt.slice(0,120));
+    throw new Error('Row ' + id + ' missing and could not be created (' + ins.status + ') ' + txt.slice(0,120));
   }
 }
 
-/* ── CORE SEND — target is 1, 2, or 'both' ── */
+/* ── Core send — target is 1, 2, or 'both' ── */
 async function sendTo(mode, content, target) {
   const label = modeLabels[mode] || mode;
   const targets = target === 'both' ? [1,2] : [target];
@@ -570,24 +741,21 @@ async function sendTo(mode, content, target) {
     catch(e) { failed.push({ id, msg: e.message }); }
   }
 
-  if (okIds.length === 0) {
-    showToast('Display ' + failed.map(f=>f.id).join(' & ') + ': ' + failed[0].msg, 'error');
-    return false;
+  if (failed.length === 0) {
+    showToast(okIds.map(i=>'D'+i).join('+') + ' → ' + label, 'success');
+  } else if (okIds.length === 0) {
+    failed.forEach(f => showToast('D' + f.id + ' FAILED: ' + f.msg, 'error'));
+  } else {
+    showToast('D' + okIds[0] + ' sent. D' + failed[0].id + ' failed: ' + failed[0].msg, 'error');
   }
-  if (failed.length > 0) {
-    showToast(label + ' → Display ' + okIds.join(' & ') + ' · Display ' + failed[0].id + ' failed', 'error');
-    return true;
-  }
-  showToast(label + ' → ' + (target === 'both' ? 'Both displays' : 'Display ' + target), 'success');
-  return true;
 }
 
+/* ── Live label ── */
 function setLiveLabel(id, label) {
   const el = document.getElementById('live-mode-d' + id);
   if (el) el.textContent = label;
 }
 
-/* ── LOAD CURRENT STATE ── */
 async function loadCurrentState() {
   try {
     const r = await fetch(SUPABASE_URL + '/rest/v1/hub_state?id=in.(1,2)&select=id,mode', {
@@ -737,7 +905,7 @@ async function handlePhotoUpload(input) {
     try {
       const r = await fetch(SUPABASE_URL + '/storage/v1/object/academy-gallery/' + filename, {
         method: 'POST',
-        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': file.type, 'x-upsert': 'true' },
+        headers: Object.assign(writeHeaders(), { 'Content-Type': file.type, 'x-upsert': 'true' },
         body: file
       });
       if (r.ok) {
@@ -745,7 +913,7 @@ async function handlePhotoUpload(input) {
         uploadedPhotos.push({ url: publicUrl });
         await fetch(SUPABASE_URL + '/rest/v1/academy_gallery', {
           method: 'POST',
-          headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+          headers: Object.assign(writeHeaders(), { 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
           body: JSON.stringify({ url: publicUrl, caption: document.getElementById('gallery-caption').value.trim() || null, album: document.getElementById('upload-album').value.trim() || 'General' })
         });
         const img = document.createElement('img');
@@ -757,7 +925,6 @@ async function handlePhotoUpload(input) {
   }
   setTimeout(() => { progress.style.display = 'none'; }, 800);
   showToast(files.length + ' photo' + (files.length > 1 ? 's' : '') + ' uploaded', 'success');
-  loadAlbums();
 }
 
 function sendGalleryTo(target) {
@@ -951,7 +1118,7 @@ async function testConnection(){
   const lines = [];
   try {
     const r = await fetch(SUPABASE_URL + '/rest/v1/hub_state?id=in.(1,2)&select=id,mode,updated_at', {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+      headers: readHeaders()
     });
     if (!r.ok) { out.style.color='var(--red)'; out.textContent = 'Database unreachable (' + r.status + ')'; return; }
     const rows = await r.json();
@@ -968,7 +1135,6 @@ async function testConnection(){
     out.style.color = 'var(--green)';
     out.textContent = lines.join('\n');
     out.style.whiteSpace = 'pre-line';
-    loadCurrentState();
   } catch(e) {
     out.style.color='var(--red)';
     out.textContent = 'Connection failed: ' + e.message;
@@ -976,10 +1142,9 @@ async function testConnection(){
 }
 
 /* ── INIT ── */
-loadCurrentState();
-loadQuotes();
-loadPresentations();
-loadAlbums();
+/* ── INIT ── */
+initAuth();  // handles session restore + all data loading post-auth
+
 </script>
 </body>
 </html>
