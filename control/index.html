@@ -1440,6 +1440,11 @@ loadSDKThenInit();  // loads SDK dynamically then runs auth init
       border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;">
       2. Test Create Surface User
     </button>
+    <button onclick="runIdentityDiag('diagnostic_bootstrap')"
+      style="background:#1a1a2a;color:#6e9fff;border:1px solid rgba(110,159,255,0.4);
+      border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;">
+      3. Full Bootstrap Test (createUser + session + SURFACE claim)
+    </button>
   </div>
   <pre id="diag-result-main" style="margin-top:12px;color:#fff;font-size:11px;
     font-family:monospace;background:rgba(255,255,255,0.04);border-radius:10px;
