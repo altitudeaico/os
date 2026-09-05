@@ -576,7 +576,6 @@ details[open] summary::before{content:'▾ '}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════
    OLATOYE FAMILY OS — Hub Controller
@@ -611,6 +610,21 @@ function initSupabaseClient() {
     }
   });
   return true;
+}
+
+/* ── Dynamic SDK loader — guarantees SDK is ready before auth runs ── */
+function loadSDKThenInit() {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+  script.onload = function() { initAuth(); };
+  script.onerror = function() {
+    const el = document.getElementById('auth-error');
+    if (el) {
+      el.textContent = 'Could not load authentication library. Check your connection and refresh.';
+      el.style.display = 'block';
+    }
+  };
+  document.head.appendChild(script);
 }
 
 /* ── Auth state ── */
@@ -1206,7 +1220,7 @@ async function testConnection(){
 
 /* ── INIT ── */
 /* ── INIT ── */
-initAuth();  // handles session restore + all data loading post-auth
+loadSDKThenInit();  // loads SDK dynamically then runs auth init
 
 </script>
 </body>
