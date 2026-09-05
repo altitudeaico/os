@@ -4,29 +4,28 @@ plugins {
 }
 
 android {
+    namespace 'com.olatoyefamily.familyos'
     compileSdk 34
 
     defaultConfig {
         applicationId "com.olatoyefamily.familyos"
-        // minSdk 21 covers all Android TV devices in active use
         minSdk 21
         targetSdk 34
         versionCode 1
         versionName "0.1.0-phase0b"
+    }
 
-        // Phase 0B — minimal WebView shell
-        // Version name tracks implementation phases
+    buildFeatures {
+        buildConfig true  // Required for BuildConfig.DEBUG in AGP 8.x
     }
 
     buildTypes {
         release {
-            minifyEnabled false  // Keep readable for Phase 0B diagnostics
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
-            applicationIdSuffix ".debug"
             debuggable true
-            // Allow Chrome DevTools remote debugging of WebView
         }
     }
 
@@ -38,16 +37,10 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-
-    // TV leanback — no activity in portrait or split-screen
-    lintOptions {
-        disable 'AllowBackup', 'GoogleAppIndexingWarning'
-    }
 }
 
 dependencies {
-    // Minimal dependencies — no business logic libraries
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.leanback:leanback:1.0.0'  // TV navigation support
+    implementation 'androidx.leanback:leanback:1.0.0'
 }
