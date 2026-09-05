@@ -654,7 +654,7 @@ async function signIn() {
   const { error } = await _sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.href.split('#')[0],
+      redirectTo: 'https://altitudeaico.github.io/os/academy-hub-controller.html',
       queryParams: { prompt: 'select_account' }
     }
   });
