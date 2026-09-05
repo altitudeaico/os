@@ -1,0 +1,484 @@
+/**
+ * Family OS TV — Surface Identity & Application Bootstrap
+ *
+ * Responsibilities:
+ * - Surface session restore (localStorage → Supabase setSession)
+ * - Pairing flow (request_surface_pairing → approve → claim_surface_session)
+ * - Authenticated Realtime connection (hub_state, surface-scoped RLS)
+ * - Minimal post-pair Home placeholder (Phase 0B only)
+ *
+ * Does NOT contain product/content logic — that is Phase 1+.
+ * Architecture invariant: Guardian, RLS, hook, pairing authority unchanged.
+ */
+
+/* ── Config ── */
+const SUPABASE_URL      = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const IDENTITY_URL      = 'https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity';
+const HOUSEHOLD_ID      = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+
+/* Surface session storage — survives page reload and app backgrounding.
+   Android TV WebView persists localStorage across process restarts
+   (tested in Phase 0B physical acceptance). */
+const SESSION_KEY = 'family-os-surface-session';
+const PAIRING_KEY = 'family-os-pairing-state';
+
+/* ── State ── */
+let _sb            = null;  // Supabase client
+let _session       = null;  // Current Surface session
+let _realtimeChan  = null;  // Realtime channel
+let _pairingTimer  = null;  // Pairing poll interval
+let _expiryTimer   = null;  // Pairing code countdown
+
+/* ── Logging (console only — no on-screen output in production) ── */
+function log(msg)  { console.log ('[FamilyOS]', msg); }
+function warn(msg) { console.warn('[FamilyOS]', msg); }
+function err(msg)  { console.error('[FamilyOS]', msg); }
+
+/* ════════════════════════════════════════════════════════════════
+   BOOTSTRAP
+   ════════════════════════════════════════════════════════════════ */
+
+window.addEventListener('load', async () => {
+  log('Boot — initialising Supabase client');
+  _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: SESSION_KEY,
+      storage: window.localStorage,
+      flowType: 'implicit',
+    }
+  });
+
+  await initSurface();
+});
+
+async function initSurface() {
+  log('Checking for stored Surface session');
+
+  // Try to restore session from localStorage
+  const stored = loadStoredSession();
+
+  if (stored) {
+    log('Stored session found — restoring');
+    try {
+      const { data, error } = await _sb.auth.setSession({
+        access_token:  stored.access_token,
+        refresh_token: stored.refresh_token,
+      });
+
+      if (error || !data?.session) {
+        warn('Session restore failed: ' + (error?.message ?? 'no session'));
+        clearSession();
+        await startPairing();
+        return;
+      }
+
+      _session = data.session;
+      log('Session restored — identity_class: ' + (_session.user?.app_metadata?.identity_class ?? 'none'));
+      storeSession(_session);
+      await showHome();
+      return;
+    } catch (e) {
+      err('Session restore exception: ' + e.message);
+      clearSession();
+    }
+  }
+
+  log('No stored session — starting pairing');
+  await startPairing();
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SESSION MANAGEMENT
+   ════════════════════════════════════════════════════════════════ */
+
+function loadStoredSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    // Basic validity check — token structure present
+    if (s?.access_token && s?.refresh_token) return s;
+    return null;
+  } catch { return null; }
+}
+
+function storeSession(session) {
+  _session = session;
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      access_token:  session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at:    session.expires_at,
+    }));
+  } catch (e) { err('Failed to store session: ' + e.message); }
+}
+
+function clearSession() {
+  _session = null;
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(PAIRING_KEY);
+  } catch {}
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PAIRING FLOW
+   ════════════════════════════════════════════════════════════════ */
+
+async function startPairing() {
+  showView('pairing');
+  renderPairingScreen('Connecting...');
+
+  try {
+    const r = await fetch(IDENTITY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operation: 'request_surface_pairing',
+        payload: { household_id: HOUSEHOLD_ID, surface_type: 'tv' }
+      })
+    });
+    const data = await r.json();
+
+    if (!data.ok) {
+      err('Pairing request failed: ' + data.error);
+      renderPairingScreen('Unable to connect. Retrying...', null, null, true);
+      setTimeout(startPairing, 30000);
+      return;
+    }
+
+    // Store pairing state in memory + localStorage (claim_secret never shown on screen)
+    const pairingState = {
+      pairing_code: data.pairing_code,
+      claim_secret: data.claim_secret,
+      expires_at:   data.expires_at,
+    };
+    try { localStorage.setItem(PAIRING_KEY, JSON.stringify(pairingState)); } catch {}
+
+    log('Pairing code generated: ' + data.pairing_code);
+    renderPairingScreen(null, data.pairing_code, data.expires_at);
+
+    // Poll for session claim every 3 seconds
+    _pairingTimer = setInterval(() => pollForSession(pairingState), 3000);
+
+  } catch (e) {
+    err('Pairing network error: ' + e.message);
+    renderPairingScreen('Network error. Retrying...', null, null, true);
+    setTimeout(startPairing, 15000);
+  }
+}
+
+async function pollForSession(pairingState) {
+  try {
+    const r = await fetch(IDENTITY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operation: 'claim_surface_session',
+        payload: {
+          pairing_code: pairingState.pairing_code,
+          claim_secret: pairingState.claim_secret,
+        }
+      })
+    });
+
+    if (r.status === 404) return; // Not approved yet — keep polling
+    if (r.status === 410) {
+      // Claim window expired — generate new code
+      clearInterval(_pairingTimer);
+      clearInterval(_expiryTimer);
+      setTimeout(startPairing, 1000);
+      return;
+    }
+
+    const data = await r.json();
+    if (data.ok && data.session) {
+      clearInterval(_pairingTimer);
+      clearInterval(_expiryTimer);
+      log('Surface session claimed — establishing authenticated client');
+
+      // Set session on Supabase client
+      const { data: authData, error } = await _sb.auth.setSession({
+        access_token:  data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+
+      if (error || !authData?.session) {
+        err('Failed to establish session after claim: ' + (error?.message ?? 'no session'));
+        await startPairing();
+        return;
+      }
+
+      _session = authData.session;
+      const identityClass = _session.user?.app_metadata?.identity_class;
+      log('Session established — identity_class: ' + identityClass);
+
+      if (identityClass !== 'surface') {
+        err('Session does not have surface identity — rejecting');
+        clearSession();
+        await startPairing();
+        return;
+      }
+
+      storeSession(_session);
+
+      // Brief "Screen connected" moment before transitioning to Home
+      renderPairingConnected();
+      await sleep(2500);
+      await showHome();
+    }
+  } catch (e) {
+    // Network error during poll — silent, keep polling
+    warn('Poll error (will retry): ' + e.message);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PAIRING SCREEN RENDER
+   Phase 0B: functional, polished, minimal.
+   V2 visual treatment comes after visual design phase.
+   ════════════════════════════════════════════════════════════════ */
+
+function renderPairingScreen(statusMsg, pairingCode, expiresAt, isError) {
+  const el = document.getElementById('view-pairing');
+
+  el.innerHTML = `
+    <div style="
+      position:fixed;inset:0;
+      background:#080d08;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      gap:0;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    ">
+      <!-- Logo -->
+      <img src="https://olatoyefamily.com/logo.jpg"
+           style="width:80px;height:80px;border-radius:18px;object-fit:cover;
+                  margin-bottom:28px;opacity:0.9;"
+           onerror="this.style.display='none'" alt="Family OS">
+
+      <!-- Wordmark -->
+      <div style="color:#C9A84C;font-size:11px;font-weight:700;
+                  letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">
+        Olatoye Family OS
+      </div>
+
+      ${pairingCode ? `
+        <!-- Heading -->
+        <div style="color:#fff;font-size:32px;font-weight:700;
+                    letter-spacing:-0.02em;margin-bottom:6px;">
+          Set up this screen
+        </div>
+        <div style="color:rgba(255,255,255,0.4);font-size:15px;margin-bottom:40px;">
+          Open Parent Control on your phone and tap Connect Screen.
+        </div>
+
+        <!-- Code box -->
+        <div style="
+          background:rgba(255,255,255,0.06);
+          border:1px solid rgba(255,255,255,0.12);
+          border-radius:20px;
+          padding:28px 56px;
+          text-align:center;
+          margin-bottom:24px;
+        ">
+          <div style="color:rgba(255,255,255,0.45);font-size:12px;
+                      letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;">
+            Pairing Code
+          </div>
+          <div id="pairing-code-display" style="
+            color:#fff;font-size:56px;font-weight:800;
+            letter-spacing:0.15em;font-variant-numeric:tabular-nums;
+          ">${pairingCode}</div>
+          <div id="pairing-expires" style="
+            color:rgba(255,255,255,0.28);font-size:13px;margin-top:14px;
+          ">Loading...</div>
+        </div>
+      ` : `
+        <!-- Status only -->
+        <div style="color:rgba(255,255,255,${isError ? '0.5' : '0.35'});
+                    font-size:16px;margin-top:16px;">
+          ${statusMsg ?? 'Please wait...'}
+        </div>
+      `}
+    </div>
+  `;
+
+  // Start expiry countdown if we have an expires_at
+  if (expiresAt) {
+    clearInterval(_expiryTimer);
+    const expiresDate = new Date(expiresAt);
+
+    const updateExpiry = () => {
+      const el = document.getElementById('pairing-expires');
+      if (!el) { clearInterval(_expiryTimer); return; }
+      const secsLeft = Math.max(0, Math.floor((expiresDate - Date.now()) / 1000));
+      const mins = Math.floor(secsLeft / 60);
+      const secs = (secsLeft % 60).toString().padStart(2, '0');
+      el.textContent = secsLeft > 0
+        ? `Code expires in ${mins}:${secs}`
+        : 'Code expired — refreshing...';
+      if (secsLeft === 0) {
+        clearInterval(_expiryTimer);
+        clearInterval(_pairingTimer);
+        setTimeout(startPairing, 1500);
+      }
+    };
+
+    updateExpiry();
+    _expiryTimer = setInterval(updateExpiry, 1000);
+  }
+}
+
+function renderPairingConnected() {
+  const el = document.getElementById('view-pairing');
+  el.innerHTML = `
+    <div style="
+      position:fixed;inset:0;background:#080d08;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:16px;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    ">
+      <div style="color:#30d158;font-size:48px;">✓</div>
+      <div style="color:#fff;font-size:28px;font-weight:700;">Screen connected.</div>
+      <div style="color:rgba(255,255,255,0.5);font-size:18px;">Welcome home, Olatoyes.</div>
+    </div>
+  `;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HOME — Phase 0B PLACEHOLDER
+   Proves: authenticated session, Realtime, hub_state delivery.
+   Visual design comes after visual design phase.
+   ════════════════════════════════════════════════════════════════ */
+
+async function showHome() {
+  showView('home');
+  renderHomePlaceholder();
+  connectRealtime();
+
+  // Listen for session expiry — refresh automatically
+  _sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'TOKEN_REFRESHED' && session) {
+      log('Token refreshed automatically');
+      storeSession(session);
+      _session = session;
+    }
+    if (event === 'SIGNED_OUT') {
+      warn('Session signed out — returning to pairing');
+      clearSession();
+      startPairing();
+    }
+  });
+
+  hideBoot();
+}
+
+function renderHomePlaceholder() {
+  const el = document.getElementById('view-home');
+  el.innerHTML = `
+    <div style="
+      position:fixed;inset:0;background:#080d08;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:20px;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    ">
+      <img src="https://olatoyefamily.com/logo.jpg"
+           style="width:72px;height:72px;border-radius:16px;object-fit:cover;"
+           onerror="this.style.display='none'" alt="Family OS">
+      <div style="color:#C9A84C;font-size:11px;font-weight:700;
+                  letter-spacing:0.2em;text-transform:uppercase;">
+        Olatoye Family OS
+      </div>
+      <div style="color:#fff;font-size:24px;font-weight:600;">
+        Family OS Home
+      </div>
+      <div style="color:rgba(255,255,255,0.35);font-size:14px;text-align:center;max-width:400px;line-height:1.6;">
+        Phase 0B — platform verified.<br>
+        Surface identity active. Realtime connected.<br>
+        V2 Home experience follows visual design phase.
+      </div>
+      <div id="realtime-status" style="
+        margin-top:8px;
+        color:rgba(255,255,255,0.25);font-size:12px;
+        font-family:monospace;
+      ">Realtime: connecting...</div>
+    </div>
+  `;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   REALTIME — authenticated surface-scoped connection
+   RLS: surface can only receive hub_state for its own surface_id.
+   ════════════════════════════════════════════════════════════════ */
+
+function connectRealtime() {
+  if (!_session) { warn('No session — cannot connect Realtime'); return; }
+
+  // Disconnect any existing channel
+  if (_realtimeChan) {
+    _sb.removeChannel(_realtimeChan);
+    _realtimeChan = null;
+  }
+
+  log('Connecting Realtime (surface-scoped)');
+
+  _realtimeChan = _sb
+    .channel('hub_state_surface')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'hub_state' },
+      (payload) => {
+        log('hub_state update received: ' + JSON.stringify(payload.new));
+        updateRealtimeStatus('✓ Realtime live — ' + new Date().toLocaleTimeString());
+        applyHubState(payload.new);
+      }
+    )
+    .subscribe((status) => {
+      log('Realtime status: ' + status);
+      if (status === 'SUBSCRIBED') {
+        updateRealtimeStatus('✓ Realtime connected');
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+        updateRealtimeStatus('⚠ Realtime disconnected — reconnecting...');
+        setTimeout(connectRealtime, 5000);
+      }
+    });
+}
+
+function updateRealtimeStatus(msg) {
+  const el = document.getElementById('realtime-status');
+  if (el) el.textContent = 'Realtime: ' + msg;
+}
+
+function applyHubState(state) {
+  // Phase 0B: log state changes, full rendering in Phase 1+
+  if (!state) return;
+  log('Hub state: mode=' + state.mode);
+  updateRealtimeStatus('✓ State: ' + state.mode + ' @ ' + new Date().toLocaleTimeString());
+}
+
+/* ════════════════════════════════════════════════════════════════
+   VIEW MANAGEMENT
+   ════════════════════════════════════════════════════════════════ */
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-' + name);
+  if (el) el.classList.add('active');
+  document.getElementById('app').classList.add('active');
+}
+
+function hideBoot() {
+  const boot = document.getElementById('boot');
+  boot.classList.add('fade-out');
+  setTimeout(() => { boot.style.display = 'none'; }, 700);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   UTILITIES
+   ════════════════════════════════════════════════════════════════ */
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
