@@ -700,6 +700,9 @@ function setAuthUI(session) {
     loadQuotes();
     loadPresentations();
     loadAlbums();
+    // Check for pending screen pairing requests
+    setInterval(checkForPairingRequests, 5000);
+    checkForPairingRequests();
   } else {
     // Signed out
     overlay.style.display  = 'flex';
@@ -1265,9 +1268,104 @@ async function testConnection(){
   }
 }
 
+
+/* ══ SCREEN PAIRING APPROVAL ════════════════════════════════ */
+const IDENTITY_URL_CTRL = 'https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity';
+let _pendingPairingCode = null;
+let _pendingSurfaceId   = null;
+
+async function checkForPairingRequests() {
+  if (!_session) return;
+  try {
+    // Poll Supabase for pending pairing requests for this household
+    const r = await fetch(SUPABASE_URL + '/rest/v1/surface_pairing_requests?status=eq.pending&select=id,pairing_code,surface_type,requested_at,expires_at&order=requested_at.desc&limit=1', {
+      headers: writeHeaders()
+    });
+    if (!r.ok) return;
+    const requests = await r.json();
+    if (!requests || requests.length === 0) {
+      document.getElementById('pairing-panel').style.display = 'none';
+      return;
+    }
+    const req = requests[0];
+    // Check not expired
+    if (new Date(req.expires_at) < new Date()) return;
+
+    _pendingPairingCode = req.pairing_code;
+
+    // Get the surface to approve to — first unpaired surface
+    const sr = await fetch(SUPABASE_URL + '/rest/v1/hub_surfaces?auth_user_id=is.null&status=eq.active&select=id,name,surface_key&limit=1', {
+      headers: writeHeaders()
+    });
+    const surfaces = sr.ok ? await sr.json() : [];
+    _pendingSurfaceId = surfaces.length > 0 ? surfaces[0].id : null;
+    const surfaceName = surfaces.length > 0 ? surfaces[0].name : 'Unknown screen';
+
+    document.getElementById('pairing-request-info').innerHTML =
+      '<strong>' + surfaceName + '</strong> is requesting to connect.<br>' +
+      '<span style="color:rgba(255,255,255,0.5);font-size:13px;">Code: ' + req.pairing_code + '</span>';
+    document.getElementById('pairing-panel').style.display = 'block';
+  } catch(e) {}
+}
+
+async function approvePairing() {
+  if (!_pendingPairingCode || !_pendingSurfaceId) {
+    showToast('No pending request', 'error');
+    return;
+  }
+  document.getElementById('pairing-approve-btn').textContent = 'Connecting...';
+  try {
+    const r = await fetch(IDENTITY_URL_CTRL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _session.access_token },
+      body: JSON.stringify({
+        operation: 'approve_surface_pairing',
+        payload: { pairing_code: _pendingPairingCode, surface_id: _pendingSurfaceId }
+      })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      showToast(data.message || 'Screen connected!', 'success');
+      document.getElementById('pairing-panel').style.display = 'none';
+      loadCurrentState();
+    } else {
+      showToast('Failed: ' + data.error, 'error');
+      document.getElementById('pairing-approve-btn').textContent = 'Connect Screen';
+    }
+  } catch(e) {
+    showToast('Network error', 'error');
+    document.getElementById('pairing-approve-btn').textContent = 'Connect Screen';
+  }
+}
+
+function dismissPairing() {
+  document.getElementById('pairing-panel').style.display = 'none';
+}
+
 /* ── INIT ── */
 loadSDKThenInit();  // loads SDK dynamically then runs auth init
 
 </script>
+
+<!-- SCREEN PAIRING APPROVAL PANEL -->
+<div id="pairing-panel" style="display:none;position:fixed;bottom:80px;left:16px;right:16px;z-index:888;
+  background:#1a1f1a;border:1px solid rgba(201,168,76,0.4);border-radius:16px;padding:20px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.6);">
+  <div style="color:#C9A84C;font-size:11px;font-weight:700;letter-spacing:0.15em;margin-bottom:12px;">
+    NEW SCREEN REQUEST
+  </div>
+  <div id="pairing-request-info" style="color:#fff;font-size:15px;margin-bottom:16px;line-height:1.4;"></div>
+  <div style="display:flex;gap:10px;">
+    <button id="pairing-approve-btn" class="write-control" onclick="approvePairing()"
+      style="flex:1;background:#C9A84C;color:#000;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">
+      Connect Screen
+    </button>
+    <button onclick="dismissPairing()"
+      style="background:rgba(255,255,255,0.08);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-size:14px;cursor:pointer;">
+      Dismiss
+    </button>
+  </div>
+</div>
+
 </body>
 </html>
