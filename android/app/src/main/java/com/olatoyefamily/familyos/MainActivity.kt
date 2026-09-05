@@ -87,10 +87,7 @@ class MainActivity : Activity() {
             }
 
             // Cookies — required for Supabase Auth session
-            CookieManager.getInstance().apply {
-                setAcceptCookie(true)
-                setAcceptThirdPartyCookies(this@apply, false) // first-party only
-            }
+            CookieManager.getInstance().setAcceptCookie(true)
 
             webViewClient = FamilyOSWebViewClient(APPROVED_ORIGINS)
             webChromeClient = FamilyOSChromeClient()
@@ -98,6 +95,9 @@ class MainActivity : Activity() {
             // Hardware acceleration for smooth rendering
             setLayerType(View.LAYER_TYPE_HARDWARE, null)
         }
+
+        // Restrict to first-party cookies only
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false)
 
         setContentView(webView)
 
