@@ -234,51 +234,6 @@ details[open] summary::before{content:'▾ '}
 </head>
 <body>
 
-<!-- TEMPORARY DIAGNOSTIC PANEL — remove after fault investigation -->
-<div id="diag-panel" style="display:none;position:fixed;top:60px;left:0;right:0;z-index:9998;
-  background:#0a0f0a;border-bottom:1px solid rgba(201,168,76,0.3);padding:12px 16px;">
-  <div style="color:#C9A84C;font-size:11px;font-weight:700;letter-spacing:0.15em;margin-bottom:8px;">
-    IDENTITY DIAGNOSTIC
-  </div>
-  <div style="display:flex;gap:8px;margin-bottom:8px;">
-    <button onclick="runDiag('credential_check')" style="background:#1a2a1a;color:#30d158;border:1px solid #30d158;
-      border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">
-      1. Check Credentials
-    </button>
-    <button onclick="runDiag('test_create_user')" style="background:#1a2a1a;color:#C9A84C;border:1px solid #C9A84C;
-      border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">
-      2. Test createUser
-    </button>
-    <button onclick="document.getElementById('diag-result').textContent=''" style="background:rgba(255,255,255,0.05);
-      color:rgba(255,255,255,0.4);border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">
-      Clear
-    </button>
-  </div>
-  <pre id="diag-result" style="color:#fff;font-size:11px;font-family:monospace;
-    background:rgba(0,0,0,0.4);border-radius:8px;padding:10px;
-    max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;
-    margin:0;min-height:40px;"></pre>
-</div>
-<script>
-const IDENTITY_DIAG_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity';
-const ANON_KEY_DIAG = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
-
-async function runDiag(operation) {
-  const el = document.getElementById('diag-result');
-  el.textContent = 'Running ' + operation + '...';
-  try {
-    const r = await fetch(IDENTITY_DIAG_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY_DIAG },
-      body: JSON.stringify({ operation })
-    });
-    const data = await r.json();
-    el.textContent = 'HTTP ' + r.status + '\n' + JSON.stringify(data, null, 2);
-  } catch(e) {
-    el.textContent = 'Network error: ' + e.message;
-  }
-}
-</script>
 
 <!-- DIAGNOSTIC: visible lifecycle tracker — remove after auth confirmed working -->
 <div id="diag" style="display:none;
@@ -1423,55 +1378,6 @@ loadSDKThenInit();  // loads SDK dynamically then runs auth init
 </div>
 
 
-<!-- IDENTITY DIAGNOSTIC — always visible, remove after pairing confirmed -->
-<div style="padding:16px;">
-  <div style="color:rgba(255,255,255,0.3);font-size:11px;font-weight:700;
-    letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">
-    Identity Diagnostic
-  </div>
-  <div style="display:flex;flex-direction:column;gap:8px;">
-    <button onclick="runIdentityDiag('credential_check')"
-      style="background:#1a2a1a;color:#30d158;border:1px solid rgba(48,209,88,0.4);
-      border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;">
-      1. Check Credentials
-    </button>
-    <button onclick="runIdentityDiag('test_create_user')"
-      style="background:#1a2a1a;color:#C9A84C;border:1px solid rgba(201,168,76,0.4);
-      border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;">
-      2. Test Create Surface User
-    </button>
-    <button onclick="runIdentityDiag('diagnostic_bootstrap')"
-      style="background:#1a1a2a;color:#6e9fff;border:1px solid rgba(110,159,255,0.4);
-      border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;">
-      3. Full Bootstrap Test (createUser + session + SURFACE claim)
-    </button>
-  </div>
-  <pre id="diag-result-main" style="margin-top:12px;color:#fff;font-size:11px;
-    font-family:monospace;background:rgba(255,255,255,0.04);border-radius:10px;
-    padding:12px;max-height:300px;overflow-y:auto;white-space:pre-wrap;
-    word-break:break-all;display:none;"></pre>
-</div>
-<script>
-async function runIdentityDiag(operation) {
-  const el = document.getElementById('diag-result-main');
-  el.style.display = 'block';
-  el.textContent = 'Running ' + operation + '...';
-  try {
-    const r = await fetch('https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4'
-      },
-      body: JSON.stringify({ operation })
-    });
-    const data = await r.json();
-    el.textContent = 'HTTP ' + r.status + '\n\n' + JSON.stringify(data, null, 2);
-  } catch(e) {
-    el.textContent = 'Error: ' + e.message;
-  }
-}
-</script>
 
 </body>
 </html>
