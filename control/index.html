@@ -235,7 +235,7 @@ details[open] summary::before{content:'▾ '}
 <body>
 
 <!-- TEMPORARY DIAGNOSTIC PANEL — remove after fault investigation -->
-<div id="diag-panel" style="position:fixed;top:60px;left:0;right:0;z-index:9998;
+<div id="diag-panel" style="display:none;position:fixed;top:60px;left:0;right:0;z-index:9998;
   background:#0a0f0a;border-bottom:1px solid rgba(201,168,76,0.3);padding:12px 16px;">
   <div style="color:#C9A84C;font-size:11px;font-weight:700;letter-spacing:0.15em;margin-bottom:8px;">
     IDENTITY DIAGNOSTIC
@@ -281,7 +281,7 @@ async function runDiag(operation) {
 </script>
 
 <!-- DIAGNOSTIC: visible lifecycle tracker — remove after auth confirmed working -->
-<div id="diag" style="
+<div id="diag" style="display:none;
   position:fixed;top:0;left:0;right:0;z-index:99999;
   background:rgba(0,0,0,0.92);color:#30d158;
   font-family:monospace;font-size:11px;padding:8px 12px;
@@ -290,7 +290,16 @@ async function runDiag(operation) {
   pointer-events:none;
 ">DIAG: Page ready</div>
 <script>
+const DEBUG_UI = new URLSearchParams(window.location.search).get('debug') === '1';
+if (DEBUG_UI) {
+  document.getElementById('diag').style.display = 'block';
+  document.getElementById('diag-panel').style.display = 'block';
+}
 function diag(msg) {
+  // Always log to console for DevTools access
+  console.log('[FamilyOS]', new Date().toISOString().substr(11,8), msg);
+  // Only show on-screen UI if debug=1
+  if (!DEBUG_UI) return;
   const el = document.getElementById('diag');
   if (!el) return;
   const line = document.createElement('div');
