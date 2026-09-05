@@ -230,8 +230,6 @@ details[open] summary::before{content:'▾ '}
 
 </style>
 
-<!-- Supabase JS for Auth -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -578,6 +576,7 @@ details[open] summary::before{content:'▾ '}
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════
    OLATOYE FAMILY OS — Hub Controller
@@ -590,15 +589,29 @@ const SUPABASE_URL     = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
 
 /* ── Supabase Auth client ── */
-const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,           // survives page reload
-    autoRefreshToken: true,         // refreshes before expiry
-    storageKey: 'family-os-hub-controller',
-    storage: window.localStorage,
-    flowType: 'implicit'
+let _sb = null;
+
+function initSupabaseClient() {
+  if (typeof supabase === 'undefined') {
+    console.error('Supabase SDK not loaded');
+    const el = document.getElementById('auth-error');
+    if (el) {
+      el.textContent = 'Could not load authentication. Please check your connection and refresh.';
+      el.style.display = 'block';
+    }
+    return false;
   }
-});
+  _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: 'family-os-hub-controller',
+      storage: window.localStorage,
+      flowType: 'implicit'
+    }
+  });
+  return true;
+}
 
 /* ── Auth state ── */
 let _session = null;   // null = signed out
@@ -651,6 +664,12 @@ function setAuthUI(session) {
 
 async function signIn() {
   document.getElementById('auth-error').style.display = 'none';
+  if (!_sb) {
+    const el = document.getElementById('auth-error');
+    el.textContent = 'Authentication not ready. Please refresh the page.';
+    el.style.display = 'block';
+    return;
+  }
   const { error } = await _sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -687,6 +706,7 @@ function handleAuthClick() {
 
 /* ── Session init — runs on every page load ── */
 async function initAuth() {
+  if (!initSupabaseClient()) return;
   // 1. Check for OAuth redirect hash
   const { data: { session }, error } = await _sb.auth.getSession();
   if (error) console.warn('Auth session error:', error.message);
