@@ -26,6 +26,13 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 9477386
+          accept-android-sdk-licenses: true
+
+      - name: Install Android build tools and platform
+        run: |
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Validate Gradle wrapper
         uses: gradle/wrapper-validation-action@v2
@@ -33,27 +40,15 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Show project structure
-        run: |
-          echo "=== Android project files ==="
-          find android -type f | sort
-          echo ""
-          echo "=== app/build.gradle ==="
-          cat android/app/build.gradle
-          echo ""
-          echo "=== AndroidManifest.xml ==="
-          cat android/app/src/main/AndroidManifest.xml
-          echo ""
-          echo "=== Android SDK location ==="
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls $ANDROID_HOME/platforms/ 2>/dev/null || echo "No platforms dir"
-
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
         env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
-        continue-on-error: true
+
+      - name: Locate APK
+        run: find android -name "*.apk" 2>/dev/null
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -61,4 +56,4 @@ jobs:
           name: family-os-tv-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
