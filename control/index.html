@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Olatoye Academy">
+<meta property="og:title" content="Olatoye Family OS — Control Room">
+<meta property="og:description" content="Family OS parent control — manage displays, Academy and family experiences.">
+<meta property="og:image" content="/logo.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Olatoye Family OS — Control Room">
+<meta name="twitter:description" content="Family OS parent control — manage displays, Academy and family experiences.">
+<meta name="twitter:image" content="/logo.jpg">
+<meta name="theme-color" content="#061409">
+<link rel="icon" href="/logo.jpg">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Family OS — Control Room</title>
+<link rel="canonical" href="https://olatoyefamily.com/control/">
+<style>
+:root {
+  --bg:    #000;
+  --bg2:   #111113;
+  --bg3:   #1c1c1e;
+  --bg4:   #2c2c2e;
+  --sep:   rgba(255,255,255,0.09);
+  --lbl:   #fff;
+  --lbl2:  rgba(255,255,255,0.55);
+  --lbl3:  rgba(255,255,255,0.28);
+  --gold:  #C9A84C;
+  --goldd: rgba(201,168,76,0.14);
+  --goldb: rgba(201,168,76,0.32);
+  --blue:  #0A84FF;
+  --green: #30D158;
+  --red:   #FF453A;
+  --r:     14px;
+  --rsm:   10px;
+  --rlg:   20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--lbl);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;font-size:16px;line-height:1.45;min-height:100dvh;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+
+/* ── NAV ── */
+.nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(0,0,0,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding: env(safe-area-inset-top,20px) 16px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:0.5px solid var(--sep);
+}
+.nav-title{font-size:17px;font-weight:700;letter-spacing:-0.4px}
+.nav-sub{font-size:11px;color:var(--lbl2);font-weight:500;margin-top:1px}
+.live-badge{display:flex;align-items:center;gap:5px;background:rgba(48,209,88,0.12);border:0.5px solid rgba(48,209,88,0.3);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--green)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+/* ── DISPLAY STATUS CARDS ── */
+.displays-section{padding:16px 16px 0}
+.displays-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.display-card{
+  background:var(--bg3);border-radius:var(--r);padding:14px 14px 12px;
+  border:1px solid var(--sep);
+  display:flex;flex-direction:column;gap:6px;
+  position:relative;overflow:hidden;
+}
+.display-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+}
+.display-card.d1::before{background:var(--green)}
+.display-card.d2::before{background:var(--blue)}
+.dc-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.5}
+.dc-label.d1{color:var(--green);opacity:.9}
+.dc-label.d2{color:#60a5fa;opacity:.9}
+.dc-mode{font-size:14px;font-weight:700;color:var(--lbl);letter-spacing:-.2px;min-height:20px}
+.dc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:1px}
+.dc-dot.d1{background:var(--green);animation:pulse 2s ease-in-out infinite}
+.dc-dot.d2{background:#60a5fa;animation:pulse 2s ease-in-out infinite 0.4s}
+.dc-row{display:flex;align-items:center;gap:6px}
+
+/* ── SCROLL ── */
+.scroll{padding:0 16px calc(40px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+
+/* ── CONTENT CARDS ── */
+.card{background:var(--bg3);border-radius:var(--r);overflow:hidden;border:0.5px solid var(--sep)}
+.card-header{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px 10px;
+  cursor:pointer;
+  user-select:none;
+}
+.card-icon{font-size:20px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--bg4);border-radius:var(--rsm);flex-shrink:0}
+.card-title{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.card-sub{font-size:12px;color:var(--lbl2);margin-top:1px}
+.card-chevron{margin-left:auto;color:var(--lbl3);font-size:14px;transition:transform .2s}
+.card-body{padding:0 16px 16px;display:none;flex-direction:column;gap:10px}
+.card.open .card-body{display:flex}
+.card.open .card-chevron{transform:rotate(90deg)}
+
+/* ── SEND ROW — the key UX element ── */
+.send-row{display:flex;gap:6px;margin-top:4px}
+.send-btn{
+  flex:1;height:44px;border:none;border-radius:var(--rsm);
+  font-size:12px;font-weight:800;letter-spacing:-.1px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  transition:opacity .12s,transform .1s;
+}
+.send-btn:active{opacity:.75;transform:scale(.97)}
+.send-btn.d1{background:rgba(48,209,88,0.18);color:var(--green);border:1px solid rgba(48,209,88,0.3)}
+.send-btn.d2{background:rgba(96,165,250,0.15);color:#60a5fa;border:1px solid rgba(96,165,250,0.28)}
+.send-btn.both{background:var(--goldd);color:var(--gold);border:1px solid var(--goldb)}
+.send-btn.d1:active,.send-btn.d2:active,.send-btn.both:active{filter:brightness(1.3)}
+
+/* ── IDLE CARD ── */
+.idle-row{display:flex;gap:6px}
+.idle-btn{
+  flex:1;height:52px;border:none;border-radius:var(--rsm);
+  font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:opacity .12s;
+}
+.idle-btn:active{opacity:.7}
+.idle-btn.d1{background:rgba(48,209,88,0.15);color:var(--green);border:1px solid rgba(48,209,88,0.25)}
+.idle-btn.d2{background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.22)}
+.idle-btn.both{background:var(--goldd);color:var(--gold);border:1px solid var(--goldb)}
+.idle-btn-label{font-size:10px;font-weight:700;opacity:.7;letter-spacing:.04em}
+
+/* ── INPUTS ── */
+input,textarea,select{
+  width:100%;background:var(--bg4);border:0.5px solid var(--sep);
+  border-radius:var(--rsm);color:var(--lbl);font-family:inherit;
+  font-size:15px;padding:12px 14px;outline:none;
+}
+input:focus,textarea:focus{border-color:var(--goldb)}
+textarea{resize:none;min-height:72px;line-height:1.4}
+.field-label{font-size:12px;font-weight:600;color:var(--lbl2);margin-bottom:4px}
+
+/* ── QUOTE LIST ── */
+.quote-scroll{max-height:200px;overflow-y:auto;border:0.5px solid var(--sep);border-radius:var(--rsm);background:var(--bg4)}
+.qi{padding:10px 14px;border-bottom:0.5px solid var(--sep);cursor:pointer;transition:background .12s}
+.qi:last-child{border-bottom:none}
+.qi:active,.qi.sel{background:var(--goldd)}
+.qi-text{font-size:13px;font-weight:500;line-height:1.35;color:var(--lbl)}
+.qi-meta{font-size:11px;color:var(--lbl3);margin-top:3px}
+
+/* ── GALLERY MODE TOGGLE ── */
+.toggle-row{display:flex;background:var(--bg4);border-radius:var(--rsm);padding:3px;gap:3px}
+.toggle-opt{
+  flex:1;height:34px;border:none;border-radius:8px;background:transparent;
+  color:var(--lbl2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;
+}
+.toggle-opt.sel{background:var(--bg);color:var(--lbl);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+/* ── PHOTO PREVIEW ── */
+.photo-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:4px}
+.photo-thumb{aspect-ratio:1;border-radius:var(--rsm);object-fit:cover;width:100%}
+.progress-bar-wrap{background:var(--bg4);border-radius:6px;height:4px;overflow:hidden;display:none;margin-top:4px}
+.progress-bar{height:100%;background:var(--gold);width:0%;transition:width .3s}
+
+/* ── PRESENTATION ── */
+.slide-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.slide-btn{height:52px;border:none;border-radius:var(--rsm);font-size:20px;font-weight:700;cursor:pointer;transition:opacity .12s}
+.slide-btn:active{opacity:.7}
+.slide-prev{background:var(--bg4);color:var(--lbl)}
+.slide-next{background:var(--gold);color:#000}
+.ghost-row{margin-top:4px}
+.ghost-btn{
+  width:100%;height:40px;background:transparent;
+  border:0.5px solid var(--sep);border-radius:var(--rsm);
+  color:var(--lbl2);font-size:13px;font-weight:500;cursor:pointer;
+}
+.ghost-btn:active{background:var(--bg4)}
+.status-text{font-size:12px;color:var(--lbl3);margin-top:2px}
+.url-chip{
+  background:var(--bg4);border-radius:var(--rsm);padding:8px 12px;
+  font-size:11px;color:var(--lbl2);word-break:break-all;line-height:1.4;
+}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--bg3);border:0.5px solid var(--sep);
+  border-radius:20px;padding:10px 20px;
+  font-size:14px;font-weight:600;color:var(--lbl);
+  white-space:nowrap;z-index:999;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+  opacity:0;pointer-events:none;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.success{border-color:rgba(48,209,88,.35);color:var(--green)}
+.toast.error{border-color:rgba(255,69,58,.35);color:var(--red)}
+
+/* ── PRESENTATION LIBRARY ── */
+.pres-list{border:0.5px solid var(--sep);border-radius:var(--rsm);background:var(--bg4);overflow:hidden}
+.pres-item{padding:11px 14px;border-bottom:0.5px solid var(--sep);cursor:pointer;transition:background .12s}
+.pres-item:last-child{border-bottom:none}
+.pres-item:active,.pres-item.sel{background:var(--goldd)}
+.pres-item.sel .pres-title{color:var(--gold)}
+.pres-title{font-size:14px;font-weight:600;line-height:1.3}
+.pres-meta{font-size:11px;color:var(--lbl3);margin-top:2px}
+.slide-jump{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.slide-num{
+  flex:1;min-width:38px;height:36px;border-radius:8px;
+  background:var(--bg4);border:0.5px solid var(--sep);
+  color:var(--lbl2);font-size:13px;font-weight:700;cursor:pointer;transition:all .12s;
+}
+.slide-num.cur{background:var(--gold);color:#000;border-color:var(--gold)}
+.slide-num:active{filter:brightness(1.3)}
+details summary{list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:'▸ ';color:var(--lbl3)}
+details[open] summary::before{content:'▾ '}
+
+/* ── MISC ── */
+.divider{height:.5px;background:var(--sep)}
+.hint{font-size:12px;color:var(--lbl3);line-height:1.4;padding:0}
+
+  /* Auth gate: write controls disabled until signed in */
+  .write-control:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  /* Auth badge hover */
+  #auth-badge:hover { opacity: 0.8; }
+
+</style>
+
+</head>
+<body>
+
+<!-- DIAGNOSTIC: visible lifecycle tracker — remove after auth confirmed working -->
+<div id="diag" style="
+  position:fixed;bottom:0;left:0;right:0;z-index:99999;
+  background:rgba(0,0,0,0.92);color:#30d158;
+  font-family:monospace;font-size:11px;padding:8px 12px;
+  max-height:120px;overflow-y:auto;
+  border-top:1px solid rgba(48,209,88,0.3);
+  pointer-events:none;
+">DIAG: Page ready</div>
+<script>
+function diag(msg) {
+  const el = document.getElementById('diag');
+  if (!el) return;
+  const line = document.createElement('div');
+  line.textContent = new Date().toISOString().substr(11,8) + ' — ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+window.onerror = function(msg, src, line) {
+  diag('JS ERROR: ' + msg + ' (L' + line + ')');
+};
+diag('DOM ready');
+</script>
+
+
+<!-- Auth gate overlay — Family OS front door -->
+<div id="auth-overlay" style="
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(160deg,#0a0f0a 0%,#0e1a10 50%,#0a0c0a 100%);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:0;
+  padding:40px 32px;
+">
+  <!-- Logo -->
+  <img src="/logo.jpg"
+       style="width:88px;height:88px;border-radius:20px;object-fit:cover;
+              box-shadow:0 8px 32px rgba(0,0,0,0.6);margin-bottom:28px;"
+       alt="Olatoye Family OS"
+       onerror="this.style.display='none'">
+
+  <!-- Family OS wordmark -->
+  <div style="color:#C9A84C;font-size:11px;font-weight:700;letter-spacing:0.18em;
+              text-transform:uppercase;margin-bottom:8px;">Olatoye Family OS</div>
+
+  <!-- Tagline -->
+  <div style="color:#ffffff;font-size:26px;font-weight:700;text-align:center;
+              line-height:1.2;margin-bottom:6px;letter-spacing:-0.02em;">
+    Your family.<br>Your world.
+  </div>
+  <div style="color:rgba(255,255,255,0.38);font-size:13px;text-align:center;
+              margin-bottom:40px;letter-spacing:0.01em;">
+    Control Room — Parent Access
+  </div>
+
+  <!-- Sign in button — Family OS styled, Google identified clearly but not dominant -->
+  <button type="button" onclick="signIn()" style="
+    background:rgba(255,255,255,0.96);color:#111;border:none;border-radius:14px;
+    padding:15px 32px;font-size:15px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:10px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    transition:opacity 0.15s;width:100%;max-width:280px;justify-content:center;
+  " onmousedown="this.style.opacity=0.85" onmouseup="this.style.opacity=1">
+    <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0">
+      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+      <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+    </svg>
+    Continue with Google
+  </button>
+
+  <!-- Error state — friendly, no Supabase terminology -->
+  <div id="auth-error" style="
+    color:#ff6b6b;font-size:13px;display:none;text-align:center;
+    margin-top:16px;max-width:260px;line-height:1.4;
+  "></div>
+
+  <!-- Footer -->
+  <div style="position:absolute;bottom:32px;color:rgba(255,255,255,0.2);
+              font-size:11px;text-align:center;letter-spacing:0.05em;">
+    FAMILY OS · PARENT CONTROL
+  </div>
+</div>
+
+
+<!-- Nav -->
+<div class="nav">
+  <div>
+    <div class="nav-title">Family OS</div>
+    <div class="nav-sub">Control Room</div>
+  </div>
+  <div id="auth-badge" class="live-badge" onclick="handleAuthClick()" style="cursor:pointer;gap:6px;min-width:80px;justify-content:flex-end;">
+    <div class="live-dot" id="auth-dot" style="background:var(--red)"></div>
+    <span id="auth-label" style="font-size:11px">Sign in</span>
+  </div>
+</div>
+
+<!-- Display status -->
+<div class="displays-section">
+  <div class="displays-row">
+    <div class="display-card d1">
+      <div class="dc-label d1">Display 1</div>
+      <div class="dc-row">
+        <div class="dc-dot d1"></div>
+        <div class="dc-mode" id="live-mode-d1">Loading…</div>
+      </div>
+    </div>
+    <div class="display-card d2">
+      <div class="dc-label d2">Display 2</div>
+      <div class="dc-row">
+        <div class="dc-dot d2"></div>
+        <div class="dc-mode" id="live-mode-d2">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scroll">
+
+  <!-- ── IDLE ── -->
+  <div class="card open">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">🌙</div>
+      <div><div class="card-title">Idle / Screensaver</div><div class="card-sub">Rotating quotes and clock</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+      <div class="idle-row">
+        <button class="write-control idle-btn d1" onclick="sendTo('idle',{},1)">
+          <span>Display 1</span>
+          <span class="idle-btn-label">SET IDLE</span>
+        </button>
+        <button class="write-control idle-btn d2" onclick="sendTo('idle',{},2)">
+          <span>Display 2</span>
+          <span class="idle-btn-label">SET IDLE</span>
+        </button>
+        <button class="write-control idle-btn both" onclick="sendTo('idle',{},'both')">
+          <span>Both</span>
+          <span class="idle-btn-label">SET IDLE</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── QUOTE ── -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">💬</div>
+      <div><div class="card-title">Quote / Affirmation</div><div class="card-sub">Pick from library or write your own</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="field-label">Library</div>
+        <div class="quote-scroll" id="quote-list"><div class="qi"><div class="qi-text" style="color:var(--lbl3)">Loading…</div></div></div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="field-label">Or type your own</div>
+        <textarea id="custom-quote" placeholder="Quote text…" rows="2"></textarea>
+      </div>
+      <input id="custom-author" placeholder="Author (optional)">
+      <input id="custom-pillar" placeholder="Pillar (optional)">
+      <div class="send-row">
+        <button class="write-control send-btn d1" onclick="sendQuoteTo(1)">↗ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendQuoteTo(2)">↗ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendQuoteTo('both')">↗ Both</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CREED ── -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">📜</div>
+      <div><div class="card-title">Academy Creed</div><div class="card-sub">Show the full creed on screen</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+      <div class="send-row">
+        <button class="write-control send-btn d1" onclick="sendTo('creed',{},1)">↗ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendTo('creed',{},2)">↗ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendTo('creed',{},'both')">↗ Both</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANNOUNCEMENT ── -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">📢</div>
+      <div><div class="card-title">Announcement</div><div class="card-sub">Headline and optional body text</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="field-label">Headline</div>
+        <input id="announce-headline" placeholder="e.g. Lunch in 5 minutes">
+      </div>
+      <div>
+        <div class="field-label">Body (optional)</div>
+        <textarea id="announce-body" placeholder="Additional detail…" rows="2"></textarea>
+      </div>
+      <div class="send-row">
+        <button class="write-control send-btn d1" onclick="sendAnnouncementTo(1)">↗ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendAnnouncementTo(2)">↗ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendAnnouncementTo('both')">↗ Both</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── YOUTUBE ── -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">▶️</div>
+      <div><div class="card-title">YouTube Video</div><div class="card-sub">Play a video fullscreen</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="field-label">YouTube URL or ID</div>
+        <input id="yt-url" placeholder="https://youtu.be/… or video ID">
+      </div>
+      <div class="send-row">
+        <button class="write-control send-btn d1" onclick="sendYoutubeTo(1)">▶ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendYoutubeTo(2)">▶ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendYoutubeTo('both')">▶ Both</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── GALLERY ── -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">🖼️</div>
+      <div><div class="card-title">Photo Gallery</div><div class="card-sub">Upload and show photos</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="field-label">Album</div>
+        <div class="pres-list" id="album-list">
+          <div class="pres-item"><div class="pres-title" style="color:var(--lbl3)">Loading albums…</div></div>
+        </div>
+        <input id="gallery-album" type="hidden" value="">
+      </div>
+      <div>
+        <div class="field-label">Caption (optional)</div>
+        <input id="gallery-caption" placeholder="Caption for these photos">
+      </div>
+      <div>
+        <div class="field-label">Upload into album</div>
+        <input id="upload-album" placeholder="e.g. Emma's Art" value="General">
+      </div>
+      <div>
+        <div class="field-label">Upload photos</div>
+        <input type="file" id="gallery-file" accept="image/*" multiple onchange="handlePhotoUpload(this)" style="padding:10px 14px;cursor:pointer">
+        <div class="progress-bar-wrap" id="upload-progress"><div class="progress-bar" id="upload-progress-bar"></div></div>
+        <div class="photo-preview" id="photo-preview"></div>
+      </div>
+      <div>
+        <div class="field-label">Display mode</div>
+        <div class="toggle-row">
+          <button class="toggle-opt sel" id="mode-spotlight" onclick="selectGalleryMode('spotlight')">Spotlight</button>
+          <button class="toggle-opt" id="mode-grid" onclick="selectGalleryMode('grid')">Grid</button>
+        </div>
+      </div>
+      <div class="send-row">
+        <button class="write-control send-btn d1" onclick="sendGalleryTo(1)">↗ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendGalleryTo(2)">↗ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendGalleryTo('both')">↗ Both</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PRESENTATIONS ── -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">📊</div>
+      <div><div class="card-title">Presentation</div><div class="card-sub">Show a saved deck and drive the slides</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+
+      <div>
+        <div class="field-label">Choose a presentation</div>
+        <div class="pres-list" id="pres-list">
+          <div class="pres-item"><div class="pres-title" style="color:var(--lbl3)">Loading…</div></div>
+        </div>
+      </div>
+
+      <div class="send-row">
+        <button class="write-control send-btn d1" onclick="sendPresentationTo(1)">▶ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendPresentationTo(2)">▶ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendPresentationTo('both')">▶ Both</button>
+      </div>
+
+      <div id="pres-controls" style="display:none">
+        <div class="divider" style="margin:6px 0"></div>
+        <div class="field-label">Now presenting on <span id="pres-where">—</span></div>
+        <div class="slide-controls">
+          <button class="slide-btn slide-prev" onclick="slideCmd('prev')">◀ Previous</button>
+          <button class="slide-btn slide-next" onclick="slideCmd('next')">Next ▶</button>
+        </div>
+        <div class="slide-jump" id="slide-jump"></div>
+        <div class="ghost-row">
+          <button class="ghost-btn" onclick="exitPresentation()">End presentation → Idle</button>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:6px 0"></div>
+      <details>
+        <summary class="field-label" style="cursor:pointer">Upload a new deck</summary>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px">
+          <div>
+            <div class="field-label">GitHub token (this session only)</div>
+            <div style="display:flex;gap:6px">
+              <input id="pres-pat" type="password" placeholder="github_pat_…" style="flex:1">
+              <button onclick="saveToken()" style="background:var(--gold);color:#000;border:none;border-radius:var(--rsm);padding:0 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Save</button>
+            </div>
+            <div class="status-text" id="pres-token-status"></div>
+          </div>
+          <div>
+            <div class="field-label">HTML file</div>
+            <input type="file" id="pres-file" accept=".html" onchange="onPresFileSelected(this)" style="padding:10px 14px;cursor:pointer">
+            <div class="status-text" id="pres-file-label"></div>
+          </div>
+          <button class="write-control" id="pres-push-btn" onclick="pushPresentation()" disabled style="height:44px;background:var(--bg4);border:0.5px solid var(--sep);border-radius:var(--rsm);color:var(--lbl2);font-size:14px;font-weight:600;cursor:pointer;opacity:.5">Upload to GitHub Pages</button>
+          <div class="status-text" id="pres-push-status"></div>
+          <div class="hint">Uploads a single self-contained HTML file. For decks with images, ask Claude to package and register them.</div>
+        </div>
+      </details>
+
+    </div>
+  </div>
+
+  <!-- ── DISPLAYS & SETUP ── -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">📺</div>
+      <div><div class="card-title">Displays &amp; Setup</div><div class="card-sub">Open screens, test the connection</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="field-label">Open a display</div>
+        <div class="send-row">
+          <button class="send-btn d1" onclick="openDisplay(1)">Open Display 1</button>
+          <button class="send-btn d2" onclick="openDisplay(2)">Open Display 2</button>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Copy display link</div>
+        <div class="send-row">
+          <button class="send-btn d1" onclick="copyDisplay(1)">Copy link 1</button>
+          <button class="send-btn d2" onclick="copyDisplay(2)">Copy link 2</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <button class="ghost-btn" onclick="testConnection()">Test connection</button>
+      <div class="status-text" id="diag-out"></div>
+    </div>
+  </div>
+
+</div><!-- /scroll -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   OLATOYE FAMILY OS — Hub Controller
+   Auth: Supabase Google OAuth (parent JWT required for writes)
+   Architecture: Controller → authenticated write → hub_state
+   Next: Controller → Guardian/command boundary → hub_state
+   ══════════════════════════════════════════════════════════════ */
+
+const SUPABASE_URL     = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+
+/* ── Supabase Auth client ── */
+let _sb = null;
+
+function initSupabaseClient() {
+  if (typeof supabase === 'undefined') {
+    console.error('Supabase SDK not loaded');
+    const el = document.getElementById('auth-error');
+    if (el) {
+      el.textContent = 'Could not load authentication. Please check your connection and refresh.';
+      el.style.display = 'block';
+    }
+    return false;
+  }
+  diag('Creating Supabase client...');
+  _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: 'family-os-hub-controller',
+      storage: window.localStorage,
+      flowType: 'implicit'
+    }
+  });
+  diag('Supabase client created — _sb ready');
+  return true;
+}
+
+/* ── Dynamic SDK loader — guarantees SDK is ready before auth runs ── */
+function loadSDKThenInit() {
+  diag('SDK loading...');
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+  script.onload = function() {
+    diag('SDK loaded — running initAuth');
+    initAuth();
+  };
+  script.onerror = function() {
+    diag('SDK LOAD FAILED — CDN unreachable');
+    const el = document.getElementById('auth-error');
+    if (el) {
+      el.textContent = 'Could not load authentication library. Check your connection and refresh.';
+      el.style.display = 'block';
+    }
+  };
+  document.head.appendChild(script);
+}
+
+/* ── Auth state ── */
+let _session = null;   // null = signed out
+let _user    = null;
+
+/* ── Auth headers ── */
+/* Reads use anon key (Gallery, Quotes, Presentations — no private data)
+   Writes use parent JWT — RLS enforces this on hub_state             */
+function readHeaders() {
+  return { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+}
+function writeHeaders() {
+  if (!_session?.access_token) throw new Error('Not authenticated — please sign in');
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: 'Bearer ' + _session.access_token,
+    'Content-Type': 'application/json'
+  };
+}
+
+/* ── Auth UI ── */
+function setAuthUI(session) {
+  _session = session;
+  _user    = session?.user ?? null;
+
+  const overlay  = document.getElementById('auth-overlay');
+  const dot      = document.getElementById('auth-dot');
+  const label    = document.getElementById('auth-label');
+  const controls = document.querySelectorAll('.write-control');
+
+  if (session) {
+    // Signed in
+    const name = _user?.user_metadata?.full_name?.split(' ')[0] || _user?.email || 'Parent';
+    overlay.style.display  = 'none';
+    dot.style.background   = 'var(--green, #30d158)';
+    label.textContent      = name;
+    controls.forEach(el => el.removeAttribute('disabled'));
+    loadCurrentState();
+    loadQuotes();
+    loadPresentations();
+    loadAlbums();
+  } else {
+    // Signed out
+    overlay.style.display  = 'flex';
+    dot.style.background   = 'var(--red, #ff453a)';
+    label.textContent      = 'Sign in';
+    controls.forEach(el => el.setAttribute('disabled', 'disabled'));
+  }
+}
+
+async function signIn() {
+  diag('GOOGLE BUTTON TAPPED');
+  document.getElementById('auth-error').style.display = 'none';
+  const btn = document.querySelector('#auth-overlay button');
+  if (btn) btn.textContent = 'Connecting…';
+  if (!_sb) {
+    diag('ERROR: _sb is null — client not initialised');
+    const el = document.getElementById('auth-error');
+    el.textContent = 'Authentication not ready. Please refresh the page.';
+    el.style.display = 'block';
+    if (btn) btn.textContent = 'Continue with Google';
+    return;
+  }
+  diag('Calling signInWithOAuth...');
+  const { error } = await _sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      // PRODUCTION (activate after olatoyefamily.com HTTPS + Supabase confirmed):
+      // redirectTo: 'https://olatoyefamily.com/control/',
+      // DEVELOPMENT FALLBACK (current — active):
+      redirectTo: 'https://altitudeaico.github.io/os/academy-hub-controller.html',
+      queryParams: { prompt: 'select_account' }
+    }
+  });
+  if (!error) {
+    diag('signInWithOAuth returned — browser should be navigating to Google');
+  }
+  if (error) {
+    diag('OAUTH ERROR: ' + error.message);
+    const el = document.getElementById('auth-error');
+    // Friendly error messages — no backend terminology exposed
+    let msg = 'Something went wrong. Please try again.';
+    if (error.message.includes('popup') || error.message.includes('closed')) {
+      msg = 'Sign-in was cancelled. Tap Continue with Google to try again.';
+    } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      msg = 'No internet connection. Please check your connection and try again.';
+    } else if (error.message.includes('provider') || error.message.includes('OAuth')) {
+      msg = 'Google sign-in is temporarily unavailable. Please try again shortly.';
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+}
+
+async function signOut() {
+  await _sb.auth.signOut();
+  setAuthUI(null);
+  showToast('Signed out');
+}
+
+function handleAuthClick() {
+  if (_session) signOut();
+  else signIn();
+}
+
+/* ── Session init — runs on every page load ── */
+async function initAuth() {
+  diag('initAuth called');
+  if (!initSupabaseClient()) { diag('initSupabaseClient returned false — stopping'); return; }
+  diag('Auth initialised — checking for existing session');
+  const { data: { session }, error } = await _sb.auth.getSession();
+  if (error) console.warn('Auth session error:', error.message);
+  setAuthUI(session);
+
+  // 2. Listen for future auth events (token refresh, sign-out)
+  _sb.auth.onAuthStateChange((_event, newSession) => {
+    setAuthUI(newSession);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODE / DISPLAY LABELS
+   ═══════════════════════════════════════════════════════════ */
+const modeLabels = {
+  idle:'Idle', quote:'Quote', creed:'Creed',
+  announcement:'Announcement', youtube:'Video',
+  'gallery-spotlight':'Gallery — Spotlight',
+  'gallery-grid':'Gallery — Grid', presentation:'Presentation'
+};
+
+/* ── Card accordion ── */
+function toggleCard(header) {
+  header.closest('.card').classList.toggle('open');
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SUPABASE WRITE — authenticated parent JWT required
+   ═══════════════════════════════════════════════════════════ */
+async function patchRow(id, mode, content) {
+  const payload = { mode, content, updated_at: new Date().toISOString() };
+  let h;
+  try { h = writeHeaders(); }
+  catch(e) { throw new Error('Write blocked: ' + e.message); }
+
+  const r = await fetch(SUPABASE_URL + '/rest/v1/hub_state?id=eq.' + id, {
+    method: 'PATCH',
+    headers: Object.assign({}, h, { Prefer: 'return=representation' }),
+    body: JSON.stringify(payload)
+  });
+
+  if (r.status === 401 || r.status === 403) {
+    // Token may have expired — try refresh
+    const { data: { session } } = await _sb.auth.refreshSession();
+    if (!session) {
+      setAuthUI(null);
+      throw new Error('Session expired — please sign in again');
+    }
+    setAuthUI(session);
+    // Retry once with refreshed token
+    const retry = await fetch(SUPABASE_URL + '/rest/v1/hub_state?id=eq.' + id, {
+      method: 'PATCH',
+      headers: Object.assign({}, writeHeaders(), { Prefer: 'return=representation' }),
+      body: JSON.stringify(payload)
+    });
+    if (!retry.ok) throw new Error('Write rejected after token refresh (' + retry.status + ')');
+    const rows2 = await retry.json();
+    if (Array.isArray(rows2) && rows2.length > 0) return;
+  }
+
+  if (!r.ok) throw new Error('Write rejected (' + r.status + ')');
+  const rows = await r.json();
+  if (Array.isArray(rows) && rows.length > 0) return;
+
+  // Row didn't exist — create it
+  const ins = await fetch(SUPABASE_URL + '/rest/v1/hub_state', {
+    method: 'POST',
+    headers: Object.assign({}, h, { Prefer: 'return=minimal' }),
+    body: JSON.stringify(Object.assign({ id }, payload))
+  });
+  if (!ins.ok) {
+    const txt = await ins.text().catch(() => '');
+    throw new Error('Row ' + id + ' missing and could not be created (' + ins.status + ') ' + txt.slice(0,120));
+  }
+}
+
+/* ── Core send — target is 1, 2, or 'both' ── */
+async function sendTo(mode, content, target) {
+  const label = modeLabels[mode] || mode;
+  const targets = target === 'both' ? [1,2] : [target];
+  const okIds = [], failed = [];
+
+  for (const id of targets) {
+    try { await patchRow(id, mode, content); setLiveLabel(id, label); okIds.push(id); }
+    catch(e) { failed.push({ id, msg: e.message }); }
+  }
+
+  if (failed.length === 0) {
+    showToast(okIds.map(i=>'D'+i).join('+') + ' → ' + label, 'success');
+  } else if (okIds.length === 0) {
+    failed.forEach(f => showToast('D' + f.id + ' FAILED: ' + f.msg, 'error'));
+  } else {
+    showToast('D' + okIds[0] + ' sent. D' + failed[0].id + ' failed: ' + failed[0].msg, 'error');
+  }
+}
+
+/* ── Live label ── */
+function setLiveLabel(id, label) {
+  const el = document.getElementById('live-mode-d' + id);
+  if (el) el.textContent = label;
+}
+
+async function loadCurrentState() {
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/hub_state?id=in.(1,2)&select=id,mode', {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    if (!r.ok) throw new Error(r.status);
+    const rows = await r.json();
+    const found = {};
+    rows.forEach(s => { found[s.id] = true; setLiveLabel(s.id, modeLabels[s.mode] || s.mode); });
+    [1,2].forEach(id => {
+      if (!found[id]) {
+        const el = document.getElementById('live-mode-d' + id);
+        if (el) { el.textContent = 'Not set up'; el.style.color = 'var(--lbl3)'; }
+      } else {
+        const el = document.getElementById('live-mode-d' + id);
+        if (el) el.style.color = '';
+      }
+    });
+  } catch(e) {
+    [1,2].forEach(id => {
+      const el = document.getElementById('live-mode-d' + id);
+      if (el) { el.textContent = 'Offline'; el.style.color = 'var(--red)'; }
+    });
+  }
+}
+// Keep status cards in sync
+setInterval(loadCurrentState, 5000);
+
+/* ── QUOTE ── */
+async function loadQuotes() {
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/academy_quotes?active=eq.true&select=id,text,author,pillar&order=id', {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    const quotes = await r.json();
+    const list = document.getElementById('quote-list');
+    list.innerHTML = quotes.map(q => `
+      <div class="qi" data-text="${encodeURIComponent(q.text)}"
+           data-author="${encodeURIComponent(q.author||'')}"
+           data-pillar="${encodeURIComponent(q.pillar||'')}"
+           onclick="selectQuote(this)">
+        <div class="qi-text">${q.text}</div>
+        <div class="qi-meta">${q.author?'— '+q.author+(q.pillar?' · ':''):''}${q.pillar||''}</div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('quote-list').innerHTML = '<div class="qi"><div class="qi-text" style="color:var(--lbl3)">Could not load quotes</div></div>';
+  }
+}
+
+function selectQuote(el) {
+  document.querySelectorAll('.qi').forEach(i => i.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('custom-quote').value  = decodeURIComponent(el.dataset.text);
+  document.getElementById('custom-author').value = decodeURIComponent(el.dataset.author);
+  document.getElementById('custom-pillar').value = decodeURIComponent(el.dataset.pillar);
+}
+
+function sendQuoteTo(target) {
+  const text = document.getElementById('custom-quote').value.trim();
+  if (!text) { showToast('Pick or write a quote first', 'error'); return; }
+  sendTo('quote', {
+    text,
+    author: document.getElementById('custom-author').value.trim(),
+    pillar: document.getElementById('custom-pillar').value.trim()
+  }, target);
+}
+
+/* ── ANNOUNCEMENT ── */
+function sendAnnouncementTo(target) {
+  const headline = document.getElementById('announce-headline').value.trim();
+  if (!headline) { showToast('Enter a headline first', 'error'); return; }
+  sendTo('announcement', {
+    headline,
+    body: document.getElementById('announce-body').value.trim()
+  }, target);
+}
+
+/* ── YOUTUBE ── */
+function sendYoutubeTo(target) {
+  const raw = document.getElementById('yt-url').value.trim();
+  if (!raw) { showToast('Enter a YouTube URL', 'error'); return; }
+  const m = raw.match(/(?:youtu\.be\/|v=|embed\/)([A-Za-z0-9_-]{11})/);
+  const vid = m ? m[1] : raw;
+  if (vid.length !== 11) { showToast('Invalid YouTube URL', 'error'); return; }
+  sendTo('youtube', { video_id: vid }, target);
+}
+
+/* ── GALLERY ── */
+let albums = [];
+
+async function loadAlbums() {
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/academy_gallery?active=eq.true&select=album,created_at&order=created_at.desc', {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    if (!r.ok) throw new Error(r.status);
+    const rows = await r.json();
+    const counts = {};
+    rows.forEach(x => { const a = x.album || 'General'; counts[a] = (counts[a] || 0) + 1; });
+    albums = Object.keys(counts).map(a => ({ name: a, n: counts[a] }));
+    const list = document.getElementById('album-list');
+    if (!albums.length) {
+      list.innerHTML = '<div class="pres-item"><div class="pres-title" style="color:var(--lbl3)">No photos uploaded yet</div></div>';
+      return;
+    }
+    list.innerHTML = albums.map((a, i) =>
+      '<div class="pres-item" id="album-item-' + i + '" onclick="selectAlbum(' + i + ')">' +
+      '<div class="pres-title">' + esc(a.name) + '</div>' +
+      '<div class="pres-meta">' + a.n + ' photo' + (a.n === 1 ? '' : 's') + '</div></div>'
+    ).join('');
+    selectAlbum(0);
+  } catch(e) {
+    document.getElementById('album-list').innerHTML =
+      '<div class="pres-item"><div class="pres-title" style="color:var(--red)">Could not load albums</div></div>';
+  }
+}
+
+function selectAlbum(i) {
+  if (!albums[i]) return;
+  document.getElementById('gallery-album').value = albums[i].name;
+  document.querySelectorAll('#album-list .pres-item').forEach(el => el.classList.remove('sel'));
+  const el = document.getElementById('album-item-' + i);
+  if (el) el.classList.add('sel');
+}
+
+
+let selectedGalleryMode = 'spotlight';
+let uploadedPhotos = [];
+
+function selectGalleryMode(mode) {
+  selectedGalleryMode = mode;
+  document.getElementById('mode-spotlight').classList.toggle('sel', mode === 'spotlight');
+  document.getElementById('mode-grid').classList.toggle('sel', mode === 'grid');
+}
+
+async function handlePhotoUpload(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const progress = document.getElementById('upload-progress');
+  const bar = document.getElementById('upload-progress-bar');
+  const preview = document.getElementById('photo-preview');
+  progress.style.display = 'block'; bar.style.width = '0%';
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const ext = file.name.split('.').pop();
+    const filename = 'gallery_' + Date.now() + '_' + i + '.' + ext;
+    try {
+      const r = await fetch(SUPABASE_URL + '/storage/v1/object/academy-gallery/' + filename, {
+        method: 'POST',
+        headers: Object.assign(writeHeaders(), { 'Content-Type': file.type, 'x-upsert': 'true' }),
+        body: file
+      });
+      if (r.ok) {
+        const publicUrl = SUPABASE_URL + '/storage/v1/object/public/academy-gallery/' + filename;
+        uploadedPhotos.push({ url: publicUrl });
+        await fetch(SUPABASE_URL + '/rest/v1/academy_gallery', {
+          method: 'POST',
+          headers: Object.assign(writeHeaders(), { 'Content-Type': 'application/json', Prefer: 'return=minimal' }),
+          body: JSON.stringify({ url: publicUrl, caption: document.getElementById('gallery-caption').value.trim() || null, album: document.getElementById('upload-album').value.trim() || 'General' })
+        });
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file); img.className = 'photo-thumb';
+        preview.appendChild(img);
+      }
+    } catch(e) { showToast('Upload failed: ' + file.name, 'error'); }
+    bar.style.width = ((i + 1) / files.length * 100) + '%';
+  }
+  setTimeout(() => { progress.style.display = 'none'; }, 800);
+  showToast(files.length + ' photo' + (files.length > 1 ? 's' : '') + ' uploaded', 'success');
+}
+
+function sendGalleryTo(target) {
+  const album = document.getElementById('gallery-album').value.trim();
+  if (!album) { showToast('Choose an album first', 'error'); return; }
+  const found = albums.find(a => a.name === album);
+  if (!found || found.n === 0) { showToast('That album has no photos', 'error'); return; }
+  sendTo('gallery-' + selectedGalleryMode, { album, count: Math.min(found.n, 4) }, target);
+}
+
+/* ── PRESENTATIONS ── */
+const GITHUB_REPO = 'altitudeaico/olatoyeacademy';
+const PRES_BRANCH = 'main';
+let presentations   = [];
+let selectedPres    = null;   // the chosen deck
+let presTarget      = null;   // which display(s) it's showing on
+let presSlide       = 1;
+
+async function loadPresentations() {
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/academy_presentations?active=eq.true&select=*&order=event_date.desc', {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    if (!r.ok) throw new Error(r.status);
+    presentations = await r.json();
+    const list = document.getElementById('pres-list');
+    if (!presentations.length) {
+      list.innerHTML = '<div class="pres-item"><div class="pres-title" style="color:var(--lbl3)">No presentations saved yet</div></div>';
+      return;
+    }
+    list.innerHTML = presentations.map((p, i) => {
+      const bits = [p.presenter, p.occasion, p.event_date ? formatDate(p.event_date) : null,
+                    p.slide_count ? p.slide_count + ' slides' : null].filter(Boolean);
+      return '<div class="pres-item" onclick="selectPres(' + i + ')" id="pres-item-' + i + '">' +
+             '<div class="pres-title">' + esc(p.title) + '</div>' +
+             '<div class="pres-meta">' + esc(bits.join(' · ')) + '</div></div>';
+    }).join('');
+    // Auto-select the first one so it's one tap to present
+    selectPres(0);
+  } catch(e) {
+    document.getElementById('pres-list').innerHTML =
+      '<div class="pres-item"><div class="pres-title" style="color:var(--red)">Could not load presentations</div></div>';
+  }
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function formatDate(d){
+  try { return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+  catch(e){ return d; }
+}
+
+function selectPres(i) {
+  selectedPres = presentations[i];
+  document.querySelectorAll('.pres-item').forEach(el => el.classList.remove('sel'));
+  const el = document.getElementById('pres-item-' + i);
+  if (el) el.classList.add('sel');
+}
+
+function buildSlideJump() {
+  const wrap = document.getElementById('slide-jump');
+  const n = selectedPres && selectedPres.slide_count ? selectedPres.slide_count : 0;
+  if (!n) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = Array.from({length:n}, (_,i) =>
+    '<button class="slide-num' + (i+1===presSlide?' cur':'') + '" onclick="gotoSlide(' + i + ')">' + (i+1) + '</button>'
+  ).join('');
+}
+
+async function sendPresentationTo(target) {
+  if (!selectedPres) { showToast('Choose a presentation first', 'error'); return; }
+  presSlide = 1;
+  const ok = await sendTo('presentation', { url: selectedPres.url, slide_index: 0 }, target);
+  if (ok) {
+    presTarget = target;
+    document.getElementById('pres-controls').style.display = 'block';
+    document.getElementById('pres-where').textContent =
+      target === 'both' ? 'both displays' : 'Display ' + target;
+    buildSlideJump();
+  }
+}
+
+/* Push the current absolute slide position to the presenting display(s) */
+async function pushSlide() {
+  const ids = presTarget === 'both' ? [1,2] : [presTarget];
+  const payload = { url: selectedPres.url, slide_index: presSlide - 1 };
+  for (const id of ids) {
+    try { await patchRow(id, 'presentation', payload); } catch(e) {}
+  }
+}
+
+/* Slide controls act on whichever display is showing the deck */
+async function slideCmd(cmd) {
+  if (!selectedPres || presTarget === null) { showToast('Send a presentation first', 'error'); return; }
+  const total = selectedPres.slide_count || 99;
+  if (cmd === 'next') {
+    if (presSlide >= total) { showToast('Last slide', 'error'); return; }
+    presSlide++;
+  } else if (cmd === 'prev') {
+    if (presSlide <= 1) { showToast('First slide', 'error'); return; }
+    presSlide--;
+  }
+  buildSlideJump();
+  await pushSlide();
+}
+
+async function gotoSlide(index) {
+  if (!selectedPres || presTarget === null) { showToast('Send a presentation first', 'error'); return; }
+  presSlide = index + 1;
+  buildSlideJump();
+  await pushSlide();
+}
+
+async function exitPresentation() {
+  const target = presTarget === null ? 'both' : presTarget;
+  await sendTo('idle', {}, target);
+  document.getElementById('pres-controls').style.display = 'none';
+  presTarget = null;
+}
+
+/* ── Upload a new single-file deck ── */
+function saveToken() {
+  const t = document.getElementById('pres-pat').value.trim();
+  if (!t) return;
+  sessionStorage.setItem('gh_pat', t);
+  document.getElementById('pres-pat').value = '••••••••••••••';
+  document.getElementById('pres-token-status').textContent = '✓ Token saved';
+  document.getElementById('pres-token-status').style.color = 'var(--green)';
+}
+function getToken(){ return sessionStorage.getItem('gh_pat') || ''; }
+
+function onPresFileSelected(input) {
+  if (input.files[0]) {
+    document.getElementById('pres-file-label').textContent = input.files[0].name;
+    const b = document.getElementById('pres-push-btn');
+    b.disabled = false; b.style.opacity = '1';
+    b.style.background='var(--goldd)'; b.style.color='var(--gold)'; b.style.border='0.5px solid var(--goldb)';
+  }
+}
+
+async function pushPresentation() {
+  const token = getToken();
+  if (!token) { showToast('Enter a GitHub token first', 'error'); return; }
+  const file = document.getElementById('pres-file').files[0];
+  if (!file) { showToast('Choose a file first', 'error'); return; }
+  const slug = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path = 'presentations/' + slug;
+  const status = document.getElementById('pres-push-status');
+  status.textContent='Uploading…'; status.style.color='var(--gold)';
+  try {
+    const content = await new Promise((res,rej)=>{
+      const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file);
+    });
+    let sha='';
+    try {
+      const chk=await fetch('https://api.github.com/repos/'+GITHUB_REPO+'/contents/'+path+'?ref='+PRES_BRANCH,
+        {headers:{Authorization:'token '+token,'User-Agent':'academy-hub'}});
+      if(chk.ok) sha=(await chk.json()).sha;
+    } catch(e){}
+    const body={message:'Add presentation: '+slug,content,branch:PRES_BRANCH};
+    if(sha) body.sha=sha;
+    const res=await fetch('https://api.github.com/repos/'+GITHUB_REPO+'/contents/'+path,{
+      method:'PUT',headers:{Authorization:'token '+token,'Content-Type':'application/json',
+      'User-Agent':'academy-hub',Accept:'application/vnd.github+json'},body:JSON.stringify(body)});
+    if(!res.ok) throw new Error('GitHub '+res.status);
+    const url='https://altitudeaico.github.io/olatoyeacademy/presentations/'+slug;
+    selectedPres = { url, title:file.name, slide_count:0 };
+    status.textContent='✓ Uploaded — use the display buttons above (~60s for Pages)';
+    status.style.color='var(--green)';
+    showToast('Presentation uploaded','success');
+  } catch(e){
+    status.textContent='✗ '+e.message; status.style.color='var(--red)';
+    showToast('Upload failed','error');
+  }
+}
+
+/* ── DISPLAYS & DIAGNOSTICS ── */
+const DISPLAY_URLS = {
+  1: 'https://altitudeaico.github.io/olatoyeacademy/academy-hub-display.html',
+  2: 'https://altitudeaico.github.io/olatoyeacademy/academy-hub-display2.html'
+};
+function openDisplay(n){ window.open(DISPLAY_URLS[n], '_blank'); }
+function copyDisplay(n){
+  navigator.clipboard.writeText(DISPLAY_URLS[n])
+    .then(()=>showToast('Display '+n+' link copied','success'))
+    .catch(()=>showToast('Display '+n+' link copied','success'));
+}
+
+async function testConnection(){
+  const out = document.getElementById('diag-out');
+  out.style.color = 'var(--lbl2)';
+  out.textContent = 'Testing…';
+  const lines = [];
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/hub_state?id=in.(1,2)&select=id,mode,updated_at', {
+      headers: readHeaders()
+    });
+    if (!r.ok) { out.style.color='var(--red)'; out.textContent = 'Database unreachable (' + r.status + ')'; return; }
+    const rows = await r.json();
+    lines.push('Database: connected');
+    for (const id of [1,2]) {
+      const row = rows.find(x => Number(x.id) === id);
+      if (row) lines.push('Display ' + id + ': ready — showing ' + (modeLabels[row.mode]||row.mode));
+      else {
+        // try to create it
+        try { await patchRow(id, 'idle', {}); lines.push('Display ' + id + ': created and ready'); }
+        catch(e) { lines.push('Display ' + id + ': missing — ' + e.message); }
+      }
+    }
+    out.style.color = 'var(--green)';
+    out.textContent = lines.join('\n');
+    out.style.whiteSpace = 'pre-line';
+  } catch(e) {
+    out.style.color='var(--red)';
+    out.textContent = 'Connection failed: ' + e.message;
+  }
+}
+
+/* ── INIT ── */
+loadSDKThenInit();  // loads SDK dynamically then runs auth init
+
+</script>
+</body>
+</html>
