@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Olatoye Academy">
-<meta property="og:title" content="Olatoye Academy Hub — Control Room">
-<meta property="og:description" content="Send quotes, the Academy Creed, photos, videos and presentations to the family displays.">
+<meta property="og:title" content="Olatoye Family OS — Control Room">
+<meta property="og:description" content="Family OS parent control — manage displays, Academy and family experiences.">
 <meta property="og:image" content="https://altitudeaico.github.io/olatoyeacademy/academy-hub-og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Olatoye Academy Hub — Control Room">
-<meta name="twitter:description" content="Send quotes, the Academy Creed, photos, videos and presentations to the family displays.">
+<meta name="twitter:title" content="Olatoye Family OS — Control Room">
+<meta name="twitter:description" content="Family OS parent control — manage displays, Academy and family experiences.">
 <meta name="twitter:image" content="https://altitudeaico.github.io/olatoyeacademy/academy-hub-og.png">
 <meta name="theme-color" content="#061409">
 <link rel="icon" href="https://altitudeaico.github.io/olatoyeacademy/academy-hub-og.png">
@@ -19,7 +19,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Academy Hub</title>
+<title>Family OS — Control Room</title>
 <style>
 :root {
   --bg:    #000;
@@ -235,36 +235,70 @@ details[open] summary::before{content:'▾ '}
 </head>
 <body>
 
-<!-- Auth gate overlay -->
+<!-- Auth gate overlay — Family OS front door -->
 <div id="auth-overlay" style="
   position:fixed;inset:0;z-index:9999;
-  background:rgba(0,0,0,0.92);
+  background:linear-gradient(160deg,#0a0f0a 0%,#0e1a10 50%,#0a0c0a 100%);
   display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:20px;
-  padding:32px;
+  align-items:center;justify-content:center;gap:0;
+  padding:40px 32px;
 ">
-  <img src="https://altitudeaico.github.io/olatoyeacademy/logo.jpg"
-       style="width:72px;height:72px;border-radius:16px;object-fit:cover;" alt="Academy">
-  <div style="color:#fff;font-size:20px;font-weight:700;text-align:center">Academy Hub</div>
-  <div style="color:rgba(255,255,255,0.55);font-size:13px;text-align:center;max-width:260px">
-    Sign in with your Family OS Google account to control the displays.
+  <!-- Logo -->
+  <img src="https://altitudeaico.github.io/os/logo.jpg"
+       style="width:88px;height:88px;border-radius:20px;object-fit:cover;
+              box-shadow:0 8px 32px rgba(0,0,0,0.6);margin-bottom:28px;"
+       alt="Olatoye Family OS"
+       onerror="this.style.display='none'">
+
+  <!-- Family OS wordmark -->
+  <div style="color:#C9A84C;font-size:11px;font-weight:700;letter-spacing:0.18em;
+              text-transform:uppercase;margin-bottom:8px;">Olatoye Family OS</div>
+
+  <!-- Tagline -->
+  <div style="color:#ffffff;font-size:26px;font-weight:700;text-align:center;
+              line-height:1.2;margin-bottom:6px;letter-spacing:-0.02em;">
+    Your family.<br>Your world.
   </div>
+  <div style="color:rgba(255,255,255,0.38);font-size:13px;text-align:center;
+              margin-bottom:40px;letter-spacing:0.01em;">
+    Control Room — Parent Access
+  </div>
+
+  <!-- Sign in button — Family OS styled, Google identified clearly but not dominant -->
   <button onclick="signIn()" style="
-    background:#fff;color:#000;border:none;border-radius:12px;
-    padding:14px 28px;font-size:15px;font-weight:600;cursor:pointer;
+    background:rgba(255,255,255,0.96);color:#111;border:none;border-radius:14px;
+    padding:15px 32px;font-size:15px;font-weight:600;cursor:pointer;
     display:flex;align-items:center;gap:10px;
-  ">
-    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
-    Sign in with Google
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    transition:opacity 0.15s;width:100%;max-width:280px;justify-content:center;
+  " onmousedown="this.style.opacity=0.85" onmouseup="this.style.opacity=1">
+    <svg width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0">
+      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+      <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/>
+    </svg>
+    Continue with Google
   </button>
-  <div id="auth-error" style="color:#ff453a;font-size:12px;display:none;text-align:center"></div>
+
+  <!-- Error state — friendly, no Supabase terminology -->
+  <div id="auth-error" style="
+    color:#ff6b6b;font-size:13px;display:none;text-align:center;
+    margin-top:16px;max-width:260px;line-height:1.4;
+  "></div>
+
+  <!-- Footer -->
+  <div style="position:absolute;bottom:32px;color:rgba(255,255,255,0.2);
+              font-size:11px;text-align:center;letter-spacing:0.05em;">
+    FAMILY OS · PARENT CONTROL
+  </div>
 </div>
 
 
 <!-- Nav -->
 <div class="nav">
   <div>
-    <div class="nav-title">Academy Hub</div>
+    <div class="nav-title">Family OS</div>
     <div class="nav-sub">Control Room</div>
   </div>
   <div id="auth-badge" class="live-badge" onclick="handleAuthClick()" style="cursor:pointer;gap:6px;min-width:80px;justify-content:flex-end;">
@@ -626,7 +660,16 @@ async function signIn() {
   });
   if (error) {
     const el = document.getElementById('auth-error');
-    el.textContent = error.message;
+    // Friendly error messages — no backend terminology exposed
+    let msg = 'Something went wrong. Please try again.';
+    if (error.message.includes('popup') || error.message.includes('closed')) {
+      msg = 'Sign-in was cancelled. Tap Continue with Google to try again.';
+    } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      msg = 'No internet connection. Please check your connection and try again.';
+    } else if (error.message.includes('provider') || error.message.includes('OAuth')) {
+      msg = 'Google sign-in is temporarily unavailable. Please try again shortly.';
+    }
+    el.textContent = msg;
     el.style.display = 'block';
   }
 }
