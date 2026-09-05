@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Family OS TV launcher icon — Phase 0B placeholder
+     Replace with generated asset in Phase 1 visual design -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#080d08"/>
+    <size android:width="48dp" android:height="48dp"/>
+</shape>
