@@ -726,10 +726,10 @@ async function signIn() {
   const { error } = await _sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      // PRODUCTION (activate after olatoyefamily.com HTTPS + Supabase confirmed):
-      // redirectTo: 'https://olatoyefamily.com/control/',
-      // DEVELOPMENT FALLBACK (current — active):
-      redirectTo: 'https://altitudeaico.github.io/os/academy-hub-controller.html',
+      // PRODUCTION (active):
+      redirectTo: 'https://olatoyefamily.com/control/',
+      // DEVELOPMENT FALLBACK (kept for reference):
+      // redirectTo: 'https://altitudeaico.github.io/os/academy-hub-controller.html',
       queryParams: { prompt: 'select_account' }
     }
   });
