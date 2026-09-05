@@ -14,12 +14,13 @@ import android.widget.FrameLayout
  *
  * Minimal Android TV shell for the Family OS web client.
  * Owns: fullscreen WebView, TV launcher presence, D-pad forwarding,
- *       WebView storage persistence (localStorage/sessionStorage/cookies).
+ *       WebView storage persistence (localStorage/cookies survive process restarts).
  * Does NOT own: Family OS product logic, Surface session, pairing, Guardian.
  * All product logic lives in https://olatoyefamily.com/hub/
  *
  * Phase 0B: prove the container and Surface identity lifecycle.
- * No custom JS bridge unless WebView persistence proves insufficient.
+ * No custom JS bridge — WebView localStorage is the session store.
+ * No exit confirmation modal — normal platform Back behaviour at root.
  */
 class MainActivity : Activity() {
 
@@ -40,6 +41,7 @@ class MainActivity : Activity() {
 
         // Fullscreen — no status bar, no navigation bar
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = (
             View.SYSTEM_UI_FLAG_FULLSCREEN or
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
@@ -57,43 +59,50 @@ class MainActivity : Activity() {
 
             settings.apply {
                 // Required for Family OS web client
-                javaScriptEnabled = true
-                domStorageEnabled = true          // localStorage — Surface session persistence
-                databaseEnabled = true
-                allowFileAccess = false           // no local file access
-                allowContentAccess = false
+                javaScriptEnabled = true          // Item 3: JS enabled
+                domStorageEnabled = true          // Item 3: localStorage — Surface session persistence
+                databaseEnabled = true            // Item 3: WebSQL fallback
+                allowFileAccess = false           // Item 3: no local file access
+                allowContentAccess = false        // Item 3: no content:// URIs
 
-                // WebSocket / Realtime support
+                // WebSocket / Realtime — no special flag needed; WebView supports WSS natively
                 javaScriptCanOpenWindowsAutomatically = false
                 setSupportMultipleWindows(false)
 
-                // Performance
-                cacheMode = WebSettings.LOAD_DEFAULT
-                mediaPlaybackRequiresUserGesture = false
+                // No mixed content — HTTPS only (Supabase + olatoyefamily.com are both HTTPS)
+                mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
 
-                // TV display — no zoom controls
+                // Cache — use default (network when available, cache as fallback)
+                cacheMode = WebSettings.LOAD_DEFAULT
+
+                // TV display — no zoom
                 builtInZoomControls = false
                 displayZoomControls = false
                 useWideViewPort = true
                 loadWithOverviewMode = true
+
+                // WebView debugging: enabled in debug builds only (set in FamilyOSChromeClient)
+                // DO NOT enable in release — exposes internal state
             }
 
-            // Accept cookies (needed for Supabase Auth)
+            // Cookies — required for Supabase Auth session
             CookieManager.getInstance().apply {
                 setAcceptCookie(true)
-                setAcceptThirdPartyCookies(this@apply, true)
+                setAcceptThirdPartyCookies(this@apply, false) // first-party only
             }
 
             webViewClient = FamilyOSWebViewClient(APPROVED_ORIGINS)
             webChromeClient = FamilyOSChromeClient()
 
-            // Hardware acceleration for smooth TV experience
+            // Hardware acceleration for smooth rendering
             setLayerType(View.LAYER_TYPE_HARDWARE, null)
         }
 
         setContentView(webView)
 
-        // Restore WebView state across process death (preserves localStorage)
+        // Restore WebView state if available (preserves in-page navigation history)
+        // NOTE: savedInstanceState does NOT restore localStorage — that persists
+        // independently via WebView's own storage (survives process death).
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState)
         } else {
@@ -123,66 +132,58 @@ class MainActivity : Activity() {
 
     /**
      * D-pad and remote key handling.
-     * TV remotes send DPAD events — forward them to WebView for focus navigation.
-     * Back key at root shows exit confirmation rather than exiting immediately.
+     *
+     * Back behaviour (per approved Phase 0B spec):
+     *   - deeper content/view within web app → web app handles via history.back()
+     *   - at web app root → normal Android TV platform behaviour (exits app)
+     *   - NO exit confirmation modal — add only if physical testing shows accidental exits
+     *
+     * D-pad: forwarded to WebView for focus/scroll navigation.
      */
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        // Back key: confirm before exit
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (webView.canGoBack()) {
-                webView.goBack()
-            } else {
-                showExitConfirmation()
+        when (keyCode) {
+            KeyEvent.KEYCODE_BACK -> {
+                // Let WebView handle back if it has history, otherwise platform default
+                if (webView.canGoBack()) {
+                    webView.goBack()
+                    return true
+                }
+                // At root: normal platform behaviour — exits app via super
+                return super.onKeyDown(keyCode, event)
             }
-            return true
-        }
 
-        // D-pad: forward to WebView for focus navigation
-        if (keyCode in setOf(
             KeyEvent.KEYCODE_DPAD_UP,
             KeyEvent.KEYCODE_DPAD_DOWN,
             KeyEvent.KEYCODE_DPAD_LEFT,
             KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_CENTER,
-            KeyEvent.KEYCODE_ENTER
-        )) {
-            webView.dispatchKeyEvent(event)
-            return true
+            KeyEvent.KEYCODE_ENTER -> {
+                webView.dispatchKeyEvent(event)
+                return true
+            }
         }
-
         return super.onKeyDown(keyCode, event)
-    }
-
-    private fun showExitConfirmation() {
-        android.app.AlertDialog.Builder(this)
-            .setMessage("Exit Family OS?")
-            .setPositiveButton("Exit") { _, _ -> finish() }
-            .setNegativeButton("Stay") { d, _ -> d.dismiss() }
-            .show()
     }
 }
 
 /**
  * WebViewClient — navigation policy.
- * Restricts navigation to approved Family OS origins only.
- * Supabase auth callbacks are permitted; arbitrary external navigation is blocked.
+ *
+ * Item 3: navigation restricted to approved Family OS origins.
+ * External URLs (e.g. Google OAuth callback) are permitted via Supabase subdomain.
+ * Arbitrary external navigation is blocked silently.
  */
 class FamilyOSWebViewClient(
     private val approvedOrigins: Set<String>
 ) : WebViewClient() {
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-        val host = request.url.host ?: return true // block if no host
-        val isApproved = approvedOrigins.any { origin -> host == origin || host.endsWith(".$origin") }
-
-        return if (isApproved) {
-            false // allow WebView to load it
-        } else {
-            // Block navigation outside approved origins
-            // Log for diagnostics but do not expose to user
-            android.util.Log.w("FamilyOS", "Blocked navigation to: ${request.url.host}")
-            true
+        val host = request.url.host ?: return true // block malformed URLs
+        val approved = approvedOrigins.any { o -> host == o || host.endsWith(".$o") }
+        if (!approved) {
+            android.util.Log.w("FamilyOS", "Blocked navigation: ${request.url.host}")
         }
+        return !approved // true = block, false = allow
     }
 
     override fun onReceivedError(
@@ -190,17 +191,16 @@ class FamilyOSWebViewClient(
         request: WebResourceRequest,
         error: WebResourceError
     ) {
-        // Only handle errors for the main frame (not sub-resources)
         if (request.isForMainFrame) {
-            android.util.Log.e("FamilyOS", "WebView error: ${error.description} — ${request.url}")
-            // Load an inline error page rather than showing a blank screen
+            android.util.Log.e("FamilyOS", "Load error: ${error.description} — ${request.url}")
+            // Inline error — never a blank screen
             view.loadData(
-                """<!DOCTYPE html><html><body style="background:#000;color:rgba(255,255,255,0.4);
+                """<!DOCTYPE html><html><body style="background:#080d08;color:rgba(255,255,255,0.4);
                    font-family:sans-serif;display:flex;align-items:center;justify-content:center;
                    height:100vh;margin:0;text-align:center;">
                    <div><p style="font-size:18px">Unable to connect</p>
-                   <p style="font-size:13px;margin-top:12px">Check your network connection</p></div>
-                   </body></html>""",
+                   <p style="font-size:13px;margin-top:12px">Check your network connection</p>
+                   </div></body></html>""",
                 "text/html", "UTF-8"
             )
         }
@@ -208,14 +208,25 @@ class FamilyOSWebViewClient(
 }
 
 /**
- * ChromeClient — minimal TV requirements.
- * Handles console messages for diagnostics.
+ * ChromeClient
+ *
+ * Item 3: WebView debugging enabled in debug builds only.
+ * Console messages forwarded to logcat in all builds (no sensitive data logged by web client).
  */
 class FamilyOSChromeClient : WebChromeClient() {
+
+    init {
+        // Enable Chrome DevTools remote debugging in debug builds only
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
+        }
+    }
+
     override fun onConsoleMessage(message: ConsoleMessage): Boolean {
         android.util.Log.d(
             "FamilyOS-Web",
-            "[${message.messageLevel()}] ${message.message()} (${message.sourceId()}:${message.lineNumber()})"
+            "[${message.messageLevel()}] ${message.message()} " +
+            "(${message.sourceId()}:${message.lineNumber()})"
         )
         return true
     }
