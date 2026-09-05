@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family OS TV Simulator</title>
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Host page ── */
+body {
+  background: #1a1a1a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  gap: 16px;
+}
+
+/* ── Simulator chrome ── */
+.sim-header {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sim-title {
+  color: #C9A84C;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.sim-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sim-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.7);
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sim-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.sim-btn.active {
+  background: #C9A84C;
+  border-color: #C9A84C;
+  color: #000;
+  font-weight: 600;
+}
+
+.key-hint {
+  color: rgba(255,255,255,0.25);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+/* ── TV canvas — fixed 16:9 scaled to viewport ── */
+.tv-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 1066px; /* 1920 × 0.555 */
+}
+.tv-wrap::before {
+  content: '';
+  display: block;
+  padding-top: 56.25%; /* 16:9 */
+}
+.tv-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #080d08;
+}
+
+/* Safe area overlay */
+.safe-area-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  border: 2px dashed rgba(255,100,100,0.4);
+  pointer-events: none;
+  z-index: 9000;
+}
+.safe-area-overlay.inner {
+  inset: 5%;
+  border-color: rgba(255,200,0,0.3);
+}
+.show-safe .safe-area-overlay { display: block; }
+
+/* ── TV app shell — all dimensions in % of canvas ── */
+.tv-app {
+  position: absolute;
+  inset: 0;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden;
+  font-size: 1.4vw; /* scales with canvas width */
+}
+
+/* ── VIEWS ── */
+.view { position: absolute; inset: 0; display: none; }
+.view.active { display: flex; flex-direction: column; }
+
+/* ════════════════════════════════════
+   PAIRING VIEW
+════════════════════════════════════ */
+#view-pairing {
+  background: #080d08;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.pair-logo {
+  width: 6%;
+  aspect-ratio: 1;
+  border-radius: 18%;
+  background: rgba(201,168,76,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3.5%;
+  font-size: 2.5vw;
+}
+
+.pair-wordmark {
+  color: #C9A84C;
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 1.2%;
+}
+
+.pair-heading {
+  color: #fff;
+  font-size: 2em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.6%;
+}
+
+.pair-sub {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.9em;
+  margin-bottom: 4%;
+}
+
+.pair-code-box {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 2% 5%;
+  text-align: center;
+  margin-bottom: 2%;
+}
+
+.pair-code-label {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.65em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1%;
+}
+
+.pair-code {
+  color: #fff;
+  font-size: 3.5em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.pair-expires {
+  color: rgba(255,255,255,0.3);
+  font-size: 0.65em;
+  margin-top: 0.8%;
+}
+
+.pair-instruction {
+  color: rgba(255,255,255,0.45);
+  font-size: 0.85em;
+  text-align: center;
+  max-width: 30%;
+  line-height: 1.5;
+}
+
+/* ════════════════════════════════════
+   PAIRING SUCCESS VIEW
+════════════════════════════════════ */
+#view-pairing-success {
+  background: #080d08;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.pair-check {
+  color: #30d158;
+  font-size: 5em;
+  margin-bottom: 3%;
+}
+
+.pair-success-heading {
+  color: #fff;
+  font-size: 2.2em;
+  font-weight: 700;
+  margin-bottom: 1%;
+}
+
+.pair-welcome {
+  color: rgba(255,255,255,0.5);
+  font-size: 1.1em;
+}
+
+/* ════════════════════════════════════
+   HOME VIEW — PLACEHOLDER
+   (V2 visual design not yet applied)
+════════════════════════════════════ */
+#view-home {
+  background: #080d08;
+  flex-direction: column;
+}
+
+.home-header {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 2.5% 4%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+
+.home-wordmark {
+  color: #C9A84C;
+  font-size: 0.65em;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.home-clock {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hero zone */
+.home-hero {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 58%;
+  background: linear-gradient(135deg, #0d1a10 0%, #081208 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 4% 3%;
+}
+
+.hero-context {
+  color: #C9A84C;
+  font-size: 0.65em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1%;
+}
+
+.hero-heading {
+  color: #fff;
+  font-size: 2.8em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  max-width: 55%;
+  margin-bottom: 1.5%;
+}
+
+.hero-meta {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.85em;
+}
+
+/* Content rails */
+.home-rails {
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  height: 44%;
+  padding: 2% 4% 3%;
+  display: flex;
+  flex-direction: column;
+  gap: 2%;
+  background: linear-gradient(to top, #080d08 70%, transparent);
+}
+
+.rail-label {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.65em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.8%;
+}
+
+.rail-cards {
+  display: flex;
+  gap: 1.5%;
+}
+
+.rail-card {
+  flex: 0 0 auto;
+  width: 13%;
+  aspect-ratio: 16/9;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: flex-end;
+  padding: 6%;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.rail-card:focus,
+.rail-card.focused {
+  outline: none;
+  border-color: #C9A84C;
+  transform: scale(1.04);
+  z-index: 2;
+}
+
+.rail-card-label {
+  color: #fff;
+  font-size: 0.6em;
+  font-weight: 600;
+  line-height: 1.2;
+  position: relative;
+  z-index: 1;
+}
+
+.rail-card-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--card-bg, rgba(255,255,255,0.03));
+}
+
+/* Nav bar */
+.home-nav {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6%;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+}
+
+.nav-item {
+  color: rgba(255,255,255,0.4);
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 0.8% 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-item.active {
+  color: #fff;
+  border-bottom-color: #C9A84C;
+}
+.nav-item:focus { outline: none; color: #C9A84C; }
+
+/* Realtime badge */
+.realtime-badge {
+  position: absolute;
+  top: 2%; right: 2%;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 0.4% 1%;
+  font-size: 0.55em;
+  color: rgba(255,255,255,0.4);
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  z-index: 20;
+}
+.realtime-dot {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: #30d158;
+}
+.realtime-dot.offline { background: rgba(255,255,255,0.2); }
+
+/* ── Scenario labels ── */
+.scenario-badge {
+  position: absolute;
+  top: 2%; left: 2%;
+  background: rgba(201,168,76,0.15);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 20px;
+  padding: 0.4% 1%;
+  font-size: 0.55em;
+  color: #C9A84C;
+  z-index: 20;
+  display: none;
+}
+.sim-active .scenario-badge { display: flex; align-items: center; gap: 0.4em; }
+
+</style>
+</head>
+<body>
+
+<!-- ── Simulator chrome ── -->
+<div class="sim-header">
+  <div class="sim-title">Family OS · TV Simulator</div>
+  <div class="sim-controls">
+    <span class="key-hint">← → ↑ ↓ Enter Back</span>
+    <div style="width:1px;height:16px;background:rgba(255,255,255,0.12)"></div>
+    <button class="sim-btn active" onclick="setScenario('pairing-waiting')" id="btn-pairing-waiting">Pairing</button>
+    <button class="sim-btn" onclick="setScenario('pairing-success')" id="btn-pairing-success">Paired</button>
+    <button class="sim-btn" onclick="setScenario('home-morning')" id="btn-home-morning">Morning</button>
+    <button class="sim-btn" onclick="setScenario('home-afternoon')" id="btn-home-afternoon">Afternoon</button>
+    <button class="sim-btn" onclick="setScenario('home-evening')" id="btn-home-evening">Evening</button>
+    <button class="sim-btn" onclick="setScenario('academy-day')" id="btn-academy-day">Academy</button>
+    <button class="sim-btn" onclick="setScenario('family-time')" id="btn-family-time">Family Time</button>
+    <button class="sim-btn" onclick="setScenario('achievement')" id="btn-achievement">Achievement</button>
+    <button class="sim-btn" onclick="setScenario('trip')" id="btn-trip">Trip</button>
+    <button class="sim-btn" onclick="setScenario('offline')" id="btn-offline">Offline</button>
+    <div style="width:1px;height:16px;background:rgba(255,255,255,0.12)"></div>
+    <button class="sim-btn" onclick="toggleSafeArea()" id="btn-safe">Safe Area</button>
+    <button class="sim-btn" onclick="replayLaunch()" id="btn-launch">↺ Launch</button>
+  </div>
+</div>
+
+<!-- ── TV canvas ── -->
+<div class="tv-wrap">
+  <div class="tv-canvas" id="tv-canvas">
+
+    <!-- Safe area overlays -->
+    <div class="safe-area-overlay"></div>
+    <div class="safe-area-overlay inner"></div>
+
+    <!-- ── TV App ── -->
+    <div class="tv-app sim-active" id="tv-app">
+
+      <!-- Scenario badge -->
+      <div class="scenario-badge" id="scenario-badge">
+        <span>◉</span><span id="scenario-label">Simulator</span>
+      </div>
+
+      <!-- Realtime badge -->
+      <div class="realtime-badge" id="realtime-badge">
+        <div class="realtime-dot offline" id="realtime-dot"></div>
+        <span id="realtime-label">Simulator</span>
+      </div>
+
+      <!-- VIEW: Pairing waiting -->
+      <div class="view active" id="view-pairing">
+        <div class="pair-logo">⌂</div>
+        <div class="pair-wordmark">Olatoye Family OS</div>
+        <div class="pair-heading">Set up this screen</div>
+        <div class="pair-sub">Open Parent Control on your phone and tap Connect Screen.</div>
+        <div class="pair-code-box">
+          <div class="pair-code-label">Pairing Code</div>
+          <div class="pair-code" id="pair-code">M7K4-P2</div>
+          <div class="pair-expires" id="pair-expires">Code expires in 9:42</div>
+        </div>
+        <div class="pair-instruction">
+          Enter this code in <strong style="color:#fff">Parent Control</strong> to connect this screen to Family OS.
+        </div>
+      </div>
+
+      <!-- VIEW: Pairing success -->
+      <div class="view" id="view-pairing-success">
+        <div class="pair-check">✓</div>
+        <div class="pair-success-heading">Screen connected.</div>
+        <div class="pair-welcome">Welcome home, Olatoyes.</div>
+      </div>
+
+      <!-- VIEW: Home -->
+      <div class="view" id="view-home">
+        <div class="home-header">
+          <div class="home-wordmark">Olatoye Family OS</div>
+          <div class="home-clock" id="home-clock">09:41</div>
+        </div>
+
+        <div class="home-hero" id="home-hero">
+          <div class="hero-context" id="hero-context">Good morning</div>
+          <div class="hero-heading" id="hero-heading">Olatoye Family</div>
+          <div class="hero-meta" id="hero-meta">Friday · 5 September 2026</div>
+        </div>
+
+        <div class="home-rails">
+          <div class="rail-label" id="rail-label-1">Up Next</div>
+          <div class="rail-cards" id="rail-1"></div>
+        </div>
+
+        <div class="home-nav" id="home-nav">
+          <div class="nav-item active" tabindex="0">Home</div>
+          <div class="nav-item" tabindex="0">Academy</div>
+          <div class="nav-item" tabindex="0">Watch</div>
+          <div class="nav-item" tabindex="0">Memories</div>
+          <div class="nav-item" tabindex="0">Family</div>
+        </div>
+      </div>
+
+      <!-- VIEW: Offline -->
+      <div class="view" id="view-offline">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:2%;background:#080d08;">
+          <div style="font-size:3em;opacity:0.3;">⚡</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:1em;">Unable to connect</div>
+          <div style="color:rgba(255,255,255,0.25);font-size:0.7em;">Check your network connection</div>
+        </div>
+      </div>
+
+    </div><!-- tv-app -->
+  </div><!-- tv-canvas -->
+</div><!-- tv-wrap -->
+
+<!-- ── Simulator info bar ── -->
+<div style="color:rgba(255,255,255,0.25);font-size:11px;text-align:center;max-width:1066px;">
+  1920×1080 canvas · No production data · No credentials · Arrow keys navigate · Enter selects · Escape = Back
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   FAMILY OS TV SIMULATOR
+   Same view/component code as production /hub/
+   Data adapter swapped for fixtures — zero production writes
+════════════════════════════════════════════════════════ */
+
+/* ── Fixture data ── */
+const FIXTURES = {
+  'pairing-waiting': {
+    view: 'pairing',
+    label: 'First launch / Unpaired',
+    realtime: false,
+    code: 'M7K4-P2',
+    expires: '9:42',
+  },
+  'pairing-success': {
+    view: 'pairing-success',
+    label: 'Pairing approved',
+    realtime: false,
+  },
+  'home-morning': {
+    view: 'home',
+    label: 'Home · Morning',
+    realtime: true,
+    hero: {
+      context: 'Good morning, Olatoye Family',
+      heading: 'Academy starts in 18 minutes',
+      meta: 'Friday · 5 September · 08:42',
+      bg: 'linear-gradient(135deg, #0d1a10 0%, #081208 100%)',
+    },
+    rail1: {
+      label: 'Up Next',
+      cards: [
+        { label: 'Maths\nYear 5', bg: 'linear-gradient(135deg,#1a2a1a,#0d180d)' },
+        { label: 'French\nElsie', bg: 'linear-gradient(135deg,#1a1a2a,#0d0d18)' },
+        { label: 'Emma\nPhonics', bg: 'linear-gradient(135deg,#2a1a1a,#180d0d)' },
+        { label: 'Chester Zoo\nAdventure', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
+        { label: 'Family Time\nThis evening', bg: 'linear-gradient(135deg,#2a1a2a,#18001a)' },
+      ],
+    },
+  },
+  'home-afternoon': {
+    view: 'home',
+    label: 'Home · Afternoon',
+    realtime: true,
+    hero: {
+      context: 'This afternoon',
+      heading: 'Elsie completed\nYear 5 Maths',
+      meta: 'Friday · 5 September · 14:15 · Achievement unlocked',
+      bg: 'linear-gradient(135deg,#1a150d,#0d0d08)',
+    },
+    rail1: {
+      label: 'Continue',
+      cards: [
+        { label: 'French\nLesson 4', bg: 'linear-gradient(135deg,#1a1a2a,#0d0d18)' },
+        { label: 'Science\nYear 5', bg: 'linear-gradient(135deg,#0d1a1a,#08120d)' },
+        { label: 'Emma\nDrawing', bg: 'linear-gradient(135deg,#2a1a1a,#180d0d)' },
+        { label: 'Geography\nAfrica', bg: 'linear-gradient(135deg,#1a2a1a,#0d180d)' },
+      ],
+    },
+  },
+  'home-evening': {
+    view: 'home',
+    label: 'Home · Evening',
+    realtime: true,
+    hero: {
+      context: 'Good evening',
+      heading: 'Family Movie Night',
+      meta: 'Friday · 5 September · 19:30',
+      bg: 'linear-gradient(135deg,#0d0d1a,#08080d)',
+    },
+    rail1: {
+      label: 'Watch Together',
+      cards: [
+        { label: 'The Lion King', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
+        { label: 'Moana 2', bg: 'linear-gradient(135deg,#0d1a1a,#08121a)' },
+        { label: 'Encanto', bg: 'linear-gradient(135deg,#1a0d1a,#120812)' },
+        { label: 'Our Memories\nBest of 2026', bg: 'linear-gradient(135deg,#1a1a10,#101008)' },
+        { label: 'Chester Zoo\nHighlights', bg: 'linear-gradient(135deg,#0d1a10,#081208)' },
+      ],
+    },
+  },
+  'academy-day': {
+    view: 'home',
+    label: 'Academy Day · Elsie',
+    realtime: true,
+    hero: {
+      context: 'Olatoye Academy · Year 5',
+      heading: 'Good morning,\nElsie',
+      meta: 'Today: Maths · French · Science · History',
+      bg: 'linear-gradient(135deg,#0d1a10,#081208)',
+    },
+    rail1: {
+      label: 'Elsie\'s Academy Today',
+      cards: [
+        { label: 'Maths\nFractions', bg: 'linear-gradient(135deg,#1a2a1a,#0d180d)' },
+        { label: 'French\nLeçon 4', bg: 'linear-gradient(135deg,#1a1a2a,#0d0d18)' },
+        { label: 'Science\nPhotosynthesis', bg: 'linear-gradient(135deg,#0d1a1a,#08120d)' },
+        { label: 'History\nAncient Egypt', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
+        { label: 'Ask Riri\nfor help', bg: 'linear-gradient(135deg,#1a0d1a,#120812)' },
+      ],
+    },
+  },
+  'family-time': {
+    view: 'home',
+    label: 'Family Time',
+    realtime: true,
+    hero: {
+      context: 'Family Time',
+      heading: 'Together now',
+      meta: 'Saturday · 6 September · All day',
+      bg: 'linear-gradient(135deg,#1a100d,#0d0808)',
+    },
+    rail1: {
+      label: 'For Everyone',
+      cards: [
+        { label: 'Chester Zoo\nOur Adventure', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
+        { label: 'Family Quiz\nPlay together', bg: 'linear-gradient(135deg,#1a0d0d,#180808)' },
+        { label: 'Elsie\'s Art\nLatest works', bg: 'linear-gradient(135deg,#0d0d1a,#08081a)' },
+        { label: 'Memory Jar\n2026', bg: 'linear-gradient(135deg,#1a1a10,#101008)' },
+        { label: 'Family Film\nChoose together', bg: 'linear-gradient(135deg,#0d1a1a,#08121a)' },
+      ],
+    },
+  },
+  'achievement': {
+    view: 'home',
+    label: 'Achievement Earned',
+    realtime: true,
+    hero: {
+      context: '🏆 Achievement Unlocked',
+      heading: 'Elsie completed\nYear 5 Maths',
+      meta: 'Pillar: Champion Mindset · 5 September 2026',
+      bg: 'linear-gradient(135deg,#1a1200,#0d0d00)',
+    },
+    rail1: {
+      label: 'Achievements',
+      cards: [
+        { label: 'Maths Y5\nComplete ✓', bg: 'linear-gradient(135deg,#1a1200,#0d0d00)' },
+        { label: 'French\nLeçon 1–3 ✓', bg: 'linear-gradient(135deg,#1a1a2a,#0d0d18)' },
+        { label: 'Zoo Quest\nExplorer ✓', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
+        { label: 'Reading\nChallenge', bg: 'linear-gradient(135deg,#1a0d0d,#180808)' },
+      ],
+    },
+  },
+  'trip': {
+    view: 'home',
+    label: 'Upcoming Trip',
+    realtime: true,
+    hero: {
+      context: 'Coming up · 14 September',
+      heading: 'London Science\nMuseum',
+      meta: 'Family expedition · 9 days away',
+      bg: 'linear-gradient(135deg,#0d0d1a,#08080d)',
+    },
+    rail1: {
+      label: 'Prepare for the Trip',
+      cards: [
+        { label: 'Science Museum\nWhat to see', bg: 'linear-gradient(135deg,#0d0d1a,#08080d)' },
+        { label: 'Chester Zoo\nOur last trip', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
+        { label: 'Trip Journal\nElsie', bg: 'linear-gradient(135deg,#0d1a1a,#08121a)' },
+        { label: 'Science\nPre-read', bg: 'linear-gradient(135deg,#1a1a10,#101008)' },
+      ],
+    },
+  },
+  'offline': {
+    view: 'offline',
+    label: 'Offline / Error',
+    realtime: false,
+  },
+};
+
+/* ── State ── */
+let currentScenario = 'pairing-waiting';
+let currentView = 'pairing';
+let focusedCard = -1;
+let showSafe = false;
+
+/* ── Scenario switching ── */
+function setScenario(key) {
+  currentScenario = key;
+  const f = FIXTURES[key];
+  if (!f) return;
+
+  // Update buttons
+  document.querySelectorAll('.sim-btn[id^="btn-"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn-' + key);
+  if (btn) btn.classList.add('active');
+
+  // Update scenario badge
+  document.getElementById('scenario-label').textContent = f.label || key;
+
+  // Update realtime badge
+  const dot = document.getElementById('realtime-dot');
+  const label = document.getElementById('realtime-label');
+  if (f.realtime) {
+    dot.classList.remove('offline');
+    label.textContent = 'Realtime connected (sim)';
+  } else {
+    dot.classList.add('offline');
+    label.textContent = 'Simulator mode';
+  }
+
+  // Populate view-specific content
+  if (f.view === 'pairing') {
+    document.getElementById('pair-code').textContent = f.code || 'M7K4-P2';
+    document.getElementById('pair-expires').textContent = 'Code expires in ' + (f.expires || '9:42');
+  }
+
+  if (f.view === 'home') {
+    applyHomeFixture(f);
+  }
+
+  showView(f.view);
+}
+
+function applyHomeFixture(f) {
+  const hero = f.hero || {};
+  document.getElementById('hero-context').textContent = hero.context || 'Family OS';
+  document.getElementById('hero-heading').textContent = hero.heading || '';
+  document.getElementById('hero-meta').textContent = hero.meta || '';
+  document.getElementById('home-hero').style.background = hero.bg || 'linear-gradient(135deg,#0d1a10,#081208)';
+
+  const r1 = f.rail1 || {};
+  document.getElementById('rail-label-1').textContent = r1.label || 'Up Next';
+  const rail = document.getElementById('rail-1');
+  rail.innerHTML = '';
+  (r1.cards || []).forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'rail-card' + (i === 0 ? ' focused' : '');
+    el.tabIndex = 0;
+    el.dataset.idx = i;
+    el.innerHTML = `<div class="rail-card-bg" style="--card-bg:${card.bg}"></div>
+      <div class="rail-card-label">${card.label.replace('\n','<br>')}</div>`;
+    el.addEventListener('focus', () => setFocusedCard(i));
+    rail.appendChild(el);
+  });
+  focusedCard = 0;
+
+  // Clock
+  const now = new Date();
+  document.getElementById('home-clock').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' +
+    now.getMinutes().toString().padStart(2,'0');
+}
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-' + name);
+  if (el) el.classList.add('active');
+  currentView = name;
+  focusedCard = 0;
+}
+
+function setFocusedCard(idx) {
+  document.querySelectorAll('.rail-card').forEach((c,i) => {
+    c.classList.toggle('focused', i === idx);
+  });
+  focusedCard = idx;
+}
+
+/* ── Launch sequence ── */
+function replayLaunch() {
+  showView('pairing');
+  document.querySelectorAll('.sim-btn[id^="btn-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-pairing-waiting').classList.add('active');
+  document.getElementById('scenario-label').textContent = FIXTURES['pairing-waiting'].label;
+  document.getElementById('realtime-dot').classList.add('offline');
+  document.getElementById('realtime-label').textContent = 'Simulator mode';
+  currentScenario = 'pairing-waiting';
+  currentView = 'pairing';
+}
+
+/* ── Safe area toggle ── */
+function toggleSafeArea() {
+  showSafe = !showSafe;
+  document.getElementById('tv-canvas').classList.toggle('show-safe', showSafe);
+  document.getElementById('btn-safe').classList.toggle('active', showSafe);
+}
+
+/* ── Keyboard navigation ── */
+document.addEventListener('keydown', e => {
+  const cards = Array.from(document.querySelectorAll('.rail-card'));
+
+  if (currentView === 'home') {
+    if (e.key === 'ArrowRight' && focusedCard < cards.length - 1) {
+      e.preventDefault();
+      setFocusedCard(focusedCard + 1);
+      cards[focusedCard].focus();
+    }
+    if (e.key === 'ArrowLeft' && focusedCard > 0) {
+      e.preventDefault();
+      setFocusedCard(focusedCard - 1);
+      cards[focusedCard].focus();
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // No-op in simulator — shows what would be selected
+    }
+    if (e.key === 'Escape' || e.key === 'Backspace') {
+      e.preventDefault();
+      // Back at home root — no action (matches Android TV behaviour)
+    }
+  }
+
+  if (currentView === 'pairing') {
+    if (e.key === 'Enter') {
+      // Simulate approval
+      showView('pairing-success');
+      setTimeout(() => {
+        setScenario('home-morning');
+      }, 2500);
+    }
+  }
+
+  if (currentView === 'pairing-success') {
+    // Auto-advance handled by timer
+  }
+});
+
+/* ── Clock update ── */
+setInterval(() => {
+  const el = document.getElementById('home-clock');
+  if (el && currentView === 'home') {
+    const now = new Date();
+    el.textContent = now.getHours().toString().padStart(2,'0') + ':' +
+                     now.getMinutes().toString().padStart(2,'0');
+  }
+}, 10000);
+
+/* ── Init ── */
+setScenario('pairing-waiting');
+</script>
+</body>
+</html>
