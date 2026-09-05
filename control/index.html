@@ -1422,5 +1422,51 @@ loadSDKThenInit();  // loads SDK dynamically then runs auth init
   </div>
 </div>
 
+
+<!-- IDENTITY DIAGNOSTIC — always visible, remove after pairing confirmed -->
+<div style="padding:16px;">
+  <div style="color:rgba(255,255,255,0.3);font-size:11px;font-weight:700;
+    letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">
+    Identity Diagnostic
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <button onclick="runIdentityDiag('credential_check')"
+      style="background:#1a2a1a;color:#30d158;border:1px solid rgba(48,209,88,0.4);
+      border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;">
+      1. Check Credentials
+    </button>
+    <button onclick="runIdentityDiag('test_create_user')"
+      style="background:#1a2a1a;color:#C9A84C;border:1px solid rgba(201,168,76,0.4);
+      border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;">
+      2. Test Create Surface User
+    </button>
+  </div>
+  <pre id="diag-result-main" style="margin-top:12px;color:#fff;font-size:11px;
+    font-family:monospace;background:rgba(255,255,255,0.04);border-radius:10px;
+    padding:12px;max-height:300px;overflow-y:auto;white-space:pre-wrap;
+    word-break:break-all;display:none;"></pre>
+</div>
+<script>
+async function runIdentityDiag(operation) {
+  const el = document.getElementById('diag-result-main');
+  el.style.display = 'block';
+  el.textContent = 'Running ' + operation + '...';
+  try {
+    const r = await fetch('https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4'
+      },
+      body: JSON.stringify({ operation })
+    });
+    const data = await r.json();
+    el.textContent = 'HTTP ' + r.status + '\n\n' + JSON.stringify(data, null, 2);
+  } catch(e) {
+    el.textContent = 'Error: ' + e.message;
+  }
+}
+</script>
+
 </body>
 </html>
