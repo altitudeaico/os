@@ -534,6 +534,20 @@
 </style>
 </head>
 <body>
+
+<!-- SURFACE PAIRING SCREEN -->
+<div id="pairing-screen" style="position:fixed;inset:0;z-index:9999;background:#080d08;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <img src="https://olatoyefamily.com/logo.jpg" style="width:80px;height:80px;border-radius:18px;object-fit:cover;" onerror="this.style.display='none'" alt="Family OS">
+  <div style="color:#C9A84C;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;">Olatoye Family OS</div>
+  <div style="color:#fff;font-size:28px;font-weight:700;letter-spacing:-0.02em;">Set up this screen</div>
+  <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:32px 48px;text-align:center;">
+    <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:16px;letter-spacing:0.05em;">PAIRING CODE</div>
+    <div id="pairing-code-display" style="color:#fff;font-size:52px;font-weight:800;letter-spacing:0.1em;">------</div>
+    <div id="pairing-expires" style="color:rgba(255,255,255,0.3);font-size:12px;margin-top:12px;">Generating code...</div>
+  </div>
+  <div style="color:rgba(255,255,255,0.5);font-size:14px;text-align:center;max-width:360px;line-height:1.6;">Enter this code in <strong style="color:#fff;">Parent Control</strong> to connect this screen.</div>
+  <div id="pairing-status" style="color:rgba(255,255,255,0.3);font-size:12px;"></div>
+</div>
 <script>
   // ?lite=1  or  #lite  disables the animated background on slow devices
   (function(){
@@ -1185,6 +1199,90 @@
   startIdleCycle();
   loadInitialState();
   connectRealtime();
+
+/* SURFACE IDENTITY */
+const IDENTITY_URL_SURF = 'https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity';
+const HOUSEHOLD_ID_SURF = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+const SESSION_KEY = 'family-os-surface-session-D2';
+const PAIRING_KEY = 'family-os-pairing-D2';
+let _surfaceSession = null;
+let _pairingInterval = null;
+
+function surfaceHeaders() {
+  if (!_surfaceSession) return { apikey: SUPABASE_ANON_KEY };
+  return { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + _surfaceSession.access_token };
+}
+
+function loadStoredSession() {
+  try {
+    const s = localStorage.getItem(SESSION_KEY);
+    if (s) { _surfaceSession = JSON.parse(s); return true; }
+  } catch(e) {}
+  return false;
+}
+
+function storeSession(s) { _surfaceSession = s; localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+function clearSession() { _surfaceSession = null; localStorage.removeItem(SESSION_KEY); localStorage.removeItem(PAIRING_KEY); }
+
+async function startPairing() {
+  document.getElementById('pairing-screen').style.display = 'flex';
+  document.getElementById('pairing-status').textContent = 'Requesting pairing code...';
+  try {
+    const r = await fetch(IDENTITY_URL_SURF, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ operation:'request_surface_pairing', payload:{ household_id:HOUSEHOLD_ID_SURF, surface_type:'tv' }})
+    });
+    const data = await r.json();
+    if (!data.ok) { document.getElementById('pairing-status').textContent = 'Error: ' + data.error; setTimeout(startPairing, 30000); return; }
+    const state = { pairing_code: data.pairing_code, claim_secret: data.claim_secret, expires_at: data.expires_at };
+    localStorage.setItem(PAIRING_KEY, JSON.stringify(state));
+    document.getElementById('pairing-code-display').textContent = data.pairing_code;
+    const expiresAt = new Date(data.expires_at);
+    const updateExpiry = () => {
+      const s = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      document.getElementById('pairing-expires').textContent = s > 0
+        ? 'Code expires in ' + Math.floor(s/60) + ':' + (s%60).toString().padStart(2,'0')
+        : 'Expired — refreshing...';
+      if (s === 0) { clearInterval(expiryTimer); setTimeout(startPairing, 2000); }
+    };
+    updateExpiry();
+    const expiryTimer = setInterval(updateExpiry, 1000);
+    document.getElementById('pairing-status').textContent = 'Waiting for approval in Parent Control...';
+    _pairingInterval = setInterval(() => pollForSession(state), 3000);
+  } catch(e) {
+    document.getElementById('pairing-status').textContent = 'Network error — retrying...';
+    setTimeout(startPairing, 15000);
+  }
+}
+
+async function pollForSession(state) {
+  try {
+    const r = await fetch(IDENTITY_URL_SURF, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ operation:'claim_surface_session', payload:{ pairing_code: state.pairing_code, claim_secret: state.claim_secret }})
+    });
+    if (r.status === 404) return;
+    if (r.status === 410) { clearInterval(_pairingInterval); setTimeout(startPairing, 2000); return; }
+    const data = await r.json();
+    if (data.ok && data.session) {
+      clearInterval(_pairingInterval);
+      storeSession(data.session);
+      document.getElementById('pairing-screen').style.display = 'none';
+      initDisplay();
+    }
+  } catch(e) {}
+}
+
+async function initSurface() {
+  if (loadStoredSession()) {
+    document.getElementById('pairing-screen').style.display = 'none';
+    initDisplay();
+  } else {
+    await startPairing();
+  }
+}
+
+window.addEventListener('load', initSurface);
 </script>
 </body>
 </html>
