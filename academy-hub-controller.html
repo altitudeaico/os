@@ -1025,7 +1025,7 @@ async function handlePhotoUpload(input) {
     try {
       const r = await fetch(SUPABASE_URL + '/storage/v1/object/academy-gallery/' + filename, {
         method: 'POST',
-        headers: Object.assign(writeHeaders(), { 'Content-Type': file.type, 'x-upsert': 'true' },
+        headers: Object.assign(writeHeaders(), { 'Content-Type': file.type, 'x-upsert': 'true' }),
         body: file
       });
       if (r.ok) {
