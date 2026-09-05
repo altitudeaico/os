@@ -2,78 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Family OS — Auth Test</title>
-<style>
-body { font-family: sans-serif; background: #0a0f0a; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 20px; margin: 0; padding: 20px; box-sizing: border-box; }
-button { background: #fff; color: #000; border: none; border-radius: 12px; padding: 16px 32px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; max-width: 300px; }
-#status { font-size: 13px; color: rgba(255,255,255,0.6); text-align: center; max-width: 300px; line-height: 1.5; }
-#error { color: #ff6b6b; font-size: 13px; text-align: center; max-width: 300px; display: none; }
-</style>
+<meta http-equiv="refresh" content="0; url=/">
+<title>Olatoye Family</title>
 </head>
 <body>
-<div style="font-size:24px;font-weight:700;">Family OS Auth Test</div>
-<div id="status">Loading SDK...</div>
-<button id="btn" onclick="doSignIn()" disabled>Continue with Google</button>
-<div id="error"></div>
-
-<script>
-const SUPABASE_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
-
-function setStatus(msg) { document.getElementById('status').textContent = msg; }
-function setError(msg) { const el = document.getElementById('error'); el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
-
-async function doSignIn() {
-  setError('');
-  setStatus('Starting Google sign-in...');
-  try {
-    const { error } = await window._sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: 'https://altitudeaico.github.io/os/auth-test.html'
-      }
-    });
-    if (error) {
-      setError('Auth error: ' + error.message);
-      setStatus('Sign-in failed.');
-    } else {
-      setStatus('Redirecting to Google...');
-    }
-  } catch(e) {
-    setError('Exception: ' + e.message);
-    setStatus('Something went wrong.');
-  }
-}
-
-// Load Supabase SDK dynamically
-const script = document.createElement('script');
-script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-script.onload = function() {
-  try {
-    window._sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, flowType: 'implicit', storageKey: 'family-os-test' }
-    });
-
-    // Check for existing session (OAuth redirect)
-    window._sb.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setStatus('Signed in as: ' + (session.user.user_metadata?.full_name || session.user.email));
-        document.getElementById('btn').textContent = 'Signed in ✓';
-      } else {
-        setStatus('SDK loaded. Ready to sign in.');
-        document.getElementById('btn').disabled = false;
-      }
-    });
-  } catch(e) {
-    setError('Client init failed: ' + e.message);
-  }
-};
-script.onerror = function() {
-  setError('Failed to load Supabase SDK. Check internet connection.');
-  setStatus('SDK load failed.');
-};
-document.head.appendChild(script);
-</script>
+<script>window.location.replace('/');</script>
 </body>
 </html>
