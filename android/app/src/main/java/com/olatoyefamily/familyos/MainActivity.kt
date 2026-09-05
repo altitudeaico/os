@@ -29,10 +29,11 @@ class MainActivity : Activity() {
     // Canonical Family OS TV URL — single constant, never constructed at runtime
     private val HUB_URL = "https://olatoyefamily.com/hub/"
 
-    // Approved origins — WebView navigation restricted to these
+    // Approved origins — top-level WebView navigation only.
+    // Supabase HTTPS/WSS requests are JavaScript network calls, not WebView navigation.
+    // They work regardless of this list; this list only controls URL bar navigation.
     private val APPROVED_ORIGINS = setOf(
         "olatoyefamily.com",
-        "fypwabbhxnnwcpfjwrda.supabase.co",  // Supabase API + Realtime
     )
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -61,7 +62,7 @@ class MainActivity : Activity() {
                 // Required for Family OS web client
                 javaScriptEnabled = true          // Item 3: JS enabled
                 domStorageEnabled = true          // Item 3: localStorage — Surface session persistence
-                databaseEnabled = true            // Item 3: WebSQL fallback
+                databaseEnabled = false           // WebSQL is obsolete — DOM/localStorage sufficient
                 allowFileAccess = false           // Item 3: no local file access
                 allowContentAccess = false        // Item 3: no content:// URIs
 
