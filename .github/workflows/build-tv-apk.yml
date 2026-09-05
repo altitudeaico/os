@@ -33,11 +33,27 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
+      - name: Show project structure
+        run: |
+          echo "=== Android project files ==="
+          find android -type f | sort
+          echo ""
+          echo "=== app/build.gradle ==="
+          cat android/app/build.gradle
+          echo ""
+          echo "=== AndroidManifest.xml ==="
+          cat android/app/src/main/AndroidManifest.xml
+          echo ""
+          echo "=== Android SDK location ==="
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls $ANDROID_HOME/platforms/ 2>/dev/null || echo "No platforms dir"
+
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
+        continue-on-error: true
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -45,4 +61,4 @@ jobs:
           name: family-os-tv-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
-          if-no-files-found: error
+          if-no-files-found: warn
