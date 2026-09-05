@@ -233,6 +233,31 @@ details[open] summary::before{content:'▾ '}
 </head>
 <body>
 
+<!-- DIAGNOSTIC: visible lifecycle tracker — remove after auth confirmed working -->
+<div id="diag" style="
+  position:fixed;bottom:0;left:0;right:0;z-index:99999;
+  background:rgba(0,0,0,0.92);color:#30d158;
+  font-family:monospace;font-size:11px;padding:8px 12px;
+  max-height:120px;overflow-y:auto;
+  border-top:1px solid rgba(48,209,88,0.3);
+  pointer-events:none;
+">DIAG: Page ready</div>
+<script>
+function diag(msg) {
+  const el = document.getElementById('diag');
+  if (!el) return;
+  const line = document.createElement('div');
+  line.textContent = new Date().toISOString().substr(11,8) + ' — ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+window.onerror = function(msg, src, line) {
+  diag('JS ERROR: ' + msg + ' (L' + line + ')');
+};
+diag('DOM ready');
+</script>
+
+
 <!-- Auth gate overlay — Family OS front door -->
 <div id="auth-overlay" style="
   position:fixed;inset:0;z-index:9999;
@@ -263,7 +288,7 @@ details[open] summary::before{content:'▾ '}
   </div>
 
   <!-- Sign in button — Family OS styled, Google identified clearly but not dominant -->
-  <button onclick="signIn()" style="
+  <button type="button" onclick="signIn()" style="
     background:rgba(255,255,255,0.96);color:#111;border:none;border-radius:14px;
     padding:15px 32px;font-size:15px;font-weight:600;cursor:pointer;
     display:flex;align-items:center;gap:10px;
@@ -336,15 +361,15 @@ details[open] summary::before{content:'▾ '}
     </div>
     <div class="card-body">
       <div class="idle-row">
-        <button class="write-control" class="idle-btn d1" onclick="sendTo('idle',{},1)">
+        <button class="write-control idle-btn d1" onclick="sendTo('idle',{},1)">
           <span>Display 1</span>
           <span class="idle-btn-label">SET IDLE</span>
         </button>
-        <button class="write-control" class="idle-btn d2" onclick="sendTo('idle',{},2)">
+        <button class="write-control idle-btn d2" onclick="sendTo('idle',{},2)">
           <span>Display 2</span>
           <span class="idle-btn-label">SET IDLE</span>
         </button>
-        <button class="write-control" class="idle-btn both" onclick="sendTo('idle',{},'both')">
+        <button class="write-control idle-btn both" onclick="sendTo('idle',{},'both')">
           <span>Both</span>
           <span class="idle-btn-label">SET IDLE</span>
         </button>
@@ -372,9 +397,9 @@ details[open] summary::before{content:'▾ '}
       <input id="custom-author" placeholder="Author (optional)">
       <input id="custom-pillar" placeholder="Pillar (optional)">
       <div class="send-row">
-        <button class="write-control" class="send-btn d1" onclick="sendQuoteTo(1)">↗ Display 1</button>
-        <button class="write-control" class="send-btn d2" onclick="sendQuoteTo(2)">↗ Display 2</button>
-        <button class="write-control" class="send-btn both" onclick="sendQuoteTo('both')">↗ Both</button>
+        <button class="write-control send-btn d1" onclick="sendQuoteTo(1)">↗ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendQuoteTo(2)">↗ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendQuoteTo('both')">↗ Both</button>
       </div>
     </div>
   </div>
@@ -388,9 +413,9 @@ details[open] summary::before{content:'▾ '}
     </div>
     <div class="card-body">
       <div class="send-row">
-        <button class="write-control" class="send-btn d1" onclick="sendTo('creed',{},1)">↗ Display 1</button>
-        <button class="write-control" class="send-btn d2" onclick="sendTo('creed',{},2)">↗ Display 2</button>
-        <button class="write-control" class="send-btn both" onclick="sendTo('creed',{},'both')">↗ Both</button>
+        <button class="write-control send-btn d1" onclick="sendTo('creed',{},1)">↗ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendTo('creed',{},2)">↗ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendTo('creed',{},'both')">↗ Both</button>
       </div>
     </div>
   </div>
@@ -412,9 +437,9 @@ details[open] summary::before{content:'▾ '}
         <textarea id="announce-body" placeholder="Additional detail…" rows="2"></textarea>
       </div>
       <div class="send-row">
-        <button class="write-control" class="send-btn d1" onclick="sendAnnouncementTo(1)">↗ Display 1</button>
-        <button class="write-control" class="send-btn d2" onclick="sendAnnouncementTo(2)">↗ Display 2</button>
-        <button class="write-control" class="send-btn both" onclick="sendAnnouncementTo('both')">↗ Both</button>
+        <button class="write-control send-btn d1" onclick="sendAnnouncementTo(1)">↗ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendAnnouncementTo(2)">↗ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendAnnouncementTo('both')">↗ Both</button>
       </div>
     </div>
   </div>
@@ -432,9 +457,9 @@ details[open] summary::before{content:'▾ '}
         <input id="yt-url" placeholder="https://youtu.be/… or video ID">
       </div>
       <div class="send-row">
-        <button class="write-control" class="send-btn d1" onclick="sendYoutubeTo(1)">▶ Display 1</button>
-        <button class="write-control" class="send-btn d2" onclick="sendYoutubeTo(2)">▶ Display 2</button>
-        <button class="write-control" class="send-btn both" onclick="sendYoutubeTo('both')">▶ Both</button>
+        <button class="write-control send-btn d1" onclick="sendYoutubeTo(1)">▶ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendYoutubeTo(2)">▶ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendYoutubeTo('both')">▶ Both</button>
       </div>
     </div>
   </div>
@@ -476,9 +501,9 @@ details[open] summary::before{content:'▾ '}
         </div>
       </div>
       <div class="send-row">
-        <button class="write-control" class="send-btn d1" onclick="sendGalleryTo(1)">↗ Display 1</button>
-        <button class="write-control" class="send-btn d2" onclick="sendGalleryTo(2)">↗ Display 2</button>
-        <button class="write-control" class="send-btn both" onclick="sendGalleryTo('both')">↗ Both</button>
+        <button class="write-control send-btn d1" onclick="sendGalleryTo(1)">↗ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendGalleryTo(2)">↗ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendGalleryTo('both')">↗ Both</button>
       </div>
     </div>
   </div>
@@ -500,9 +525,9 @@ details[open] summary::before{content:'▾ '}
       </div>
 
       <div class="send-row">
-        <button class="write-control" class="send-btn d1" onclick="sendPresentationTo(1)">▶ Display 1</button>
-        <button class="write-control" class="send-btn d2" onclick="sendPresentationTo(2)">▶ Display 2</button>
-        <button class="write-control" class="send-btn both" onclick="sendPresentationTo('both')">▶ Both</button>
+        <button class="write-control send-btn d1" onclick="sendPresentationTo(1)">▶ Display 1</button>
+        <button class="write-control send-btn d2" onclick="sendPresentationTo(2)">▶ Display 2</button>
+        <button class="write-control send-btn both" onclick="sendPresentationTo('both')">▶ Both</button>
       </div>
 
       <div id="pres-controls" style="display:none">
@@ -600,6 +625,7 @@ function initSupabaseClient() {
     }
     return false;
   }
+  diag('Creating Supabase client...');
   _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
@@ -609,15 +635,21 @@ function initSupabaseClient() {
       flowType: 'implicit'
     }
   });
+  diag('Supabase client created — _sb ready');
   return true;
 }
 
 /* ── Dynamic SDK loader — guarantees SDK is ready before auth runs ── */
 function loadSDKThenInit() {
+  diag('SDK loading...');
   const script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-  script.onload = function() { initAuth(); };
+  script.onload = function() {
+    diag('SDK loaded — running initAuth');
+    initAuth();
+  };
   script.onerror = function() {
+    diag('SDK LOAD FAILED — CDN unreachable');
     const el = document.getElementById('auth-error');
     if (el) {
       el.textContent = 'Could not load authentication library. Check your connection and refresh.';
@@ -677,13 +709,19 @@ function setAuthUI(session) {
 }
 
 async function signIn() {
+  diag('GOOGLE BUTTON TAPPED');
   document.getElementById('auth-error').style.display = 'none';
+  const btn = document.querySelector('#auth-overlay button');
+  if (btn) btn.textContent = 'Connecting…';
   if (!_sb) {
+    diag('ERROR: _sb is null — client not initialised');
     const el = document.getElementById('auth-error');
     el.textContent = 'Authentication not ready. Please refresh the page.';
     el.style.display = 'block';
+    if (btn) btn.textContent = 'Continue with Google';
     return;
   }
+  diag('Calling signInWithOAuth...');
   const { error } = await _sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -691,7 +729,11 @@ async function signIn() {
       queryParams: { prompt: 'select_account' }
     }
   });
+  if (!error) {
+    diag('signInWithOAuth returned — browser should be navigating to Google');
+  }
   if (error) {
+    diag('OAUTH ERROR: ' + error.message);
     const el = document.getElementById('auth-error');
     // Friendly error messages — no backend terminology exposed
     let msg = 'Something went wrong. Please try again.';
@@ -720,8 +762,9 @@ function handleAuthClick() {
 
 /* ── Session init — runs on every page load ── */
 async function initAuth() {
-  if (!initSupabaseClient()) return;
-  // 1. Check for OAuth redirect hash
+  diag('initAuth called');
+  if (!initSupabaseClient()) { diag('initSupabaseClient returned false — stopping'); return; }
+  diag('Auth initialised — checking for existing session');
   const { data: { session }, error } = await _sb.auth.getSession();
   if (error) console.warn('Auth session error:', error.message);
   setAuthUI(session);
@@ -1218,7 +1261,6 @@ async function testConnection(){
   }
 }
 
-/* ── INIT ── */
 /* ── INIT ── */
 loadSDKThenInit();  // loads SDK dynamically then runs auth init
 
