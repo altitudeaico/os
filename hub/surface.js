@@ -118,8 +118,14 @@ async function initSurface() {
     }
   }
 
+  // No stored session — try zero-touch provisioning before manual pairing
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: provision ENTER';})();
+  if (typeof SURFACE_PROVISIONING_GRANT !== 'undefined' && SURFACE_PROVISIONING_GRANT) {
+    const provisioned = await attemptZeroTouchProvisioning();
+    if (provisioned) return; // session stored, showHome called inside
+  }
   (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: startPairing ENTER';})();
-  log('No stored session — starting pairing');
+  log('No stored session and no valid provisioning grant — starting manual pairing');
   await startPairing();
 }
 
@@ -160,6 +166,73 @@ function clearSession() {
 /* ════════════════════════════════════════════════════════════════
    PAIRING FLOW
    ════════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════════
+   ZERO-TOUCH SURFACE PROVISIONING
+   Attempts silent provisioning using the embedded grant.
+   Falls through to manual pairing if unavailable or already consumed.
+   ════════════════════════════════════════════════════════════════ */
+
+async function attemptZeroTouchProvisioning() {
+  // Check local flag — if we've already attempted this grant, don't retry
+  // (server-side consumption is authoritative; this just avoids unnecessary calls)
+  const grantAttempted = localStorage.getItem('fos-grant-attempted');
+  if (grantAttempted === SURFACE_PROVISIONING_GRANT.substring(0, 8)) {
+    log('Provisioning grant already attempted locally — skipping');
+    return false;
+  }
+
+  log('Attempting zero-touch Surface provisioning');
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='provision: attempt';})();
+
+  try {
+    const r = await fetch(IDENTITY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operation: 'provision_surface',
+        payload: { grant: SURFACE_PROVISIONING_GRANT }
+      })
+    });
+    const data = await r.json();
+
+    // Mark attempted regardless of outcome (server-side state is authoritative)
+    try { localStorage.setItem('fos-grant-attempted', SURFACE_PROVISIONING_GRANT.substring(0, 8)); } catch {}
+
+    if (!data.ok) {
+      warn('Zero-touch provisioning failed: ' + data.error);
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='provision: FAILED — ' + (data.error || 'unknown');})();
+      // Transient failures (5xx) should retry next launch — don't mark permanent failure
+      // Permanent failures (403, 409) fall through to manual pairing
+      return false;
+    }
+
+    log('Zero-touch provisioning succeeded');
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='provision: SUCCESS';})();
+
+    // Establish session from provisioning response
+    const { data: authData, error } = await _sb.auth.setSession({
+      access_token:  data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    });
+
+    if (error || !authData?.session) {
+      warn('Failed to establish session from provisioning: ' + (error?.message ?? 'no session'));
+      return false;
+    }
+
+    _session = authData.session;
+    storeSession(_session);
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='provision: session stored';})();
+    await showHome();
+    return true;
+
+  } catch (e) {
+    warn('Provisioning network error: ' + e.message);
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='provision: network error';})();
+    return false;
+  }
+}
 
 async function startPairing() {
   showView('pairing');
