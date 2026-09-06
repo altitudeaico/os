@@ -350,17 +350,46 @@ function renderPairingConnected() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   HOME — Phase 0B PLACEHOLDER
-   Proves: authenticated session, Realtime, hub_state delivery.
-   Visual design comes after visual design phase.
+   HOME — V2 Production
+   Full-bleed hero · Large artwork cards · Real Supabase state
    ════════════════════════════════════════════════════════════════ */
+
+/* ── Canonical card manifest ── */
+const HOME_CARDS = [
+  { label: 'Academy',       img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png' },
+  { label: "Elsie's World", img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png' },
+  { label: "Emma's World",  img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png' },
+  { label: 'Our Adventures',img: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png' },
+  { label: 'Family Time',   img: 'https://olatoyefamily.com/hub/assets/cards/card-family-time.png' },
+  { label: 'Watch',         img: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png' },
+  { label: 'Coming Up',     img: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png' },
+];
+
+/* ── Hero images mapped to time-of-day ── */
+function heroForTime() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 17) return 'https://olatoyefamily.com/hub/assets/heroes/hero-morning-academy.png';
+  return 'https://olatoyefamily.com/hub/assets/heroes/hero-evening-family-B.png';
+}
+
+/* ── Context text mapped to time-of-day ── */
+function contextForTime() {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 12) return 'Good morning, Olatoye Family';
+  if (h >= 12 && h < 17) return 'Good afternoon, Olatoye Family';
+  return 'Good evening, Olatoye Family';
+}
 
 async function showHome() {
   showView('home');
-  renderHomePlaceholder();
+  renderHomeV2();
   connectRealtime();
 
-  // Listen for session expiry — refresh automatically
+  // Clock tick
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  // Session expiry listener
   _sb.auth.onAuthStateChange((event, session) => {
     if (event === 'TOKEN_REFRESHED' && session) {
       log('Token refreshed automatically');
@@ -377,37 +406,72 @@ async function showHome() {
   hideBoot();
 }
 
-function renderHomePlaceholder() {
-  const el = document.getElementById('view-home');
-  el.innerHTML = `
-    <div style="
-      position:fixed;inset:0;background:#080d08;
-      display:flex;flex-direction:column;
-      align-items:center;justify-content:center;gap:20px;
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    ">
-      <img src="https://olatoyefamily.com/logo.jpg"
-           style="width:72px;height:72px;border-radius:16px;object-fit:cover;"
-           onerror="this.style.display='none'" alt="Family OS">
-      <div style="color:#C9A84C;font-size:11px;font-weight:700;
-                  letter-spacing:0.2em;text-transform:uppercase;">
-        Olatoye Family OS
-      </div>
-      <div style="color:#fff;font-size:24px;font-weight:600;">
-        Family OS Home
-      </div>
-      <div style="color:rgba(255,255,255,0.35);font-size:14px;text-align:center;max-width:400px;line-height:1.6;">
-        Phase 0B — platform verified.<br>
-        Surface identity active. Realtime connected.<br>
-        V2 Home experience follows visual design phase.
-      </div>
-      <div id="realtime-status" style="
-        margin-top:8px;
-        color:rgba(255,255,255,0.25);font-size:12px;
-        font-family:monospace;
-      ">Realtime: connecting...</div>
-    </div>
-  `;
+function updateClock() {
+  const el = document.getElementById('home-clock');
+  if (!el) return;
+  const now = new Date();
+  el.textContent = now.getHours().toString().padStart(2,'0') + ':' +
+                   now.getMinutes().toString().padStart(2,'0');
+}
+
+function renderHomeV2() {
+  // Hero background — time-of-day aware
+  const heroBg = document.getElementById('home-hero-bg');
+  if (heroBg) heroBg.style.backgroundImage = 'url(' + heroForTime() + ')';
+
+  // Hero text — defaults, overridden by hub_state when Realtime delivers
+  setHeroText({ context: contextForTime(), heading: 'Welcome home.', meta: '' });
+
+  // Rail — canonical card set
+  renderRail(HOME_CARDS);
+
+  // Nav label
+  const navLabel = document.getElementById('home-nav-label');
+  if (navLabel) {
+    const h = new Date().getHours();
+    navLabel.textContent = h < 12 ? 'Home · Morning' :
+                           h < 17 ? 'Home · Afternoon' : 'Home · Evening';
+  }
+
+  // Clock
+  updateClock();
+}
+
+function setHeroText({ context, heading, meta }) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.textContent = val || ''; };
+  set('hero-context', context);
+  set('hero-heading', heading);
+  set('hero-meta', meta);
+}
+
+function renderRail(cards) {
+  const rail = document.getElementById('rail-cards');
+  if (!rail) return;
+  rail.innerHTML = '';
+  let focusIdx = 0;
+
+  cards.forEach((card, i) => {
+    const el = document.createElement('div');
+    el.className = 'rail-card' + (i === 0 ? ' focused' : '');
+    el.tabIndex = 0;
+    el.dataset.idx = i;
+
+    if (card.img) {
+      el.innerHTML = `<img class="rail-card-img" src="${card.img}" alt="" loading="lazy">
+        <div class="rail-card-gradient"></div>
+        <div class="rail-card-label">${card.label}</div>`;
+    } else {
+      el.innerHTML = `<div class="rail-card-bg" style="--card-bg:${card.bg || 'rgba(255,255,255,0.06)'}"></div>
+        <div class="rail-card-label">${card.label}</div>`;
+    }
+
+    el.addEventListener('focus', () => {
+      document.querySelectorAll('.rail-card').forEach(c => c.classList.remove('focused'));
+      el.classList.add('focused');
+    });
+
+    rail.appendChild(el);
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -449,15 +513,33 @@ function connectRealtime() {
 }
 
 function updateRealtimeStatus(msg) {
-  const el = document.getElementById('realtime-status');
-  if (el) el.textContent = 'Realtime: ' + msg;
+  // V2: update the header status badge
+  const dot   = document.getElementById('realtime-dot');
+  const label = document.getElementById('realtime-label');
+  const isConnected = msg.startsWith('✓');
+  if (dot) {
+    dot.className = 'home-status-dot' + (isConnected ? '' : ' offline');
+  }
+  if (label) label.textContent = isConnected ? 'Riri online' : msg;
+  // Phase 0B legacy element — gracefully absent in V2
+  const legacy = document.getElementById('realtime-status');
+  if (legacy) legacy.textContent = 'Realtime: ' + msg;
 }
 
 function applyHubState(state) {
-  // Phase 0B: log state changes, full rendering in Phase 1+
   if (!state) return;
   log('Hub state: mode=' + state.mode);
-  updateRealtimeStatus('✓ State: ' + state.mode + ' @ ' + new Date().toLocaleTimeString());
+  updateRealtimeStatus('✓ ' + (state.mode || 'idle') + ' · ' + new Date().toLocaleTimeString());
+
+  // Update hero text from hub_state content if present
+  const content = state.content_json ? JSON.parse(state.content_json) : null;
+  if (content) {
+    setHeroText({
+      context: content.context || contextForTime(),
+      heading: content.heading || '',
+      meta:    content.meta || '',
+    });
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
