@@ -1022,12 +1022,40 @@ function startAchievementFlow(achievement) {
   };
   _returnDestination = _currentAchievement.returnDestination || 'home-morning';
 
-  // Populate congratulations view with fixture data
+  // Populate congrats in advance (no DOM changes to video element)
   populateCongrats(_currentAchievement);
 
-  // Show Riri intro, then crossfade to congrats
+  // Show riri view synchronously — must happen before play()
   showView('riri-intro');
-  playRiriVideo();
+
+  // Call play() immediately in same synchronous call stack as user gesture
+  // No await, no setTimeout, no Promise chain before this point
+  const video = document.getElementById('riri-video');
+  if (!video) { crossfadeToCongrats(); return; }
+
+  video.onerror = () => crossfadeToCongrats();
+  video.onended = () => crossfadeToCongrats();
+  video.currentTime = 0;
+  video.muted = false;
+
+  const p = video.play();
+  if (p !== undefined) {
+    p.then(() => {
+      const ticker = setInterval(() => {
+        reportVideoState();
+        if (video.ended || video.paused) clearInterval(ticker);
+      }, 250);
+    }).catch(() => {
+      // Audio blocked — retry muted
+      video.muted = true;
+      video.play().catch(() => crossfadeToCongrats());
+    });
+  }
+
+  // Hard fallback
+  setTimeout(() => {
+    if (currentView === 'riri-intro' && (video.paused || video.ended)) crossfadeToCongrats();
+  }, 15000);
 }
 
 function reportVideoState() {
