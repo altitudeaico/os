@@ -1,3 +1,4 @@
+(function(){var p=document.getElementById('fos-probe');if(p)p.textContent='surface.js: LOADED';})();
 /**
  * Family OS TV — Surface Identity & Application Bootstrap
  *
@@ -40,6 +41,7 @@ function err(msg)  { console.error('[FamilyOS]', msg); }
    ════════════════════════════════════════════════════════════════ */
 
 window.addEventListener('load', async () => {
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='window.load: FIRED';})();
   log('Boot — initialising Supabase client');
 
   // Unconditional boot watchdog — fires 5s after page load regardless of
@@ -61,6 +63,8 @@ window.addEventListener('load', async () => {
     }
   }, 5000);
 
+  if(typeof supabase==='undefined'){(function(){var p=document.getElementById('fos-probe');if(p)p.textContent='ERROR: SUPABASE CDN';})(); return;}
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='Supabase: READY';})();
   _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
@@ -75,6 +79,7 @@ window.addEventListener('load', async () => {
 });
 
 async function initSurface() {
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='initSurface: START';})();
   log('Checking for stored Surface session');
 
   // Try to restore session from localStorage
@@ -97,6 +102,7 @@ async function initSurface() {
 
       _session = data.session;
       log('Session restored — identity_class: ' + (_session.user?.app_metadata?.identity_class ?? 'none'));
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='Session: RESTORED';})();
       storeSession(_session);
       await showHome();
       return;
@@ -401,6 +407,7 @@ function contextForTime() {
 }
 
 async function showHome() {
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='showHome: START';})();
   showView('home');
 
   try {
@@ -412,6 +419,7 @@ async function showHome() {
   // Boot visibility is UX state — hide immediately after render attempt.
   // Realtime, clock and auth listener initialise afterwards.
   hideBoot();
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='HOME: SHOWN';})();
 
   // Diagnostic watchdog: if boot is somehow still visible after 5s, force-remove it
   // and surface a minimal indicator so we can see what is underneath.
