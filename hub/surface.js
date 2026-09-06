@@ -41,6 +41,26 @@ function err(msg)  { console.error('[FamilyOS]', msg); }
 
 window.addEventListener('load', async () => {
   log('Boot — initialising Supabase client');
+
+  // Unconditional boot watchdog — fires 5s after page load regardless of
+  // what initSurface does. Answers: "what is under the boot screen?"
+  setTimeout(() => {
+    const boot = document.getElementById('boot');
+    if (!boot) return;
+    const hidden = boot.style.display === 'none' || boot.classList.contains('fade-out');
+    if (!hidden) {
+      err('Boot watchdog (load): boot still visible after 5s — forcing removal');
+      boot.style.display = 'none';
+      const diag = document.createElement('div');
+      diag.style.cssText = 'position:fixed;top:2%;left:50%;transform:translateX(-50%);' +
+        'background:rgba(255,60,60,0.9);color:#fff;font-size:13px;padding:8px 16px;' +
+        'border-radius:6px;z-index:99999;font-family:monospace;white-space:nowrap;';
+      diag.textContent = 'HOME INIT DEGRADED — see console';
+      document.body.appendChild(diag);
+      setTimeout(() => { if (diag.parentNode) diag.remove(); }, 10000);
+    }
+  }, 5000);
+
   _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
