@@ -13,9 +13,9 @@ android {
         targetSdk 34
         versionCode 2
         versionName "0.2.0-ztp"
-        // Surface provisioning grant — injected from CI secret, never from gradle.properties
-        buildConfigField "String", "SURFACE_PROVISIONING_GRANT",
-            "\"${project.findProperty('SURFACE_PROVISIONING_GRANT') ?: ''}\"" 
+        // Surface provisioning grant — read from environment at build time
+        def spg = System.getenv("SURFACE_PROVISIONING_GRANT") ?: ""
+        buildConfigField "String", "SURFACE_PROVISIONING_GRANT", "\"${spg}\""
     }
 
     buildFeatures {
