@@ -1018,25 +1018,31 @@ function playRiriVideo() {
   const video = document.getElementById('riri-video');
   if (!video) { skipRiriVideo(); return; }
 
-  // Error fallback — if video can't load, go straight to congrats
-  video.onerror = () => { console.warn('Riri video failed to load — showing congrats directly'); crossfadeToCongrats(); };
-
-  // On end — crossfade to congrats
+  video.onerror = () => { crossfadeToCongrats(); };
   video.onended = () => crossfadeToCongrats();
 
-  // Attempt play — if browser blocks autoplay, still show congrats
+  // Reset to start
+  video.currentTime = 0;
+
+  // Mute first to guarantee autoplay past browser policy
+  video.muted = true;
+
   const playPromise = video.play();
   if (playPromise !== undefined) {
-    playPromise.catch(() => {
-      console.warn('Riri video autoplay blocked — showing congrats directly');
+    playPromise.then(() => {
+      // Playback started — unmute to restore audio
+      video.muted = false;
+    }).catch(() => {
+      // Still blocked even muted — go to congrats
       crossfadeToCongrats();
     });
   }
 
-  // Timeout fallback — if video stalls for > 15s, skip
+  // Timeout fallback
   setTimeout(() => {
-    if (!video.ended && !video.paused) return;
-    if (currentView === 'riri-intro') crossfadeToCongrats();
+    if (currentView === 'riri-intro' && (video.paused || video.ended)) {
+      crossfadeToCongrats();
+    }
   }, 15000);
 }
 
