@@ -533,31 +533,46 @@ body {
         <div class="pair-welcome">Welcome home, Olatoyes.</div>
       </div>
 
-      <!-- VIEW: Home -->
+      <!-- VIEW: Home — V2 composition -->
       <div class="view" id="view-home">
-        <div class="home-header">
-          <div class="home-wordmark">Olatoye Family OS</div>
-          <div class="home-clock" id="home-clock">09:41</div>
-        </div>
 
+        <!-- Full-bleed hero background -->
         <div class="home-hero" id="home-hero">
-          <div class="hero-context" id="hero-context">Good morning</div>
-          <div class="hero-heading" id="hero-heading">Olatoye Family</div>
-          <div class="hero-meta" id="hero-meta">Friday · 5 September 2026</div>
+          <div class="home-hero-bg" id="home-hero-bg"></div>
+          <div class="home-hero-gradient"></div>
+
+          <!-- Hero text — bottom left -->
+          <div class="home-hero-text">
+            <div class="hero-context" id="hero-context">Good morning, Olatoye Family</div>
+            <div class="hero-heading" id="hero-heading">Academy starts in 18 minutes</div>
+            <div class="hero-meta" id="hero-meta">Friday · 5 September · 08:42</div>
+          </div>
         </div>
 
+        <!-- Top chrome — identity + status -->
+        <div class="home-header">
+          <div class="home-identity">
+            <div class="home-icon">⌂</div>
+            <div class="home-identity-text">
+              <div class="home-nav-label">Home · Morning</div>
+              <div class="home-wordmark">Olatoye Family OS</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.8em;">
+            <div class="home-status">
+              <div class="home-status-dot"></div>
+              <div class="home-status-text">Riri online</div>
+            </div>
+            <div class="home-clock" id="home-clock">09:41</div>
+          </div>
+        </div>
+
+        <!-- Rail — anchored to bottom -->
         <div class="home-rails">
           <div class="rail-label" id="rail-label-1">Up Next</div>
           <div class="rail-cards" id="rail-1"></div>
         </div>
 
-        <div class="home-nav" id="home-nav">
-          <div class="nav-item active" tabindex="0">Home</div>
-          <div class="nav-item" tabindex="0">Academy</div>
-          <div class="nav-item" tabindex="0">Watch</div>
-          <div class="nav-item" tabindex="0">Memories</div>
-          <div class="nav-item" tabindex="0">Family</div>
-        </div>
       </div>
 
       <!-- VIEW: Riri Achievement Intro — plays RIRI-V01 full-screen -->
@@ -688,7 +703,7 @@ const FIXTURES = {
       context: 'Good morning, Olatoye Family',
       heading: 'Academy starts in 18 minutes',
       meta: 'Friday · 5 September · 08:42',
-      bg: 'linear-gradient(135deg, #0d1a10 0%, #081208 100%)',
+      img: 'https://olatoyefamily.com/hub/assets/heroes/hero-morning-academy.png',
     },
     rail1: {
       label: 'Up Next',
@@ -707,9 +722,9 @@ const FIXTURES = {
     realtime: true,
     hero: {
       context: 'This afternoon',
-      heading: 'Elsie completed\nYear 5 Maths',
+      heading: 'Elsie completed Year 5 Maths',
       meta: 'Friday · 5 September · 14:15 · Achievement unlocked',
-      bg: 'linear-gradient(135deg,#1a150d,#0d0d08)',
+      img: 'https://olatoyefamily.com/hub/assets/heroes/hero-morning-academy.png',
     },
     rail1: {
       label: 'Continue',
@@ -726,10 +741,10 @@ const FIXTURES = {
     label: 'Home · Evening',
     realtime: true,
     hero: {
-      context: 'Good evening',
+      context: 'Good evening, Olatoye Family',
       heading: 'Family Movie Night',
       meta: 'Friday · 5 September · 19:30',
-      bg: 'linear-gradient(135deg,#0d0d1a,#08080d)',
+      img: 'https://olatoyefamily.com/hub/assets/heroes/hero-evening-family-B.png',
     },
     rail1: {
       label: 'Watch Together',
@@ -882,7 +897,17 @@ function applyHomeFixture(f) {
   document.getElementById('hero-context').textContent = hero.context || 'Family OS';
   document.getElementById('hero-heading').textContent = hero.heading || '';
   document.getElementById('hero-meta').textContent = hero.meta || '';
-  document.getElementById('home-hero').style.background = hero.bg || 'linear-gradient(135deg,#0d1a10,#081208)';
+  // Set hero background image if supplied, else fall back to colour
+  const heroBg = document.getElementById('home-hero-bg');
+  if (heroBg) {
+    if (hero.img) {
+      heroBg.style.backgroundImage = 'url(' + hero.img + ')';
+      heroBg.style.background = '';
+    } else {
+      heroBg.style.backgroundImage = '';
+      heroBg.style.background = hero.bg || 'linear-gradient(135deg,#0d1a10,#081208)';
+    }
+  }
 
   const r1 = f.rail1 || {};
   document.getElementById('rail-label-1').textContent = r1.label || 'Up Next';
