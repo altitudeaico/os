@@ -520,7 +520,7 @@ function updateRealtimeStatus(msg) {
   if (dot) {
     dot.className = 'home-status-dot' + (isConnected ? '' : ' offline');
   }
-  if (label) label.textContent = isConnected ? 'Riri online' : msg;
+  if (label) label.textContent = isConnected ? 'Family OS online' : msg;
   // Phase 0B legacy element — gracefully absent in V2
   const legacy = document.getElementById('realtime-status');
   if (legacy) legacy.textContent = 'Realtime: ' + msg;
@@ -532,7 +532,14 @@ function applyHubState(state) {
   updateRealtimeStatus('✓ ' + (state.mode || 'idle') + ' · ' + new Date().toLocaleTimeString());
 
   // Update hero text from hub_state content if present
-  const content = state.content_json ? JSON.parse(state.content_json) : null;
+  let content = null;
+  try {
+    content = typeof state.content_json === 'string'
+      ? JSON.parse(state.content_json)
+      : state.content_json || null;
+  } catch (e) {
+    warn('Invalid hub_state content_json — ignoring: ' + e.message);
+  }
   if (content) {
     setHeroText({
       context: content.context || contextForTime(),
