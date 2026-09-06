@@ -548,21 +548,6 @@ body {
           <source src="https://raw.githubusercontent.com/altitudeaico/os/main/hub/assets/riri/riri-celebration-intro.mp4" type="video/mp4">
         </video>
         <!-- Skip button — always available during playback -->
-        <!-- ▶ Play Riri — diagnostic direct play button -->
-        <button onclick="directPlayRiri()" style="
-          position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-          background:rgba(201,168,76,0.9);border:none;
-          color:#000;font-size:1.4em;font-weight:700;padding:1.5% 3%;
-          border-radius:40px;cursor:pointer;z-index:20;
-        ">▶ Play Riri</button>
-
-        <!-- Video state readout -->
-        <div id="riri-state" style="
-          position:absolute;bottom:2%;left:2%;
-          background:rgba(0,0,0,0.7);color:#30d158;
-          font-family:monospace;font-size:0.6em;padding:0.8%;
-          border-radius:6px;z-index:20;white-space:pre;line-height:1.6;
-        "></div>
 
         <button onclick="skipRiriVideo()" style="
           position:absolute;bottom:4%;right:3%;
@@ -1042,7 +1027,6 @@ function startAchievementFlow(achievement) {
   if (p !== undefined) {
     p.then(() => {
       const ticker = setInterval(() => {
-        reportVideoState();
         if (video.ended || video.paused) clearInterval(ticker);
       }, 250);
     }).catch(() => {
@@ -1058,43 +1042,6 @@ function startAchievementFlow(achievement) {
   }, 15000);
 }
 
-function reportVideoState() {
-  const v = document.getElementById('riri-video');
-  const el = document.getElementById('riri-state');
-  if (!v || !el) return;
-  el.textContent = [
-    'paused:      ' + v.paused,
-    'ended:       ' + v.ended,
-    'currentTime: ' + v.currentTime.toFixed(3),
-    'readyState:  ' + v.readyState,
-    'networkState:' + v.networkState,
-    'duration:    ' + (v.duration || 'N/A'),
-    'videoWidth:  ' + v.videoWidth,
-    'videoHeight: ' + v.videoHeight,
-    'muted:       ' + v.muted,
-    'error:       ' + (v.error ? v.error.code : 'null'),
-  ].join('\n');
-}
-
-function directPlayRiri() {
-  // Direct user-gesture play — no async, no timers, no intermediate state
-  const video = document.getElementById('riri-video');
-  if (!video) return;
-  video.currentTime = 0;
-  video.muted = false;
-  const p = video.play();
-  if (p) p.catch(e => {
-    // If audio blocked, try muted
-    video.muted = true;
-    video.play().catch(() => {});
-  });
-  // Update state readout every 250ms while playing
-  const ticker = setInterval(() => {
-    reportVideoState();
-    if (video.ended || video.paused) clearInterval(ticker);
-  }, 250);
-}
-
 function playRiriVideo() {
   const video = document.getElementById('riri-video');
   if (!video) { skipRiriVideo(); return; }
@@ -1107,7 +1054,6 @@ function playRiriVideo() {
   video.muted = false;
 
   // Report initial state
-  reportVideoState();
 
   // Call play() directly — preserves user-activation context from trigger click
   const p = video.play();
@@ -1115,7 +1061,6 @@ function playRiriVideo() {
     p.then(() => {
       // Playback confirmed — tick state readout
       const ticker = setInterval(() => {
-        reportVideoState();
         if (video.ended || video.paused) clearInterval(ticker);
       }, 250);
     }).catch(() => {
