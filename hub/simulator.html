@@ -429,6 +429,15 @@ body {
 }
 .sim-active .scenario-badge { display: flex; align-items: center; gap: 0.4em; }
 
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.8); }
+}
+@keyframes congrtsReveal {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#view-congrats.active .congrats-content { animation: congrtsReveal 0.6s ease forwards; }
 </style>
 </head>
 <body>
@@ -452,6 +461,10 @@ body {
     <div style="width:1px;height:16px;background:rgba(255,255,255,0.12)"></div>
     <button class="sim-btn" onclick="toggleSafeArea()" id="btn-safe">Safe Area</button>
     <button class="sim-btn" onclick="replayLaunch()" id="btn-launch">↺ Launch</button>
+    <div style="width:1px;height:16px;background:rgba(255,255,255,0.12)"></div>
+    <button class="sim-btn" onclick="triggerAchievement()" id="btn-trigger-achievement" style="color:#C9A84C;border-color:rgba(201,168,76,0.4)">🏆 Achievement</button>
+    <button class="sim-btn" onclick="replayRiriIntro()" id="btn-replay-riri">↺ Riri</button>
+    <button class="sim-btn" onclick="skipToCongratsView()" id="btn-skip-riri">Skip intro</button>
   </div>
 </div>
 
@@ -524,6 +537,86 @@ body {
           <div class="nav-item" tabindex="0">Watch</div>
           <div class="nav-item" tabindex="0">Memories</div>
           <div class="nav-item" tabindex="0">Family</div>
+        </div>
+      </div>
+
+      <!-- VIEW: Riri Achievement Intro — plays RIRI-V01 full-screen -->
+      <div class="view" id="view-riri-intro" style="background:#000;align-items:center;justify-content:center;position:relative;">
+        <video id="riri-video"
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;"
+          playsinline preload="auto">
+          <source src="https://olatoyefamily.com/hub/assets/riri/riri-celebration-intro.mp4" type="video/mp4">
+        </video>
+        <!-- Skip button — always available during playback -->
+        <button onclick="skipRiriVideo()" style="
+          position:absolute;bottom:4%;right:3%;
+          background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);
+          color:rgba(255,255,255,0.6);font-size:0.7em;padding:0.5% 1.2%;
+          border-radius:20px;cursor:pointer;z-index:10;
+        ">Skip</button>
+      </div>
+
+      <!-- VIEW: Congratulations — dynamic, data-driven -->
+      <div class="view" id="view-congrats" style="
+        background:radial-gradient(ellipse at 60% 40%, rgba(201,168,76,0.12) 0%, #080d08 60%);
+        align-items:center;justify-content:center;flex-direction:column;gap:0;
+        position:relative;overflow:hidden;
+      ">
+        <!-- Subtle particle suggestion — CSS only, no JS overhead -->
+        <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
+          <div style="position:absolute;top:10%;left:15%;width:2px;height:2px;border-radius:50%;background:rgba(201,168,76,0.4);box-shadow:0 0 8px rgba(201,168,76,0.6);animation:twinkle 3s ease-in-out infinite;"></div>
+          <div style="position:absolute;top:25%;right:20%;width:2px;height:2px;border-radius:50%;background:rgba(201,168,76,0.3);box-shadow:0 0 6px rgba(201,168,76,0.5);animation:twinkle 4s ease-in-out infinite 1s;"></div>
+          <div style="position:absolute;top:70%;left:25%;width:2px;height:2px;border-radius:50%;background:rgba(201,168,76,0.35);box-shadow:0 0 8px rgba(201,168,76,0.55);animation:twinkle 3.5s ease-in-out infinite 0.5s;"></div>
+          <div style="position:absolute;top:60%;right:30%;width:2px;height:2px;border-radius:50%;background:rgba(201,168,76,0.4);animation:twinkle 4.5s ease-in-out infinite 2s;"></div>
+        </div>
+
+        <!-- Content -->
+        <div style="text-align:center;padding:4% 8%;position:relative;z-index:1;max-width:70%;">
+          <!-- Gold mark -->
+          <div style="font-size:3.5em;margin-bottom:2.5%;">🏆</div>
+
+          <!-- Recipient -->
+          <div id="congrats-recipient" style="
+            color:#C9A84C;font-size:0.7em;font-weight:700;
+            letter-spacing:0.18em;text-transform:uppercase;margin-bottom:1.5%;
+          ">ELSIE</div>
+
+          <!-- Headline -->
+          <div id="congrats-headline" style="
+            color:#fff;font-size:2.6em;font-weight:800;
+            letter-spacing:-0.03em;line-height:1.1;margin-bottom:2%;
+          ">Brilliant work!</div>
+
+          <!-- Achievement title -->
+          <div id="congrats-achievement" style="
+            color:rgba(255,255,255,0.7);font-size:1em;font-weight:500;
+            margin-bottom:1.5%;
+          ">Maths milestone complete</div>
+
+          <!-- Description -->
+          <div id="congrats-description" style="
+            color:rgba(255,255,255,0.4);font-size:0.75em;line-height:1.6;
+            max-width:440px;margin:0 auto 4%;
+          ">You finished every Year 5 maths unit this term. That took patience, focus and real effort.</div>
+
+          <!-- Progress/reward if present -->
+          <div id="congrats-reward" style="
+            display:none;
+            background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.25);
+            border-radius:10px;padding:1.2% 2.5%;margin-bottom:3%;
+            color:rgba(255,255,255,0.6);font-size:0.65em;
+          "></div>
+
+          <!-- Primary action -->
+          <button id="congrats-cta" onclick="returnFromAchievement()" style="
+            background:#C9A84C;color:#000;border:none;
+            border-radius:40px;padding:1.2% 4%;
+            font-size:0.8em;font-weight:700;cursor:pointer;
+            letter-spacing:0.02em;
+            transition:opacity 0.15s;
+          " onmousedown="this.style.opacity=0.8" onmouseup="this.style.opacity=1">
+            Continue
+          </button>
         </div>
       </div>
 
@@ -671,23 +764,18 @@ const FIXTURES = {
     },
   },
   'achievement': {
-    view: 'home',
-    label: 'Achievement Earned',
-    realtime: true,
-    hero: {
-      context: '🏆 Achievement Unlocked',
-      heading: 'Elsie completed\nYear 5 Maths',
-      meta: 'Pillar: Champion Mindset · 5 September 2026',
-      bg: 'linear-gradient(135deg,#1a1200,#0d0d00)',
-    },
-    rail1: {
-      label: 'Achievements',
-      cards: [
-        { label: 'Maths Y5\nComplete ✓', bg: 'linear-gradient(135deg,#1a1200,#0d0d00)' },
-        { label: 'French\nLeçon 1–3 ✓', bg: 'linear-gradient(135deg,#1a1a2a,#0d0d18)' },
-        { label: 'Zoo Quest\nExplorer ✓', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
-        { label: 'Reading\nChallenge', bg: 'linear-gradient(135deg,#1a0d0d,#180808)' },
-      ],
+    // Achievement scenario triggers the Riri flow, not a static home view
+    view: 'riri-flow',
+    label: 'Achievement — Riri Flow',
+    realtime: false,
+    achievement: {
+      recipient: 'Elsie',
+      headline: 'Brilliant work, Elsie!',
+      achievementTitle: 'Maths milestone complete',
+      description: 'You finished every Year 5 maths unit this term. That took patience, focus and real effort.',
+      reward: null,
+      ctaLabel: 'Continue',
+      returnDestination: 'home-morning',
     },
   },
   'trip': {
@@ -756,6 +844,13 @@ function setScenario(key) {
 
   if (f.view === 'home') {
     applyHomeFixture(f);
+    showView('home');
+    return;
+  }
+
+  if (f.view === 'riri-flow') {
+    startAchievementFlow(f.achievement);
+    return;
   }
 
   showView(f.view);
@@ -850,6 +945,22 @@ document.addEventListener('keydown', e => {
     }
   }
 
+  if (currentView === 'riri-intro') {
+    if (e.key === 'Enter' || e.key === 'Escape' || e.key === 'Backspace') {
+      e.preventDefault();
+      skipRiriVideo();
+    }
+    return;
+  }
+
+  if (currentView === 'congrats') {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      returnFromAchievement();
+    }
+    return;
+  }
+
   if (currentView === 'pairing') {
     if (e.key === 'Enter') {
       // Simulate approval
@@ -874,6 +985,148 @@ setInterval(() => {
                      now.getMinutes().toString().padStart(2,'0');
   }
 }, 10000);
+
+/* ════════════════════════════════════════════════════════
+   RIRI ACHIEVEMENT FLOW
+   trigger → Riri video → Congratulations → return Home
+════════════════════════════════════════════════════════ */
+
+let _currentAchievement = null;
+let _returnDestination = 'home-morning';
+
+function startAchievementFlow(achievement) {
+  _currentAchievement = achievement || {
+    recipient: 'Elsie',
+    headline: 'Brilliant work, Elsie!',
+    achievementTitle: 'Maths milestone complete',
+    description: 'You finished every Year 5 maths unit this term. That took patience, focus and real effort.',
+    reward: null,
+    ctaLabel: 'Continue',
+    returnDestination: 'home-morning',
+  };
+  _returnDestination = _currentAchievement.returnDestination || 'home-morning';
+
+  // Populate congratulations view with fixture data
+  populateCongrats(_currentAchievement);
+
+  // Show Riri intro, then crossfade to congrats
+  showView('riri-intro');
+  playRiriVideo();
+}
+
+function playRiriVideo() {
+  const video = document.getElementById('riri-video');
+  if (!video) { skipRiriVideo(); return; }
+
+  // Error fallback — if video can't load, go straight to congrats
+  video.onerror = () => { console.warn('Riri video failed to load — showing congrats directly'); crossfadeToCongrats(); };
+
+  // On end — crossfade to congrats
+  video.onended = () => crossfadeToCongrats();
+
+  // Attempt play — if browser blocks autoplay, still show congrats
+  const playPromise = video.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(() => {
+      console.warn('Riri video autoplay blocked — showing congrats directly');
+      crossfadeToCongrats();
+    });
+  }
+
+  // Timeout fallback — if video stalls for > 15s, skip
+  setTimeout(() => {
+    if (!video.ended && !video.paused) return;
+    if (currentView === 'riri-intro') crossfadeToCongrats();
+  }, 15000);
+}
+
+function skipRiriVideo() {
+  const video = document.getElementById('riri-video');
+  if (video) { video.pause(); video.currentTime = 0; }
+  crossfadeToCongrats();
+}
+
+function crossfadeToCongrats() {
+  // Fade the riri view out
+  const riView = document.getElementById('view-riri-intro');
+  if (riView) {
+    riView.style.transition = 'opacity 0.5s ease';
+    riView.style.opacity = '0';
+    setTimeout(() => {
+      riView.style.opacity = '';
+      riView.style.transition = '';
+      showView('congrats');
+      // Animate content in
+      const content = document.querySelector('#view-congrats > div:last-child');
+      if (content) {
+        content.style.opacity = '0';
+        content.style.transform = 'translateY(20px)';
+        content.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            content.style.opacity = '1';
+            content.style.transform = 'translateY(0)';
+          });
+        });
+      }
+    }, 500);
+  } else {
+    showView('congrats');
+  }
+}
+
+function populateCongrats(achievement) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.textContent = val; };
+  set('congrats-recipient', achievement.recipient || '');
+  set('congrats-headline', achievement.headline || 'Well done!');
+  set('congrats-achievement', achievement.achievementTitle || '');
+  set('congrats-description', achievement.description || '');
+  const ctaEl = document.getElementById('congrats-cta');
+  if (ctaEl) ctaEl.textContent = achievement.ctaLabel || 'Continue';
+  const rewardEl = document.getElementById('congrats-reward');
+  if (rewardEl) {
+    if (achievement.reward) {
+      rewardEl.textContent = achievement.reward;
+      rewardEl.style.display = 'block';
+    } else {
+      rewardEl.style.display = 'none';
+    }
+  }
+}
+
+function returnFromAchievement() {
+  const video = document.getElementById('riri-video');
+  if (video) { video.pause(); video.currentTime = 0; }
+  setScenario(_returnDestination || 'home-morning');
+}
+
+// Dev controls
+function triggerAchievement() {
+  startAchievementFlow(_currentAchievement || null);
+}
+
+function replayRiriIntro() {
+  const video = document.getElementById('riri-video');
+  if (video) { video.currentTime = 0; }
+  showView('riri-intro');
+  playRiriVideo();
+}
+
+function skipToCongratsView() {
+  if (!_currentAchievement) {
+    _currentAchievement = {
+      recipient: 'Elsie',
+      headline: 'Brilliant work, Elsie!',
+      achievementTitle: 'Maths milestone complete',
+      description: 'You finished every Year 5 maths unit this term. That took patience, focus and real effort.',
+      reward: null,
+      ctaLabel: 'Continue',
+      returnDestination: 'home-morning',
+    };
+  }
+  populateCongrats(_currentAchievement);
+  showView('congrats');
+}
 
 /* ── Init ── */
 setScenario('pairing-waiting');
