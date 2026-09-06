@@ -45,10 +45,11 @@ jobs:
 
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace -PSURFACE_PROVISIONING_GRANT="${{ secrets.SURFACE_PROVISIONING_GRANT }}"
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
+          SURFACE_PROVISIONING_GRANT: ${{ secrets.SURFACE_PROVISIONING_GRANT }}
 
       - name: Publish APK to downloads folder
         run: |
