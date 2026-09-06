@@ -1,5 +1,6 @@
 package com.olatoyefamily.familyos
 
+import com.olatoyefamily.familyos.BuildConfig
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
@@ -89,7 +90,18 @@ class MainActivity : Activity() {
             // Cookies — required for Supabase Auth session
             CookieManager.getInstance().setAcceptCookie(true)
 
-            webViewClient = FamilyOSWebViewClient(APPROVED_ORIGINS)
+            webViewClient = object : FamilyOSWebViewClient(APPROVED_ORIGINS) {
+                override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    // Inject provisioning grant as JS global after page load
+                    // Server-side consumption makes this permanently-extractable value useless after first use
+                    val grant = BuildConfig.SURFACE_PROVISIONING_GRANT
+                    if (grant.isNotEmpty()) {
+                        val escaped = grant.replace(""", "\"")
+                        view?.evaluateJavascript("window.SURFACE_PROVISIONING_GRANT="$escaped";", null)
+                    }
+                }
+            }
             webChromeClient = FamilyOSChromeClient()
 
             // Hardware acceleration for smooth rendering
