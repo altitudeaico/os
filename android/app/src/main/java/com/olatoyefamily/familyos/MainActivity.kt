@@ -90,18 +90,7 @@ class MainActivity : Activity() {
             // Cookies — required for Supabase Auth session
             CookieManager.getInstance().setAcceptCookie(true)
 
-            webViewClient = object : FamilyOSWebViewClient(APPROVED_ORIGINS) {
-                override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    // Inject provisioning grant as JS global after page load
-                    // Server-side consumption makes this permanently-extractable value useless after first use
-                    val grant = BuildConfig.SURFACE_PROVISIONING_GRANT
-                    if (grant.isNotEmpty()) {
-                        val escaped = grant.replace(""", "\"")
-                        view?.evaluateJavascript("window.SURFACE_PROVISIONING_GRANT="$escaped";", null)
-                    }
-                }
-            }
+            webViewClient = FamilyOSWebViewClient(APPROVED_ORIGINS)
             webChromeClient = FamilyOSChromeClient()
 
             // Hardware acceleration for smooth rendering
@@ -197,6 +186,17 @@ class FamilyOSWebViewClient(
             android.util.Log.w("FamilyOS", "Blocked navigation: ${request.url.host}")
         }
         return !approved // true = block, false = allow
+    }
+
+    override fun onPageFinished(view: WebView?, url: String?) {
+        super.onPageFinished(view, url)
+        // Inject provisioning grant as JS global after each page load
+        // Server-side consumption makes the permanently-extractable APK value useless after first use
+        val grant = BuildConfig.SURFACE_PROVISIONING_GRANT
+        if (grant.isNotEmpty()) {
+            val js = "window.SURFACE_PROVISIONING_GRANT='" + grant + "';"
+            view?.evaluateJavascript(js, null)
+        }
     }
 
     override fun onReceivedError(
