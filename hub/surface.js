@@ -387,8 +387,29 @@ async function showHome() {
     renderHomeV2();
   } catch (e) {
     err('renderHomeV2 error: ' + e.message);
-    // Home view is shown even if render fails — better than stuck boot screen
   }
+
+  // Boot visibility is UX state — hide immediately after render attempt.
+  // Realtime, clock and auth listener initialise afterwards.
+  hideBoot();
+
+  // Diagnostic watchdog: if boot is somehow still visible after 5s, force-remove it
+  // and surface a minimal indicator so we can see what is underneath.
+  setTimeout(() => {
+    const boot = document.getElementById('boot');
+    if (boot && boot.style.display !== 'none' && !boot.classList.contains('fade-out')) {
+      err('Boot watchdog: boot still visible after 5s — forcing removal');
+      boot.style.display = 'none';
+      const diag = document.createElement('div');
+      diag.id = 'home-init-diag';
+      diag.style.cssText = 'position:fixed;top:2%;left:50%;transform:translateX(-50%);' +
+        'background:rgba(255,80,80,0.85);color:#fff;font-size:12px;padding:6px 14px;' +
+        'border-radius:6px;z-index:99999;font-family:monospace;';
+      diag.textContent = 'HOME INIT DEGRADED — boot forced hidden';
+      document.body.appendChild(diag);
+      setTimeout(() => { if (diag.parentNode) diag.parentNode.removeChild(diag); }, 8000);
+    }
+  }, 5000);
 
   connectRealtime();
 
@@ -409,8 +430,6 @@ async function showHome() {
       startPairing();
     }
   });
-
-  hideBoot();
 }
 
 function updateClock() {
@@ -571,8 +590,9 @@ function showView(name) {
 
 function hideBoot() {
   const boot = document.getElementById('boot');
+  if (!boot) return;
   boot.classList.add('fade-out');
-  setTimeout(() => { boot.style.display = 'none'; }, 700);
+  setTimeout(() => { if (boot) boot.style.display = 'none'; }, 700);
 }
 
 /* ════════════════════════════════════════════════════════════════
