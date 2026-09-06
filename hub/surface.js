@@ -57,7 +57,7 @@ window.addEventListener('load', async () => {
       diag.style.cssText = 'position:fixed;top:2%;left:50%;transform:translateX(-50%);' +
         'background:rgba(255,60,60,0.9);color:#fff;font-size:13px;padding:8px 16px;' +
         'border-radius:6px;z-index:99999;font-family:monospace;white-space:nowrap;';
-      diag.textContent = 'HOME INIT DEGRADED — see console';
+      diag.textContent = 'STARTUP STALLED — ' + (document.getElementById('fos-probe')?.textContent || 'unknown');
       document.body.appendChild(diag);
       setTimeout(() => { if (diag.parentNode) diag.remove(); }, 10000);
     }
@@ -83,18 +83,23 @@ async function initSurface() {
   log('Checking for stored Surface session');
 
   // Try to restore session from localStorage
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: loadStoredSession BEFORE';})();
   const stored = loadStoredSession();
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: loadStoredSession AFTER ' + (stored?'found':'none');})();
 
   if (stored) {
     log('Stored session found — restoring');
     try {
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: setSession BEFORE';})();
       const { data, error } = await _sb.auth.setSession({
         access_token:  stored.access_token,
         refresh_token: stored.refresh_token,
       });
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: setSession AFTER';})();
 
       if (error || !data?.session) {
         warn('Session restore failed: ' + (error?.message ?? 'no session'));
+        (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: session INVALID';})();
         clearSession();
         await startPairing();
         return;
@@ -102,16 +107,18 @@ async function initSurface() {
 
       _session = data.session;
       log('Session restored — identity_class: ' + (_session.user?.app_metadata?.identity_class ?? 'none'));
-      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='Session: RESTORED';})();
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: session VALID';})();
       storeSession(_session);
       await showHome();
       return;
     } catch (e) {
       err('Session restore exception: ' + e.message);
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: setSession EXCEPTION';})();
       clearSession();
     }
   }
 
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='init: startPairing ENTER';})();
   log('No stored session — starting pairing');
   await startPairing();
 }
@@ -198,7 +205,9 @@ async function startPairing() {
 }
 
 async function pollForSession(pairingState) {
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: poll';})();
   try {
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: claim BEFORE';})();
     const r = await fetch(IDENTITY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -210,6 +219,7 @@ async function pollForSession(pairingState) {
         }
       })
     });
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: claim AFTER';})();
 
     if (r.status === 404) return; // Not approved yet — keep polling
     if (r.status === 410) {
@@ -222,18 +232,21 @@ async function pollForSession(pairingState) {
 
     const data = await r.json();
     if (data.ok && data.session) {
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: approved';})();
       clearInterval(_pairingTimer);
       clearInterval(_expiryTimer);
       log('Surface session claimed — establishing authenticated client');
 
-      // Set session on Supabase client
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: setSession BEFORE';})();
       const { data: authData, error } = await _sb.auth.setSession({
         access_token:  data.session.access_token,
         refresh_token: data.session.refresh_token,
       });
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: setSession AFTER';})();
 
       if (error || !authData?.session) {
         err('Failed to establish session after claim: ' + (error?.message ?? 'no session'));
+        (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: setSession FAILED';})();
         await startPairing();
         return;
       }
@@ -244,6 +257,7 @@ async function pollForSession(pairingState) {
 
       if (identityClass !== 'surface') {
         err('Session does not have surface identity — rejecting');
+        (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: identity INVALID';})();
         clearSession();
         await startPairing();
         return;
@@ -251,7 +265,8 @@ async function pollForSession(pairingState) {
 
       storeSession(_session);
 
-      // Brief "Screen connected" moment before transitioning to Home
+      (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='pairing: showHome ENTER';})();
+      // Brief 'Screen connected' moment before transitioning to Home
       renderPairingConnected();
       await sleep(2500);
       await showHome();
