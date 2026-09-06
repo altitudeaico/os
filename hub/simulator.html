@@ -261,16 +261,53 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Hero zone */
+/* Hero — full-bleed, artwork fills entire screen */
 .home-hero {
   position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 58%;
-  background: linear-gradient(135deg, #0d1a10 0%, #081208 100%);
+  inset: 0;                    /* fills the entire view */
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 0 4% 3%;
+  padding: 0;
+}
+
+/* Hero background image layer */
+.home-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+/* Single layered gradient — does all the compositional work:
+   left darkens for text readability
+   bottom fades aggressively to near-black, carrying through rail zone
+   top is light/transparent — artwork shows fully */
+.home-hero-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to right,
+      rgba(0,0,0,0.62) 0%,
+      rgba(0,0,0,0.2) 45%,
+      transparent 70%),
+    linear-gradient(to top,
+      #060a06 0%,
+      rgba(6,10,6,0.97) 18%,
+      rgba(6,10,6,0.82) 32%,
+      rgba(6,10,6,0.4) 52%,
+      rgba(6,10,6,0.1) 68%,
+      transparent 85%);
+}
+
+/* Hero text — sits ~35% from bottom, rail cards below */
+.home-hero-text {
+  position: relative;
+  z-index: 10;
+  padding: 0 3.5% 0;
+  margin-bottom: 18%;          /* leaves room for rail below */
+  max-width: 52%;
 }
 
 .hero-context {
@@ -297,17 +334,17 @@ body {
   font-size: 0.85em;
 }
 
-/* Content rails */
+/* Rail — transparent, floats over lower hero artwork
+   The hero gradient above already handles the fade to near-black */
 .home-rails {
   position: absolute;
   bottom: 0;
   left: 0; right: 0;
-  height: 44%;
-  padding: 2% 4% 3%;
+  padding: 0 3.5% 5%;
   display: flex;
   flex-direction: column;
-  gap: 2%;
-  background: linear-gradient(to top, #080d08 70%, transparent);
+  z-index: 10;
+  background: transparent;     /* no own background — hero gradient does it */
 }
 
 .rail-label {
