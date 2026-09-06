@@ -1304,7 +1304,7 @@ async function checkForPairingRequests() {
     _pendingPairingCode = req.pairing_code;
 
     // Get the surface to approve to — first unpaired surface
-    const sr = await fetch(SUPABASE_URL + '/rest/v1/hub_surfaces?auth_user_id=is.null&status=eq.active&select=id,name,surface_key&limit=1', {
+    const sr = await fetch(SUPABASE_URL + '/rest/v1/hub_surfaces?auth_user_id=is.null&select=id,name,surface_key&limit=1', {
       headers: writeHeaders()
     });
     const surfaces = sr.ok ? await sr.json() : [];
