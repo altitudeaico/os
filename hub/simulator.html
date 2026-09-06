@@ -333,9 +333,9 @@ body {
   border: 1px solid rgba(255,255,255,0.08);
   display: flex;
   align-items: flex-end;
-  padding: 6%;
+  padding: 0;
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s;
+  transition: transform 0.18s ease, border-color 0.15s;
   position: relative;
   overflow: hidden;
 }
@@ -344,7 +344,7 @@ body {
 .rail-card.focused {
   outline: none;
   border-color: #C9A84C;
-  transform: scale(1.04);
+  transform: scale(1.06);
   z-index: 2;
 }
 
@@ -354,13 +354,33 @@ body {
   font-weight: 600;
   line-height: 1.2;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  padding: 6% 8% 7%;
+  width: 100%;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
 }
 
 .rail-card-bg {
   position: absolute;
   inset: 0;
   background: var(--card-bg, rgba(255,255,255,0.03));
+}
+
+.rail-card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rail-card-gradient {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 55%;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%);
+  z-index: 1;
 }
 
 /* Nav bar */
@@ -673,11 +693,11 @@ const FIXTURES = {
     rail1: {
       label: 'Up Next',
       cards: [
-        { label: 'Maths\nYear 5', bg: 'linear-gradient(135deg,#1a2a1a,#0d180d)' },
-        { label: 'French\nElsie', bg: 'linear-gradient(135deg,#1a1a2a,#0d0d18)' },
-        { label: 'Emma\nPhonics', bg: 'linear-gradient(135deg,#2a1a1a,#180d0d)' },
+        { label: 'Academy', img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png' },
+        { label: "Elsie's World", img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png' },
+        { label: "Emma's World", img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png' },
         { label: 'Chester Zoo\nAdventure', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
-        { label: 'Family Time\nThis evening', bg: 'linear-gradient(135deg,#2a1a2a,#18001a)' },
+        { label: 'Family Time', bg: 'linear-gradient(135deg,#2a1a2a,#18001a)' },
       ],
     },
   },
@@ -735,11 +755,11 @@ const FIXTURES = {
     rail1: {
       label: 'Elsie\'s Academy Today',
       cards: [
+        { label: 'Academy', img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png' },
+        { label: "Elsie's World", img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png' },
+        { label: "Emma's World", img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png' },
         { label: 'Maths\nFractions', bg: 'linear-gradient(135deg,#1a2a1a,#0d180d)' },
-        { label: 'French\nLeçon 4', bg: 'linear-gradient(135deg,#1a1a2a,#0d0d18)' },
-        { label: 'Science\nPhotosynthesis', bg: 'linear-gradient(135deg,#0d1a1a,#08120d)' },
-        { label: 'History\nAncient Egypt', bg: 'linear-gradient(135deg,#1a1a0d,#181800)' },
-        { label: 'Ask Riri\nfor help', bg: 'linear-gradient(135deg,#1a0d1a,#120812)' },
+        { label: 'Ask Riri', bg: 'linear-gradient(135deg,#1a0d1a,#120812)' },
       ],
     },
   },
@@ -873,8 +893,14 @@ function applyHomeFixture(f) {
     el.className = 'rail-card' + (i === 0 ? ' focused' : '');
     el.tabIndex = 0;
     el.dataset.idx = i;
-    el.innerHTML = `<div class="rail-card-bg" style="--card-bg:${card.bg}"></div>
-      <div class="rail-card-label">${card.label.replace('\n','<br>')}</div>`;
+    if (card.img) {
+      el.innerHTML = `<img class="rail-card-img" src="${card.img}" alt="" loading="lazy">
+        <div class="rail-card-gradient"></div>
+        <div class="rail-card-label">${card.label.replace('\n','<br>')}</div>`;
+    } else {
+      el.innerHTML = `<div class="rail-card-bg" style="--card-bg:${card.bg || 'rgba(255,255,255,0.06)'}"></div>
+        <div class="rail-card-label">${card.label.replace('\n','<br>')}</div>`;
+    }
     el.addEventListener('focus', () => setFocusedCard(i));
     rail.appendChild(el);
   });
