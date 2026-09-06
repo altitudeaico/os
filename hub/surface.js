@@ -382,7 +382,14 @@ function contextForTime() {
 
 async function showHome() {
   showView('home');
-  renderHomeV2();
+
+  try {
+    renderHomeV2();
+  } catch (e) {
+    err('renderHomeV2 error: ' + e.message);
+    // Home view is shown even if render fails — better than stuck boot screen
+  }
+
   connectRealtime();
 
   // Clock tick
@@ -415,6 +422,7 @@ function updateClock() {
 }
 
 function renderHomeV2() {
+  try {
   // Hero background — time-of-day aware
   const heroBg = document.getElementById('home-hero-bg');
   if (heroBg) heroBg.style.backgroundImage = 'url(' + heroForTime() + ')';
@@ -435,6 +443,7 @@ function renderHomeV2() {
 
   // Clock
   updateClock();
+  } catch(e) { err('renderHomeV2 inner error: ' + e.message); }
 }
 
 function setHeroText({ context, heading, meta }) {
