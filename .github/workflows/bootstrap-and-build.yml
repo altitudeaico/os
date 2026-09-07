@@ -1,0 +1,91 @@
+name: Bootstrap + Build Family OS TV APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  secrets: write
+
+jobs:
+  bootstrap-and-build:
+    runs-on: ubuntu-latest
+    outputs:
+      refresh_token: ${{ steps.bootstrap.outputs.refresh_token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Bootstrap Living Room TV Surface session
+        id: bootstrap
+        run: |
+          RESPONSE=$(curl -sf -X POST "https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity" \
+            -H "Content-Type: application/json" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI" \
+            -d '{"operation":"provision_surface","payload":{"grant":"608d921af10f71ae6b1b28bed7543cdae96b0d75dbb1387984dbd46d034f2be6"}}')
+          echo "Got response"
+          OK=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('ok',''))")
+          if [ "$OK" != "True" ]; then
+            echo "Provision failed: $RESPONSE"
+            exit 1
+          fi
+          REFRESH=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['session']['refresh_token'])")
+          ACCESS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['session']['access_token'])")
+          echo "Surface provisioned successfully"
+          echo "refresh_token=$REFRESH" >> $GITHUB_OUTPUT
+          echo "access_token=$ACCESS" >> $GITHUB_OUTPUT
+          # Store as GitHub secret via API
+          curl -sf -X PUT "https://api.github.com/repos/altitudeaico/os/actions/secrets/SURFACE_REFRESH_TOKEN" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"encrypted_value\":\"placeholder\",\"key_id\":\"placeholder\"}" || true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 9477386
+          accept-android-sdk-licenses: true
+
+      - name: Install Android build tools and platform
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
+          SURFACE_PROVISIONING_GRANT: "608d921af10f71ae6b1b28bed7543cdae96b0d75dbb1387984dbd46d034f2be6"
+          SURFACE_REFRESH_TOKEN: ${{ steps.bootstrap.outputs.refresh_token }}
+
+      - name: Publish APK
+        run: |
+          mkdir -p downloads
+          cp android/app/build/outputs/apk/debug/app-debug.apk downloads/family-os-tv.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add downloads/family-os-tv.apk
+          git diff --staged --quiet || git commit -m "build: Family OS TV APK with bootstrapped Surface session [skip ci]"
+          git push
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: family-os-tv-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
