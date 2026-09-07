@@ -5,13 +5,10 @@ on:
 
 permissions:
   contents: write
-  secrets: write
 
 jobs:
   bootstrap-and-build:
     runs-on: ubuntu-latest
-    outputs:
-      refresh_token: ${{ steps.bootstrap.outputs.refresh_token }}
 
     steps:
       - name: Checkout
@@ -24,23 +21,13 @@ jobs:
             -H "Content-Type: application/json" \
             -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI" \
             -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI" \
-            -d '{"operation":"provision_surface","payload":{"grant":"608d921af10f71ae6b1b28bed7543cdae96b0d75dbb1387984dbd46d034f2be6"}}')
-          echo "Got response"
+            -H "x-admin-bootstrap: ${{ secrets.ADMIN_BOOTSTRAP_SECRET }}" \
+            -d '{"operation":"admin_bootstrap_surface","payload":{}}')
           OK=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('ok',''))")
-          if [ "$OK" != "True" ]; then
-            echo "Provision failed: $RESPONSE"
-            exit 1
-          fi
+          if [ "$OK" != "True" ]; then echo "Bootstrap failed: $RESPONSE"; exit 1; fi
           REFRESH=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['session']['refresh_token'])")
-          ACCESS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['session']['access_token'])")
-          echo "Surface provisioned successfully"
+          echo "Surface bootstrapped"
           echo "refresh_token=$REFRESH" >> $GITHUB_OUTPUT
-          echo "access_token=$ACCESS" >> $GITHUB_OUTPUT
-          # Store as GitHub secret via API
-          curl -sf -X PUT "https://api.github.com/repos/altitudeaico/os/actions/secrets/SURFACE_REFRESH_TOKEN" \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"encrypted_value\":\"placeholder\",\"key_id\":\"placeholder\"}" || true
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -64,13 +51,12 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Build debug APK
+      - name: Build debug APK with Surface refresh token
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
-          SURFACE_PROVISIONING_GRANT: "608d921af10f71ae6b1b28bed7543cdae96b0d75dbb1387984dbd46d034f2be6"
           SURFACE_REFRESH_TOKEN: ${{ steps.bootstrap.outputs.refresh_token }}
 
       - name: Publish APK
