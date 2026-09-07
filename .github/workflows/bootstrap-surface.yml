@@ -1,0 +1,32 @@
+name: Bootstrap Surface Session (one-time)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bootstrap Living Room TV Surface
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity \
+            -H "Content-Type: application/json" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI" \
+            -H "x-admin-bootstrap: ${{ secrets.ADMIN_BOOTSTRAP_SECRET }}" \
+            -d '{"operation":"admin_bootstrap_surface","payload":{}}')
+          echo "Response: $RESPONSE"
+          OK=$(echo $RESPONSE | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('ok'))")
+          if [ "$OK" != "True" ]; then echo "Bootstrap failed"; exit 1; fi
+          REFRESH=$(echo $RESPONSE | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['session']['refresh_token'])")
+          echo "Refresh token obtained"
+          echo "SURFACE_REFRESH_TOKEN=$REFRESH" >> $GITHUB_OUTPUT
+        id: bootstrap
+
+      - name: Store refresh token as secret
+        uses: gliech/create-github-secret-action@v1
+        with:
+          name: SURFACE_REFRESH_TOKEN
+          value: ${{ steps.bootstrap.outputs.SURFACE_REFRESH_TOKEN }}
+          pa_token: ${{ secrets.GITHUB_TOKEN }}
