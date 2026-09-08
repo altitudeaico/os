@@ -17,17 +17,23 @@ jobs:
       - name: Bootstrap Living Room TV Surface session
         id: bootstrap
         run: |
-          RESPONSE=$(curl -sf -X POST "https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity" \
+          echo "Calling Edge Function..."
+          RESPONSE=$(curl -s -X POST "https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity" \
             -H "Content-Type: application/json" \
             -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI" \
             -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI" \
             -H "x-admin-bootstrap: ${{ secrets.ADMIN_BOOTSTRAP_SECRET }}" \
             -d '{"operation":"admin_bootstrap_surface","payload":{}}')
-          OK=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('ok',''))")
-          if [ "$OK" != "True" ]; then echo "Bootstrap failed: $RESPONSE"; exit 1; fi
+          echo "Response: $RESPONSE"
+          OK=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('ok',''))" 2>&1)
+          echo "OK=$OK"
+          if [ "$OK" != "True" ]; then
+            echo "Bootstrap failed"
+            exit 1
+          fi
           REFRESH=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['session']['refresh_token'])")
-          echo "Surface bootstrapped"
           echo "refresh_token=$REFRESH" >> $GITHUB_OUTPUT
+          echo "Surface bootstrapped successfully"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
