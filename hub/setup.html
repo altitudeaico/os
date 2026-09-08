@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Family OS — Surface Setup</title>
+<style>
+  body { background: #060a06; color: #fff; font-family: monospace;
+         display: flex; align-items: center; justify-content: center;
+         height: 100vh; margin: 0; flex-direction: column; gap: 16px; }
+  .status { font-size: 14px; color: #C9A84C; }
+  .error { color: #ff6b6b; }
+  .success { color: #30d158; }
+</style>
+</head>
+<body>
+<div class="status" id="status">Bootstrapping Family OS surface session...</div>
+<script>
+(async function() {
+  const el = document.getElementById('status');
+  try {
+    const r = await fetch('https://fypwabbhxnnwcpfjwrda.supabase.co/functions/v1/family-os-identity', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjIwMDY2NTAsImV4cCI6MjAzNzU4MjY1MH0.l7HODdRBBk2KJSdHhFcBphEGMKzrBLnbgNKqBBtKFGI',
+        'x-admin-bootstrap': 'c2791374c67892b56d4ae151bdc80e7fc439e26826edc5248fd4f620111a3390'
+      },
+      body: JSON.stringify({ operation: 'admin_bootstrap_surface', payload: {} })
+    });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Unknown error');
+    
+    // Store session in localStorage under Family OS key
+    const SESSION_KEY = 'family-os-surface-session';
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_at: data.session.expires_at
+    }));
+    
+    el.className = 'status success';
+    el.textContent = 'Surface session established. Redirecting to Family OS...';
+    setTimeout(() => { window.location.href = '/hub/'; }, 1500);
+  } catch(e) {
+    el.className = 'status error';
+    el.textContent = 'Setup failed: ' + e.message;
+  }
+})();
+</script>
+</body>
+</html>
