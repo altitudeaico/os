@@ -320,13 +320,18 @@ async function openEmmaWorld() {
     slides[_emmaSlideIdx].style.opacity = '1';
   }, 5000);
 
-  // Start music if available
+  // Start music playlist if available — plays through all songs then loops
   if (window._emmaMusic && window._emmaMusic.length) {
     if (window._emmaAudio) { window._emmaAudio.pause(); }
-    window._emmaAudio = new Audio(window._emmaMusic[0].url);
-    window._emmaAudio.loop = true;
-    window._emmaAudio.volume = 0.6;
-    window._emmaAudio.play().catch(() => {});
+    window._emmaMusicIdx = 0;
+    const playSong = (i) => {
+      window._emmaMusicIdx = i % window._emmaMusic.length;
+      window._emmaAudio = new Audio(window._emmaMusic[window._emmaMusicIdx].url);
+      window._emmaAudio.volume = 0.6;
+      window._emmaAudio.onended = () => playSong(window._emmaMusicIdx + 1);
+      window._emmaAudio.play().catch(() => {});
+    };
+    playSong(0);
   }
 }
 
