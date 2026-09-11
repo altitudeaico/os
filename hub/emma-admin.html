@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emma's World — Manager</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #2a0a1f 0%, #1a0011 100%);
+    color: #fff; min-height: 100vh; padding: 20px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 24px; color: #ff6ec7; margin-bottom: 4px; }
+  .sub { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 24px; }
+  .section {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,110,199,0.2);
+    border-radius: 14px; padding: 18px; margin-bottom: 20px;
+  }
+  .section h2 { font-size: 15px; color: #ff6ec7; margin-bottom: 12px; letter-spacing: 0.05em; text-transform: uppercase; }
+  input, button, textarea {
+    font-family: inherit; font-size: 15px; border-radius: 10px; border: none;
+  }
+  input[type=text], input[type=time], textarea {
+    width: 100%; padding: 12px; background: rgba(0,0,0,0.3);
+    color: #fff; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 10px;
+  }
+  input[type=file] { color: rgba(255,255,255,0.7); margin-bottom: 10px; width: 100%; }
+  button {
+    background: #ff6ec7; color: #fff; padding: 12px 18px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s;
+  }
+  button:hover { opacity: 0.85; }
+  button.small { padding: 6px 12px; font-size: 13px; background: rgba(255,255,255,0.15); }
+  button.danger { background: rgba(255,80,80,0.8); }
+  .item {
+    display: flex; align-items: center; gap: 10px; padding: 8px;
+    background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 8px;
+  }
+  .item img { width: 60px; height: 40px; object-fit: cover; border-radius: 5px; }
+  .item .info { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  .item .info .t { font-weight: 600; }
+  .item .info .u { color: rgba(255,255,255,0.4); font-size: 11px; }
+  .status { padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: rgba(48,209,88,0.2); color: #30d158; }
+  .status.err { background: rgba(255,80,80,0.2); color: #ff8080; }
+  .row { display: flex; gap: 10px; }
+  .row input { flex: 1; }
+  .row input.time { flex: 0 0 100px; }
+  .hint { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Emma's World</h1>
+  <div class="sub">Add photos, music and the birthday schedule. Changes appear on the TV next time it opens.</div>
+
+  <div class="status" id="status"></div>
+
+  <!-- PHOTOS -->
+  <div class="section">
+    <h2>Photos</h2>
+    <input type="file" id="photo-file" accept="image/*" multiple>
+    <button onclick="uploadPhotos()">Upload photo(s)</button>
+    <div class="hint">Or paste an image URL:</div>
+    <div class="row">
+      <input type="text" id="photo-url" placeholder="https://...">
+      <button class="small" onclick="addPhotoUrl()">Add</button>
+    </div>
+    <div id="photos-list" style="margin-top:12px;"></div>
+  </div>
+
+  <!-- MUSIC -->
+  <div class="section">
+    <h2>Music</h2>
+    <input type="file" id="music-file" accept="audio/*">
+    <input type="text" id="music-title" placeholder="Song title (optional)">
+    <button onclick="uploadMusic()">Upload music</button>
+    <div id="music-list" style="margin-top:12px;"></div>
+  </div>
+
+  <!-- ITINERARY -->
+  <div class="section">
+    <h2>Birthday Schedule</h2>
+    <div class="row">
+      <input type="text" class="time" id="itin-time" placeholder="9:00 AM">
+      <input type="text" id="itin-activity" placeholder="Birthday breakfast">
+      <button class="small" onclick="addItinerary()">Add</button>
+    </div>
+    <div id="itin-list" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+function showStatus(msg, ok) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status show ' + (ok ? 'ok' : 'err');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ── PHOTOS ──
+async function loadPhotos() {
+  const { data, error } = await sb.from('emma_photos').select('*').order('sort_order');
+  const list = document.getElementById('photos-list');
+  if (error) { list.innerHTML = 'Error loading'; return; }
+  list.innerHTML = data.map(p =>
+    '<div class="item"><img src="' + p.url + '"><div class="info"><div class="u">' + p.url.split('/').pop() + '</div></div>' +
+    '<button class="small danger" onclick="delPhoto(\'' + p.id + '\')">Remove</button></div>'
+  ).join('');
+}
+async function uploadPhotos() {
+  const files = document.getElementById('photo-file').files;
+  if (!files.length) { showStatus('Choose a file first', false); return; }
+  showStatus('Uploading...', true);
+  for (const file of files) {
+    const name = Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const { error: upErr } = await sb.storage.from('emma-photos').upload(name, file);
+    if (upErr) { showStatus('Upload failed: ' + upErr.message, false); continue; }
+    const { data: urlData } = sb.storage.from('emma-photos').getPublicUrl(name);
+    await sb.from('emma_photos').insert({ url: urlData.publicUrl, sort_order: Date.now() % 100000 });
+  }
+  showStatus('Photo(s) added', true);
+  document.getElementById('photo-file').value = '';
+  loadPhotos();
+}
+async function addPhotoUrl() {
+  const url = document.getElementById('photo-url').value.trim();
+  if (!url) return;
+  await sb.from('emma_photos').insert({ url, sort_order: Date.now() % 100000 });
+  document.getElementById('photo-url').value = '';
+  showStatus('Photo added', true);
+  loadPhotos();
+}
+async function delPhoto(id) {
+  await sb.from('emma_photos').delete().eq('id', id);
+  loadPhotos();
+}
+
+// ── MUSIC ──
+async function loadMusic() {
+  const { data, error } = await sb.from('emma_music').select('*').order('sort_order');
+  const list = document.getElementById('music-list');
+  if (error) { list.innerHTML = 'Error loading'; return; }
+  list.innerHTML = data.map(m =>
+    '<div class="item"><div class="info"><div class="t">' + (m.title || 'Untitled') + '</div>' +
+    '<div class="u">' + m.url.split('/').pop() + '</div></div>' +
+    '<button class="small danger" onclick="delMusic(\'' + m.id + '\')">Remove</button></div>'
+  ).join('');
+}
+async function uploadMusic() {
+  const file = document.getElementById('music-file').files[0];
+  if (!file) { showStatus('Choose a music file first', false); return; }
+  showStatus('Uploading music...', true);
+  const name = Date.now() + '-' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const { error: upErr } = await sb.storage.from('emma-music').upload(name, file);
+  if (upErr) { showStatus('Upload failed: ' + upErr.message, false); return; }
+  const { data: urlData } = sb.storage.from('emma-music').getPublicUrl(name);
+  const title = document.getElementById('music-title').value.trim();
+  await sb.from('emma_music').insert({ url: urlData.publicUrl, title, sort_order: Date.now() % 100000 });
+  showStatus('Music added', true);
+  document.getElementById('music-file').value = '';
+  document.getElementById('music-title').value = '';
+  loadMusic();
+}
+async function delMusic(id) {
+  await sb.from('emma_music').delete().eq('id', id);
+  loadMusic();
+}
+
+// ── ITINERARY ──
+async function loadItinerary() {
+  const { data, error } = await sb.from('emma_itinerary').select('*').order('sort_order');
+  const list = document.getElementById('itin-list');
+  if (error) { list.innerHTML = 'Error loading'; return; }
+  list.innerHTML = data.map(it =>
+    '<div class="item"><div class="info"><div class="t">' + it.time_label + ' — ' + it.activity + '</div></div>' +
+    '<button class="small danger" onclick="delItin(\'' + it.id + '\')">Remove</button></div>'
+  ).join('');
+}
+async function addItinerary() {
+  const time_label = document.getElementById('itin-time').value.trim();
+  const activity = document.getElementById('itin-activity').value.trim();
+  if (!time_label || !activity) { showStatus('Enter time and activity', false); return; }
+  await sb.from('emma_itinerary').insert({ time_label, activity, sort_order: Date.now() % 100000 });
+  document.getElementById('itin-time').value = '';
+  document.getElementById('itin-activity').value = '';
+  showStatus('Added to schedule', true);
+  loadItinerary();
+}
+async function delItin(id) {
+  await sb.from('emma_itinerary').delete().eq('id', id);
+  loadItinerary();
+}
+
+// Load all on start
+loadPhotos();
+loadMusic();
+loadItinerary();
+</script>
+</body>
+</html>
