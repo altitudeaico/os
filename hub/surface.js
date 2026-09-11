@@ -336,6 +336,8 @@ function renderRail(cards) {
     el.className = 'rail-card' + (i === 0 ? ' focused' : '');
     el.tabIndex = -1;  // JS manages focus, not browser tab order
     el.dataset.idx = i;
+    el.dataset.dest = card.dest || '';
+    el.dataset.label = card.label || '';
 
     if (card.img) {
       el.innerHTML = '<img class="rail-card-img" src="' + card.img + '" alt="" loading="lazy">' +
@@ -416,7 +418,10 @@ document.addEventListener('keydown', function(e) {
     }
     if (isEnter) {
       const focused = cards[_cardIdx];
-      if (focused) focused.click();
+      if (focused) {
+        probe('ENTER on ' + focused.dataset.dest);
+        openDestination(focused.dataset.dest, focused.dataset.label);
+      }
     }
   } else {
     // navZone === 'nav'
