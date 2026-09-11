@@ -320,19 +320,65 @@ async function openEmmaWorld() {
     slides[_emmaSlideIdx].style.opacity = '1';
   }, 5000);
 
-  // Start music playlist if available — plays through all songs then loops
-  if (window._emmaMusic && window._emmaMusic.length) {
-    if (window._emmaAudio) { window._emmaAudio.pause(); }
-    window._emmaMusicIdx = 0;
-    const playSong = (i) => {
-      window._emmaMusicIdx = i % window._emmaMusic.length;
-      window._emmaAudio = new Audio(window._emmaMusic[window._emmaMusicIdx].url);
-      window._emmaAudio.volume = 0.6;
-      window._emmaAudio.onended = () => playSong(window._emmaMusicIdx + 1);
-      window._emmaAudio.play().catch(() => {});
-    };
-    playSong(0);
+  // Music player — Spotify-style now-playing card + auto-advance playlist
+  startEmmaPlayer(el);
+}
+
+function startEmmaPlayer(el) {
+  const music = window._emmaMusic || [];
+  if (!music.length) return;
+
+  // Add now-playing card to the DOM
+  let card = document.getElementById('emma-nowplaying');
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'emma-nowplaying';
+    card.style.cssText =
+      'position:absolute;bottom:5vh;left:4vw;z-index:5;' +
+      'display:flex;align-items:center;gap:1em;' +
+      'background:rgba(26,0,17,0.7);backdrop-filter:blur(10px);' +
+      'border:1px solid rgba(255,110,199,0.3);border-radius:16px;' +
+      'padding:0.9em 1.4em;min-width:22vw;';
+    el.appendChild(card);
   }
+
+  function renderCard() {
+    const t = music[window._emmaMusicIdx] || {};
+    card.innerHTML =
+      '<div style="width:2.6em;height:2.6em;border-radius:10px;flex:0 0 auto;' +
+      'background:linear-gradient(135deg,#ff6ec7,#c9457f);display:flex;align-items:center;justify-content:center;font-size:1.2em;">🎵</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="color:#fff;font-size:0.62em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (t.title || 'Music') + '</div>' +
+        '<div style="color:#ff6ec7;font-size:0.48em;letter-spacing:0.1em;text-transform:uppercase;margin-top:0.2em;">Now Playing</div>' +
+        '<div style="height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin-top:0.5em;overflow:hidden;">' +
+          '<div id="emma-progress" style="height:100%;width:0%;background:#ff6ec7;transition:width 0.4s linear;"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="color:rgba(255,255,255,0.5);font-size:0.5em;flex:0 0 auto;">' + (window._emmaMusicIdx+1) + '/' + music.length + '</div>';
+  }
+
+  function playSong(i) {
+    if (window._emmaAudio) { window._emmaAudio.pause(); window._emmaAudio.onended = null; }
+    window._emmaMusicIdx = ((i % music.length) + music.length) % music.length;
+    window._emmaAudio = new Audio(music[window._emmaMusicIdx].url);
+    window._emmaAudio.volume = 0.6;
+    window._emmaAudio.onended = () => playSong(window._emmaMusicIdx + 1);
+    window._emmaAudio.ontimeupdate = () => {
+      const bar = document.getElementById('emma-progress');
+      if (bar && window._emmaAudio.duration) {
+        bar.style.width = (100 * window._emmaAudio.currentTime / window._emmaAudio.duration) + '%';
+      }
+    };
+    window._emmaAudio.play().catch(() => {});
+    renderCard();
+  }
+
+  // Expose skip controls for D-pad
+  window._emmaNextSong = () => playSong(window._emmaMusicIdx + 1);
+  window._emmaPrevSong = () => playSong(window._emmaMusicIdx - 1);
+
+  window._emmaMusicIdx = 0;
+  playSong(0);
 }
 
 // ══════════════════════════════════════════════════════
@@ -447,8 +493,16 @@ document.addEventListener('keydown', function(e) {
     if (_inDestination) { e.preventDefault(); closeDestination(); return; }
   }
 
-  // If in a destination, let it handle its own keys
-  if (_inDestination) return;
+  // If in a destination, handle destination-specific keys
+  if (_inDestination) {
+    // In Emma's World: LEFT/RIGHT skips songs
+    if (document.getElementById('view-emma') &&
+        document.getElementById('view-emma').style.display !== 'none') {
+      if ((key === 'ArrowRight' || code === 39) && window._emmaNextSong) { e.preventDefault(); window._emmaNextSong(); return; }
+      if ((key === 'ArrowLeft'  || code === 37) && window._emmaPrevSong) { e.preventDefault(); window._emmaPrevSong(); return; }
+    }
+    return;
+  }
 
   probe('KEY: ' + key + '/' + code + ' zone:' + _navZone);
   const isLeft  = key === 'ArrowLeft'  || code === 37;
