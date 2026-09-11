@@ -120,10 +120,11 @@ html, body {
 /* Rail — zone 3, fixed distance from bottom */
 .home-rails {
   position: absolute;
-  bottom: 7vh;   /* above nav */
+  bottom: 8vh;   /* above nav, with headroom for scaled card */
   left: 0; right: 0;
   padding: 0 3.5% 2%;
   z-index: 10;
+  overflow: visible;
 }
 .rail-label {
   color: rgba(255,255,255,0.45);
@@ -135,8 +136,13 @@ html, body {
 /* Cards */
 .rail-cards {
   display: flex; gap: 1.4%;
-  overflow: hidden; /* clip — JS scrolls via transform */
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-top: 3%;      /* room for focused card to grow upward */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.rail-cards::-webkit-scrollbar { display: none; }
 .rail-card {
   flex: 0 0 26.5%;
   aspect-ratio: 16/9;
