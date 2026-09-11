@@ -126,7 +126,7 @@ html, body {
 .home-hero-text {
   position: relative; z-index: 10;
   padding: 0 3.5% 0;
-  margin-bottom: 18%;
+  margin-bottom: 26%;
   max-width: 52%;
 }
 .hero-context {
@@ -161,8 +161,15 @@ html, body {
 }
 .rail-cards {
   display: flex; gap: 1.4%;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4%;
 }
+.rail-cards::-webkit-scrollbar { display: none; }
+.rail-card { scroll-snap-align: start; }
 
 /* Cards — large, ~3.5 visible */
 .rail-card {
@@ -323,6 +330,31 @@ html, body {
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/hub/surface.js?v=11sept"></script>
+<script src="/hub/surface.js?v=11sept2"></script>
+<script>
+/* TV D-pad navigation */
+document.addEventListener('keydown', function(e) {
+  var cards = Array.from(document.querySelectorAll('.rail-card'));
+  if (!cards.length) return;
+
+  var focused = document.querySelector('.rail-card.focused');
+  var idx = focused ? cards.indexOf(focused) : -1;
+
+  if (e.key === 'ArrowRight' || e.keyCode === 39) {
+    e.preventDefault();
+    var next = cards[Math.min(idx + 1, cards.length - 1)];
+    if (next) { cards.forEach(c => c.classList.remove('focused')); next.classList.add('focused'); next.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
+  }
+  if (e.key === 'ArrowLeft' || e.keyCode === 37) {
+    e.preventDefault();
+    var prev = cards[Math.max(idx - 1, 0)];
+    if (prev) { cards.forEach(c => c.classList.remove('focused')); prev.classList.add('focused'); prev.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
+  }
+  if (e.key === 'Enter' || e.keyCode === 13) {
+    e.preventDefault();
+    if (focused) focused.click();
+  }
+});
+</script>
 </body>
 </html>
