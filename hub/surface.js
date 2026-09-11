@@ -90,8 +90,15 @@ async function initSurface() {
 
 
 async function showHome() {
-  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='showHome: START';})();
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='showHome: START v9';})();
   showView('home');
+
+  // Render cards FIRST — independent of hero setup, so a hero error can't block them
+  try {
+    renderRail(HOME_CARDS);
+  } catch(e) {
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='RAIL ERR: '+e.message;})();
+  }
 
   try {
     renderHomeV2();
@@ -175,8 +182,7 @@ function renderHomeV2() {
   // Hero text — defaults, overridden by hub_state when Realtime delivers
   setHeroText({ context: contextForTime(), heading: 'Welcome home.', meta: '' });
 
-  // Rail — canonical card set
-  renderRail(HOME_CARDS);
+  // Rail already rendered in showHome
 
   // Nav label
   const navLabel = document.getElementById('home-nav-label');
