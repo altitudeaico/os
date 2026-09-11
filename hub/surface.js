@@ -205,6 +205,7 @@ function renderRail(cards) {
 
   // Set initial card focus
   setCardFocus(0);
+  probe('CARDS: ' + document.querySelectorAll('.rail-card').length);
 }
 
 function setCardFocus(idx) {
@@ -235,6 +236,7 @@ function setNavFocus(idx) {
 document.addEventListener('keydown', function(e) {
   const key = e.key || '';
   const code = e.keyCode || 0;
+  probe('KEY: ' + key + '/' + code + ' zone:' + _navZone);
   const isLeft  = key === 'ArrowLeft'  || code === 37;
   const isRight = key === 'ArrowRight' || code === 39;
   const isUp    = key === 'ArrowUp'    || code === 38;
