@@ -78,6 +78,8 @@ window.addEventListener('load', async () => {
   await initSurface();
 });
 
+function probe(msg){var p=document.getElementById('fos-probe');if(p)p.textContent=msg;}
+
 async function initSurface() {
   probe('initSurface: START');
   log('initSurface: going straight to Home');
