@@ -140,6 +140,30 @@ function updateClock() {
                    now.getMinutes().toString().padStart(2,'0');
 }
 
+/* ── Canonical card manifest ── */
+const HOME_CARDS = [
+  { label: 'Academy',        img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png' },
+  { label: "Elsie's World",  img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png' },
+  { label: "Emma's World",   img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png' },
+  { label: 'Our Adventures', img: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png' },
+  { label: 'Family Time',    img: 'https://olatoyefamily.com/hub/assets/cards/card-family-time.png' },
+  { label: 'Watch',          img: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png' },
+  { label: 'Coming Up',      img: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png' },
+];
+
+function heroForTime() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 17) return 'https://olatoyefamily.com/hub/assets/heroes/hero-morning-academy.png';
+  return 'https://olatoyefamily.com/hub/assets/heroes/hero-evening-family-B.png';
+}
+
+function contextForTime() {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 12) return 'Good morning, Olatoye Family';
+  if (h >= 12 && h < 17) return 'Good afternoon, Olatoye Family';
+  return 'Good evening, Olatoye Family';
+}
+
 function renderHomeV2() {
   try {
   // Hero background — time-of-day aware
