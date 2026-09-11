@@ -215,6 +215,10 @@ const NAV_ITEMS_COUNT = 5;
 //  EMMA'S WORLD — birthday experience
 // ══════════════════════════════════════════════════════
 
+// Destination state — declared early to avoid temporal dead zone
+var _inDestination = false;
+var _emmaTimer = null;
+
 const EMMA_PHOTOS = [
   'https://olatoyefamily.com/hub/assets/emma/emma-01.png',
   'https://olatoyefamily.com/hub/assets/emma/emma-02.png',
@@ -227,7 +231,7 @@ const EMMA_PHOTOS = [
   'https://olatoyefamily.com/hub/assets/emma/emma-09.png',
 ];
 
-let _emmaSlideIdx = 0;
+var _emmaSlideIdx = 0;
 
 function openEmmaWorld() {
   probe('EMMA WORLD');
@@ -322,9 +326,6 @@ function closeDestination() {
   _inDestination = false;
   if (_emmaTimer) { clearInterval(_emmaTimer); _emmaTimer = null; }
 }
-
-let _inDestination = false;
-let _emmaTimer = null;
 
 function renderRail(cards) {
   const rail = document.getElementById('rail-cards');
