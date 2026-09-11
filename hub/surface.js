@@ -79,8 +79,11 @@ window.addEventListener('load', async () => {
 });
 
 async function initSurface() {
+  probe('initSurface: START');
   log('initSurface: going straight to Home');
   await showHome();
+  // Auth state listener disabled — no session in display-only mode
+  // startPairing() must never fire during this phase
 }
 
 
@@ -123,19 +126,8 @@ async function showHome() {
   updateClock();
   setInterval(updateClock, 30000);
 
-  // Session expiry listener
-  _sb.auth.onAuthStateChange((event, session) => {
-    if (event === 'TOKEN_REFRESHED' && session) {
-      log('Token refreshed automatically');
-      storeSession(session);
-      _session = session;
-    }
-    if (event === 'SIGNED_OUT') {
-      warn('Session signed out — returning to pairing');
-      clearSession();
-      startPairing();
-    }
-  });
+  // Auth state listener disabled in display-only mode
+  // startPairing() is recovery only — must not fire automatically
 }
 
 function updateClock() {
@@ -150,7 +142,9 @@ function renderHomeV2() {
   try {
   // Hero background — time-of-day aware
   const heroBg = document.getElementById('home-hero-bg');
-  if (heroBg) heroBg.style.backgroundImage = 'url(' + heroForTime() + ')';
+  if (heroBg) {
+    heroBg.style.backgroundImage = 'url(' + heroForTime() + ')';
+  }
 
   // Hero text — defaults, overridden by hub_state when Realtime delivers
   setHeroText({ context: contextForTime(), heading: 'Welcome home.', meta: '' });
@@ -178,35 +172,107 @@ function setHeroText({ context, heading, meta }) {
   set('hero-meta', meta);
 }
 
+// ── Navigation state ──────────────────────────────────────────
+let _navZone = 'cards';  // 'cards' or 'nav'
+let _cardIdx  = 0;
+let _navIdx   = 0;
+const NAV_ITEMS_COUNT = 5;
+
 function renderRail(cards) {
   const rail = document.getElementById('rail-cards');
   if (!rail) return;
   rail.innerHTML = '';
-  let focusIdx = 0;
 
   cards.forEach((card, i) => {
     const el = document.createElement('div');
     el.className = 'rail-card' + (i === 0 ? ' focused' : '');
-    el.tabIndex = 0;
+    el.tabIndex = -1;  // JS manages focus, not browser tab order
     el.dataset.idx = i;
 
     if (card.img) {
-      el.innerHTML = `<img class="rail-card-img" src="${card.img}" alt="" loading="lazy">
+      el.innerHTML = \`<img class="rail-card-img" src="\${card.img}" alt="" loading="lazy">
         <div class="rail-card-gradient"></div>
-        <div class="rail-card-label">${card.label}</div>`;
+        <div class="rail-card-label">\${card.label}</div>\`;
     } else {
-      el.innerHTML = `<div class="rail-card-bg" style="--card-bg:${card.bg || 'rgba(255,255,255,0.06)'}"></div>
-        <div class="rail-card-label">${card.label}</div>`;
+      el.innerHTML = \`<div style="position:absolute;inset:0;background:\${card.bg||'rgba(255,255,255,0.06)'}"></div>
+        <div class="rail-card-label">\${card.label}</div>\`;
     }
-
-    el.addEventListener('focus', () => {
-      document.querySelectorAll('.rail-card').forEach(c => c.classList.remove('focused'));
-      el.classList.add('focused');
-    });
 
     rail.appendChild(el);
   });
+
+  // Set initial card focus
+  setCardFocus(0);
 }
+
+function setCardFocus(idx) {
+  const cards = document.querySelectorAll('.rail-card');
+  if (!cards.length) return;
+  _cardIdx = Math.max(0, Math.min(idx, cards.length - 1));
+  cards.forEach((c, i) => c.classList.toggle('focused', i === _cardIdx));
+  // Scroll focused card into view
+  const focused = cards[_cardIdx];
+  if (focused) {
+    const rail = document.getElementById('rail-cards');
+    const cardLeft = focused.offsetLeft;
+    const cardWidth = focused.offsetWidth;
+    const railWidth = rail.offsetWidth;
+    const offset = cardLeft - (railWidth / 2) + (cardWidth / 2);
+    rail.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
+  }
+}
+
+function setNavFocus(idx) {
+  const items = document.querySelectorAll('.nav-item');
+  if (!items.length) return;
+  _navIdx = Math.max(0, Math.min(idx, items.length - 1));
+  items.forEach((n, i) => n.classList.toggle('focused', i === _navIdx));
+}
+
+// ── D-pad keyboard handler ─────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  const key = e.key || '';
+  const code = e.keyCode || 0;
+  const isLeft  = key === 'ArrowLeft'  || code === 37;
+  const isRight = key === 'ArrowRight' || code === 39;
+  const isUp    = key === 'ArrowUp'    || code === 38;
+  const isDown  = key === 'ArrowDown'  || code === 40;
+  const isEnter = key === 'Enter'      || code === 13 || code === 23;
+
+  if (!isLeft && !isRight && !isUp && !isDown && !isEnter) return;
+  e.preventDefault();
+
+  const cards = document.querySelectorAll('.rail-card');
+  if (!cards.length) return;
+
+  if (_navZone === 'cards') {
+    if (isLeft)  setCardFocus(_cardIdx - 1);
+    if (isRight) setCardFocus(_cardIdx + 1);
+    if (isDown) {
+      _navZone = 'nav';
+      // Remove focused from cards
+      cards.forEach(c => c.classList.remove('focused'));
+      setNavFocus(_navIdx);
+    }
+    if (isEnter) {
+      const focused = cards[_cardIdx];
+      if (focused) focused.click();
+    }
+  } else {
+    // navZone === 'nav'
+    if (isLeft)  setNavFocus(_navIdx - 1);
+    if (isRight) setNavFocus(_navIdx + 1);
+    if (isUp) {
+      _navZone = 'cards';
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('focused'));
+      setCardFocus(_cardIdx);
+    }
+    if (isEnter) {
+      const items = document.querySelectorAll('.nav-item');
+      if (items[_navIdx]) items[_navIdx].click();
+    }
+  }
+});
 
 /* ════════════════════════════════════════════════════════════════
    REALTIME — authenticated surface-scoped connection
@@ -214,8 +280,7 @@ function renderRail(cards) {
    ════════════════════════════════════════════════════════════════ */
 
 function connectRealtime() {
-  // No session — skip Realtime, show static status
-  if (!_sb) {
+  if (!_sb || !_session) {
     updateRealtimeStatus('Family OS');
     return;
   }
