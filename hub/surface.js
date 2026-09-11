@@ -311,6 +311,16 @@ function closeDestination() {
   if (_emmaTimer) { clearInterval(_emmaTimer); _emmaTimer = null; }
 }
 
+// Called by Android Back button. Returns true if handled (in a destination),
+// false if at Home (Android should exit).
+window.fosHandleBack = function() {
+  if (_inDestination) {
+    closeDestination();
+    return true;
+  }
+  return false;
+};
+
 function renderRail(cards) {
   const rail = document.getElementById('rail-cards');
   if (!rail) return;
