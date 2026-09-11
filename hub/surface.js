@@ -233,7 +233,28 @@ const EMMA_PHOTOS = [
 
 var _emmaSlideIdx = 0;
 
-function openEmmaWorld() {
+async function loadEmmaContent() {
+  // Load photos, music, itinerary from Supabase (public read)
+  const EMMA_API = 'https://fypwabbhxnnwcpfjwrda.supabase.co/rest/v1';
+  const EMMA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+  const hdr = { 'apikey': EMMA_KEY, 'Authorization': 'Bearer ' + EMMA_KEY };
+  try {
+    const [ph, mu, it] = await Promise.all([
+      fetch(EMMA_API + '/emma_photos?select=url&order=sort_order', { headers: hdr }).then(r => r.json()),
+      fetch(EMMA_API + '/emma_music?select=url,title&order=sort_order', { headers: hdr }).then(r => r.json()),
+      fetch(EMMA_API + '/emma_itinerary?select=time_label,activity&order=sort_order', { headers: hdr }).then(r => r.json()),
+    ]);
+    return {
+      photos: (ph && ph.length) ? ph.map(p => p.url) : EMMA_PHOTOS,
+      music:  (mu && mu.length) ? mu : [],
+      itinerary: (it && it.length) ? it : [],
+    };
+  } catch (e) {
+    return { photos: EMMA_PHOTOS, music: [], itinerary: [] };
+  }
+}
+
+async function openEmmaWorld() {
   probe('EMMA WORLD');
   let el = document.getElementById('view-emma');
   if (!el) {
@@ -243,25 +264,50 @@ function openEmmaWorld() {
     document.body.appendChild(el);
   }
 
-  // Build slides + overlay
+  el.style.display = 'block';
+  _inDestination = true;
+
+  // Load content from Supabase
+  const content = await loadEmmaContent();
+  const photos = content.photos;
+  window._emmaMusic = content.music;
+  window._emmaItinerary = content.itinerary;
+
+  // Build slides
   let slidesHtml = '';
-  EMMA_PHOTOS.forEach((src, i) => {
+  photos.forEach((src, i) => {
     slidesHtml += '<div class="emma-slide" style="background-image:url(' + src + ');' +
       (i === 0 ? 'opacity:1;' : 'opacity:0;') + '"></div>';
   });
+
+  // Itinerary panel HTML
+  let itinHtml = '';
+  if (window._emmaItinerary && window._emmaItinerary.length) {
+    itinHtml = '<div class="emma-itin"><div class="emma-itin-title">Today</div>' +
+      window._emmaItinerary.map(it =>
+        '<div class="emma-itin-row"><span class="emma-itin-time">' + it.time_label + '</span>' +
+        '<span class="emma-itin-act">' + it.activity + '</span></div>'
+      ).join('') + '</div>';
+  }
 
   el.innerHTML =
     '<style>' +
     '.emma-slide{position:absolute;inset:0;background-size:cover;background-position:center;' +
     'transition:opacity 1.6s ease-in-out;}' +
+    '.emma-itin{position:absolute;top:6vh;right:4vw;z-index:4;' +
+    'background:rgba(26,0,17,0.6);backdrop-filter:blur(8px);border:1px solid rgba(255,110,199,0.3);' +
+    'border-radius:14px;padding:1.2em 1.5em;max-width:28vw;}' +
+    '.emma-itin-title{color:#ff6ec7;font-size:0.7em;font-weight:700;letter-spacing:0.15em;' +
+    'text-transform:uppercase;margin-bottom:0.8em;}' +
+    '.emma-itin-row{display:flex;gap:0.8em;margin-bottom:0.5em;align-items:baseline;}' +
+    '.emma-itin-time{color:#ff6ec7;font-size:0.6em;font-weight:700;flex:0 0 auto;min-width:4em;}' +
+    '.emma-itin-act{color:#fff;font-size:0.6em;}' +
     '.emma-back{position:absolute;bottom:2vh;left:0;right:0;text-align:center;z-index:3;' +
     'color:rgba(255,255,255,0.35);font-size:0.55em;letter-spacing:0.1em;}' +
     '</style>' +
     slidesHtml +
+    itinHtml +
     '<div class="emma-back">Press Back to return home</div>';
-
-  el.style.display = 'block';
-  _inDestination = true;
 
   // Start slideshow
   _emmaSlideIdx = 0;
@@ -273,6 +319,15 @@ function openEmmaWorld() {
     _emmaSlideIdx = (_emmaSlideIdx + 1) % slides.length;
     slides[_emmaSlideIdx].style.opacity = '1';
   }, 5000);
+
+  // Start music if available
+  if (window._emmaMusic && window._emmaMusic.length) {
+    if (window._emmaAudio) { window._emmaAudio.pause(); }
+    window._emmaAudio = new Audio(window._emmaMusic[0].url);
+    window._emmaAudio.loop = true;
+    window._emmaAudio.volume = 0.6;
+    window._emmaAudio.play().catch(() => {});
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -309,6 +364,7 @@ function closeDestination() {
   if (emma) emma.style.display = 'none';
   _inDestination = false;
   if (_emmaTimer) { clearInterval(_emmaTimer); _emmaTimer = null; }
+  if (window._emmaAudio) { window._emmaAudio.pause(); window._emmaAudio = null; }
 }
 
 // Called by Android Back button. Returns true if handled (in a destination),
