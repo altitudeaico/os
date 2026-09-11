@@ -254,26 +254,10 @@ function openEmmaWorld() {
     '<style>' +
     '.emma-slide{position:absolute;inset:0;background-size:cover;background-position:center;' +
     'transition:opacity 1.6s ease-in-out;}' +
-    '.emma-overlay{position:absolute;inset:0;z-index:2;' +
-    'background:linear-gradient(to top,rgba(26,0,17,0.85) 0%,rgba(26,0,17,0.1) 35%,transparent 60%);}' +
-    '.emma-banner{position:absolute;top:6vh;left:0;right:0;text-align:center;z-index:3;}' +
-    '.emma-hbd{color:#fff;font-size:1.1em;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;text-shadow:0 2px 20px rgba(0,0,0,0.6);}' +
-    '.emma-name{font-family:Georgia,serif;color:#ff6ec7;font-size:5em;font-weight:800;' +
-    'text-shadow:0 4px 30px rgba(255,110,199,0.5),0 2px 10px rgba(0,0,0,0.4);line-height:1;margin:0.1em 0;}' +
-    '.emma-age{color:#fff;font-size:1.4em;font-weight:700;letter-spacing:0.1em;}' +
-    '.emma-tagline{position:absolute;bottom:6vh;left:0;right:0;text-align:center;z-index:3;' +
-    'color:rgba(255,255,255,0.85);font-size:0.85em;letter-spacing:0.15em;text-transform:uppercase;}' +
     '.emma-back{position:absolute;bottom:2vh;left:0;right:0;text-align:center;z-index:3;' +
-    'color:rgba(255,255,255,0.4);font-size:0.6em;}' +
+    'color:rgba(255,255,255,0.35);font-size:0.55em;letter-spacing:0.1em;}' +
     '</style>' +
     slidesHtml +
-    '<div class="emma-overlay"></div>' +
-    '<div class="emma-banner">' +
-      '<div class="emma-hbd">Happy Birthday</div>' +
-      '<div class="emma-name">Emma</div>' +
-      '<div class="emma-age">is 5 today</div>' +
-    '</div>' +
-    '<div class="emma-tagline">Magical today. Amazing always.</div>' +
     '<div class="emma-back">Press Back to return home</div>';
 
   el.style.display = 'block';
