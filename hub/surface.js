@@ -149,13 +149,13 @@ function updateClock() {
 
 /* ── Canonical card manifest ── */
 const HOME_CARDS = [
-  { label: 'Academy',        img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png' },
-  { label: "Elsie's World",  img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png' },
-  { label: "Emma's World",   img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png' },
-  { label: 'Our Adventures', img: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png' },
-  { label: 'Family Time',    img: 'https://olatoyefamily.com/hub/assets/cards/card-family-time.png' },
-  { label: 'Watch',          img: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png' },
-  { label: 'Coming Up',      img: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png' },
+  { label: 'Academy',        img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png',        dest: 'academy' },
+  { label: "Elsie's World",  img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png',          dest: 'elsie' },
+  { label: "Emma's World",   img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png',           dest: 'emma' },
+  { label: 'Our Adventures', img: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png',     dest: 'adventures' },
+  { label: 'Family Time',    img: 'https://olatoyefamily.com/hub/assets/cards/card-family-time.png',    dest: 'family-time' },
+  { label: 'Watch',          img: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png',        dest: 'watch' },
+  { label: 'Coming Up',      img: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png',    dest: 'coming-up' },
 ];
 
 function heroForTime() {
@@ -210,6 +210,45 @@ let _cardIdx  = 0;
 let _navIdx   = 0;
 const NAV_ITEMS_COUNT = 5;
 
+// ══════════════════════════════════════════════════════
+//  DESTINATIONS — what opens when a card is clicked
+// ══════════════════════════════════════════════════════
+
+function openDestination(dest, label) {
+  probe('OPEN: ' + dest);
+  if (dest === 'emma') { openEmmaWorld(); return; }
+  // Other destinations — placeholder for now
+  showDestinationPlaceholder(label);
+}
+
+function showDestinationPlaceholder(label) {
+  let el = document.getElementById('view-destination');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'view-destination';
+    el.style.cssText = 'position:fixed;inset:0;z-index:500;background:#060a06;' +
+      'display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1em;';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<div style="color:#C9A84C;font-size:0.7em;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">' + label + '</div>' +
+    '<div style="color:#fff;font-size:2em;font-weight:800;">Coming soon</div>' +
+    '<div style="color:rgba(255,255,255,0.4);font-size:0.8em;">Press Back to return home</div>';
+  el.style.display = 'flex';
+  _inDestination = true;
+}
+
+function closeDestination() {
+  const el = document.getElementById('view-destination');
+  const emma = document.getElementById('view-emma');
+  if (el) el.style.display = 'none';
+  if (emma) emma.style.display = 'none';
+  _inDestination = false;
+  if (_emmaTimer) { clearInterval(_emmaTimer); _emmaTimer = null; }
+}
+
+let _inDestination = false;
+let _emmaTimer = null;
+
 function renderRail(cards) {
   const rail = document.getElementById('rail-cards');
   if (!rail) return;
@@ -230,6 +269,7 @@ function renderRail(cards) {
         '<div class="rail-card-label">' + card.label + '</div>';
     }
 
+    el.addEventListener('click', () => openDestination(card.dest, card.label));
     rail.appendChild(el);
   });
 
@@ -266,6 +306,15 @@ function setNavFocus(idx) {
 document.addEventListener('keydown', function(e) {
   const key = e.key || '';
   const code = e.keyCode || 0;
+
+  // Back button (Android keyCode 4, or Escape) — close destination
+  if (code === 4 || code === 27 || key === 'Escape' || key === 'GoBack') {
+    if (_inDestination) { e.preventDefault(); closeDestination(); return; }
+  }
+
+  // If in a destination, let it handle its own keys
+  if (_inDestination) return;
+
   probe('KEY: ' + key + '/' + code + ' zone:' + _navZone);
   const isLeft  = key === 'ArrowLeft'  || code === 37;
   const isRight = key === 'ArrowRight' || code === 39;
