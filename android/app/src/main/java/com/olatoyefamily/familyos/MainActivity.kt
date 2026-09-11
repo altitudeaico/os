@@ -74,7 +74,7 @@ class MainActivity : Activity() {
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
 
                 // Cache — use default (network when available, cache as fallback)
-                cacheMode = WebSettings.LOAD_DEFAULT
+                cacheMode = if (BuildConfig.DEBUG) WebSettings.LOAD_NO_CACHE else WebSettings.LOAD_DEFAULT
 
                 // TV display — no zoom
                 builtInZoomControls = false
