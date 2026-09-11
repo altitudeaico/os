@@ -144,13 +144,16 @@ class MainActivity : Activity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         when (keyCode) {
             KeyEvent.KEYCODE_BACK -> {
-                // Let WebView handle back if it has history, otherwise platform default
-                if (webView.canGoBack()) {
-                    webView.goBack()
-                    return true
+                // Ask the WebView JS if it can handle Back (e.g. close a destination).
+                // If JS handles it, do nothing. If not, exit the app.
+                webView.evaluateJavascript(
+                    "(window.fosHandleBack && window.fosHandleBack()) ? 'handled' : 'exit'"
+                ) { result ->
+                    if (result != null && result.contains("exit")) {
+                        finish()
+                    }
                 }
-                // At root: normal platform behaviour — exits app via super
-                return super.onKeyDown(keyCode, event)
+                return true
             }
 
             KeyEvent.KEYCODE_DPAD_UP,
