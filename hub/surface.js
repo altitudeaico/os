@@ -190,12 +190,12 @@ function renderRail(cards) {
     el.dataset.idx = i;
 
     if (card.img) {
-      el.innerHTML = \`<img class="rail-card-img" src="\${card.img}" alt="" loading="lazy">
-        <div class="rail-card-gradient"></div>
-        <div class="rail-card-label">\${card.label}</div>\`;
+      el.innerHTML = '<img class="rail-card-img" src="' + card.img + '" alt="" loading="lazy">' +
+        '<div class="rail-card-gradient"></div>' +
+        '<div class="rail-card-label">' + card.label + '</div>';
     } else {
-      el.innerHTML = \`<div style="position:absolute;inset:0;background:\${card.bg||'rgba(255,255,255,0.06)'}"></div>
-        <div class="rail-card-label">\${card.label}</div>\`;
+      el.innerHTML = '<div style="position:absolute;inset:0;background:' + (card.bg||'rgba(255,255,255,0.06)') + '"></div>' +
+        '<div class="rail-card-label">' + card.label + '</div>';
     }
 
     rail.appendChild(el);
