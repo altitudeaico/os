@@ -214,6 +214,11 @@ function renderRail(cards) {
    ════════════════════════════════════════════════════════════════ */
 
 function connectRealtime() {
+  // No session — skip Realtime, show static status
+  if (!_sb) {
+    updateRealtimeStatus('Family OS');
+    return;
+  }
   if (!_session) { warn('No session — cannot connect Realtime'); return; }
 
   // Disconnect any existing channel
@@ -254,7 +259,7 @@ function updateRealtimeStatus(msg) {
   if (dot) {
     dot.className = 'home-status-dot' + (isConnected ? '' : ' offline');
   }
-  if (label) label.textContent = isConnected ? 'Family OS online' : msg;
+  if (label) label.textContent = isConnected ? 'Family OS' : 'Family OS';
   // Phase 0B legacy element — gracefully absent in V2
   const legacy = document.getElementById('realtime-status');
   if (legacy) legacy.textContent = 'Realtime: ' + msg;
