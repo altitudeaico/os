@@ -342,6 +342,21 @@ async function openEmmaWorld() {
 
   // Music player — Spotify-style now-playing card + auto-advance playlist
   startEmmaPlayer(el);
+
+  // Auto-poll for new content added via admin page (every 25s) — no button needed
+  if (window._emmaPoll) clearInterval(window._emmaPoll);
+  window._emmaPoll = setInterval(async () => {
+    // Only poll if still in Emma's World
+    const stillOpen = document.getElementById('view-emma') &&
+                      document.getElementById('view-emma').style.display !== 'none';
+    if (!stillOpen) { clearInterval(window._emmaPoll); return; }
+    const fresh = await loadEmmaContent();
+    // If photo count changed, rebuild slides
+    const curSlides = document.querySelectorAll('.emma-slide').length;
+    if (fresh.photos.length !== curSlides) {
+      refreshEmmaContent();
+    }
+  }, 25000);
 }
 
 function startEmmaPlayer(el) {
@@ -491,6 +506,7 @@ function closeDestination() {
   _inDestination = false;
   if (_emmaTimer) { clearInterval(_emmaTimer); _emmaTimer = null; }
   if (window._emmaAudio) { window._emmaAudio.pause(); window._emmaAudio = null; }
+  if (window._emmaPoll) { clearInterval(window._emmaPoll); window._emmaPoll = null; }
 }
 
 // Called by Android Back button. Returns true if handled (in a destination),
