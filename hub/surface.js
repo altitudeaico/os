@@ -483,6 +483,47 @@ function setNavFocus(idx) {
   items.forEach((n, i) => n.classList.toggle('focused', i === _navIdx));
 }
 
+
+// ── Hard refresh — bypass cache, pull latest changes ──
+function fosHardRefresh() {
+  probe('REFRESHING...');
+  // Force reload bypassing cache
+  const bust = 'r=' + Date.now();
+  const url = location.origin + location.pathname + '?' + bust;
+  location.replace(url);
+}
+
+// Trigger: press UP 3 times quickly while focus is on the card row
+let _upPresses = [];
+function trackUpForRefresh() {
+  const now = Date.now();
+  _upPresses.push(now);
+  _upPresses = _upPresses.filter(t => now - t < 1500);
+  if (_upPresses.length >= 3) {
+    _upPresses = [];
+    showRefreshToast();
+  }
+}
+
+function showRefreshToast() {
+  let toast = document.getElementById('fos-refresh-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'fos-refresh-toast';
+    toast.style.cssText =
+      'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;' +
+      'background:rgba(26,0,17,0.95);border:1px solid rgba(255,110,199,0.5);border-radius:16px;' +
+      'padding:1.5em 2.5em;text-align:center;';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML =
+    '<div style="color:#ff6ec7;font-size:0.9em;font-weight:700;margin-bottom:0.5em;">Refresh Family OS?</div>' +
+    '<div style="color:rgba(255,255,255,0.6);font-size:0.6em;">Press OK to update · Back to cancel</div>';
+  toast.style.display = 'block';
+  window._refreshPending = true;
+}
+
+
 // ── D-pad keyboard handler ─────────────────────────────────────
 document.addEventListener('keydown', function(e) {
   const key = e.key || '';
@@ -518,11 +559,19 @@ document.addEventListener('keydown', function(e) {
   if (!cards.length) return;
 
   if (_navZone === 'cards') {
+    // Refresh confirm dialog
+    if (window._refreshPending) {
+      if (isEnter) { e.preventDefault(); fosHardRefresh(); return; }
+      const t = document.getElementById('fos-refresh-toast');
+      if (t) t.style.display = 'none';
+      window._refreshPending = false;
+      return;
+    }
     if (isLeft)  setCardFocus(_cardIdx - 1);
     if (isRight) setCardFocus(_cardIdx + 1);
+    if (isUp)    trackUpForRefresh();
     if (isDown) {
       _navZone = 'nav';
-      // Remove focused from cards
       cards.forEach(c => c.classList.remove('focused'));
       setNavFocus(_navIdx);
     }
