@@ -328,57 +328,111 @@ function startEmmaPlayer(el) {
   const music = window._emmaMusic || [];
   if (!music.length) return;
 
-  // Add now-playing card to the DOM
-  let card = document.getElementById('emma-nowplaying');
-  if (!card) {
-    card = document.createElement('div');
-    card.id = 'emma-nowplaying';
-    card.style.cssText =
-      'position:absolute;bottom:5vh;left:4vw;z-index:5;' +
-      'display:flex;align-items:center;gap:1em;' +
-      'background:rgba(26,0,17,0.7);backdrop-filter:blur(10px);' +
-      'border:1px solid rgba(255,110,199,0.3);border-radius:16px;' +
-      'padding:0.9em 1.4em;min-width:22vw;';
-    el.appendChild(card);
+  // Single persistent audio element — swapping src avoids autoplay re-block
+  if (!window._emmaAudio) {
+    window._emmaAudio = new Audio();
+    window._emmaAudio.volume = 0.6;
+  }
+  const audio = window._emmaAudio;
+  window._emmaMusicIdx = window._emmaMusicIdx || 0;
+  window._emmaPlaying = true;
+
+  // Build the player UI
+  let player = document.getElementById('emma-player');
+  if (!player) {
+    player = document.createElement('div');
+    player.id = 'emma-player';
+    player.style.cssText =
+      'position:absolute;bottom:4vh;left:4vw;z-index:6;' +
+      'background:rgba(26,0,17,0.78);backdrop-filter:blur(12px);' +
+      'border:1px solid rgba(255,110,199,0.35);border-radius:18px;' +
+      'padding:1.1em 1.5em;min-width:26vw;max-width:34vw;';
+    el.appendChild(player);
   }
 
-  function renderCard() {
+  function fmt(s) {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s/60), sec = Math.floor(s%60);
+    return m + ':' + (sec<10?'0':'') + sec;
+  }
+
+  function renderPlayer() {
     const t = music[window._emmaMusicIdx] || {};
-    card.innerHTML =
-      '<div style="width:2.6em;height:2.6em;border-radius:10px;flex:0 0 auto;' +
-      'background:linear-gradient(135deg,#ff6ec7,#c9457f);display:flex;align-items:center;justify-content:center;font-size:1.2em;">🎵</div>' +
-      '<div style="flex:1;min-width:0;">' +
-        '<div style="color:#fff;font-size:0.62em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (t.title || 'Music') + '</div>' +
-        '<div style="color:#ff6ec7;font-size:0.48em;letter-spacing:0.1em;text-transform:uppercase;margin-top:0.2em;">Now Playing</div>' +
-        '<div style="height:3px;background:rgba(255,255,255,0.15);border-radius:2px;margin-top:0.5em;overflow:hidden;">' +
-          '<div id="emma-progress" style="height:100%;width:0%;background:#ff6ec7;transition:width 0.4s linear;"></div>' +
+    const playing = window._emmaPlaying;
+    let listHtml = '';
+    if (window._emmaShowList) {
+      listHtml = '<div style="margin-top:0.9em;border-top:1px solid rgba(255,255,255,0.12);padding-top:0.7em;max-height:20vh;overflow:hidden;">' +
+        music.map((m, i) =>
+          '<div style="display:flex;align-items:center;gap:0.6em;padding:0.35em 0.5em;border-radius:8px;' +
+          (i === window._emmaMusicIdx ? 'background:rgba(255,110,199,0.25);' : '') +
+          (i === window._emmaListSel ? 'outline:2px solid #ff6ec7;' : '') + '">' +
+          '<span style="color:' + (i===window._emmaMusicIdx?'#ff6ec7':'rgba(255,255,255,0.4)') + ';font-size:0.5em;">' + (i===window._emmaMusicIdx?'▶':(i+1)) + '</span>' +
+          '<span style="color:#fff;font-size:0.52em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (m.title||'Track') + '</span>' +
+          '</div>'
+        ).join('') + '</div>';
+    }
+    player.innerHTML =
+      '<div style="display:flex;align-items:center;gap:1em;">' +
+        '<div style="width:2.8em;height:2.8em;border-radius:10px;flex:0 0 auto;' +
+        'background:linear-gradient(135deg,#ff6ec7,#c9457f);display:flex;align-items:center;justify-content:center;font-size:1.3em;">' + (playing?'🎵':'⏸') + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="color:#fff;font-size:0.62em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (t.title||'Music') + '</div>' +
+          '<div style="color:#ff6ec7;font-size:0.44em;letter-spacing:0.1em;text-transform:uppercase;margin-top:0.15em;">' + (playing?'Now Playing':'Paused') + ' · ' + (window._emmaMusicIdx+1) + '/' + music.length + '</div>' +
+          '<div style="display:flex;align-items:center;gap:0.5em;margin-top:0.5em;">' +
+            '<span style="color:rgba(255,255,255,0.4);font-size:0.4em;">' + fmt(audio.currentTime) + '</span>' +
+            '<div style="flex:1;height:3px;background:rgba(255,255,255,0.15);border-radius:2px;overflow:hidden;">' +
+              '<div id="emma-prog" style="height:100%;width:' + (audio.duration?100*audio.currentTime/audio.duration:0) + '%;background:#ff6ec7;"></div>' +
+            '</div>' +
+            '<span style="color:rgba(255,255,255,0.4);font-size:0.4em;">' + fmt(audio.duration) + '</span>' +
+          '</div>' +
         '</div>' +
       '</div>' +
-      '<div style="color:rgba(255,255,255,0.5);font-size:0.5em;flex:0 0 auto;">' + (window._emmaMusicIdx+1) + '/' + music.length + '</div>';
+      '<div style="display:flex;justify-content:center;gap:1.5em;margin-top:0.7em;color:rgba(255,255,255,0.7);font-size:0.7em;">' +
+        '<span>⏮</span><span>' + (playing?'⏸':'▶') + '</span><span>⏭</span><span style="color:' + (window._emmaShowList?'#ff6ec7':'rgba(255,255,255,0.7)') + ';">☰</span>' +
+      '</div>' +
+      '<div style="text-align:center;color:rgba(255,255,255,0.3);font-size:0.4em;margin-top:0.5em;letter-spacing:0.05em;">' +
+        'OK play/pause · ◀▶ skip · ☰ playlist (press DOWN)' +
+      '</div>' +
+      listHtml;
   }
 
-  function playSong(i) {
-    if (window._emmaAudio) { window._emmaAudio.pause(); window._emmaAudio.onended = null; }
+  function loadAndPlay(i, autoplay) {
     window._emmaMusicIdx = ((i % music.length) + music.length) % music.length;
-    window._emmaAudio = new Audio(music[window._emmaMusicIdx].url);
-    window._emmaAudio.volume = 0.6;
-    window._emmaAudio.onended = () => playSong(window._emmaMusicIdx + 1);
-    window._emmaAudio.ontimeupdate = () => {
-      const bar = document.getElementById('emma-progress');
-      if (bar && window._emmaAudio.duration) {
-        bar.style.width = (100 * window._emmaAudio.currentTime / window._emmaAudio.duration) + '%';
-      }
-    };
-    window._emmaAudio.play().catch(() => {});
-    renderCard();
+    audio.src = music[window._emmaMusicIdx].url;
+    if (autoplay !== false) {
+      audio.play().then(() => { window._emmaPlaying = true; renderPlayer(); }).catch(() => { window._emmaPlaying = false; renderPlayer(); });
+    }
+    renderPlayer();
   }
 
-  // Expose skip controls for D-pad
-  window._emmaNextSong = () => playSong(window._emmaMusicIdx + 1);
-  window._emmaPrevSong = () => playSong(window._emmaMusicIdx - 1);
+  audio.onended = () => { loadAndPlay(window._emmaMusicIdx + 1, true); };
+  audio.ontimeupdate = () => {
+    const bar = document.getElementById('emma-prog');
+    if (bar && audio.duration) bar.style.width = (100*audio.currentTime/audio.duration) + '%';
+  };
 
-  window._emmaMusicIdx = 0;
-  playSong(0);
+  // Expose controls for D-pad
+  window._emmaPlayPause = () => {
+    if (audio.paused) { audio.play().then(()=>{window._emmaPlaying=true;renderPlayer();}).catch(()=>{}); }
+    else { audio.pause(); window._emmaPlaying=false; renderPlayer(); }
+  };
+  window._emmaNextSong = () => loadAndPlay(window._emmaMusicIdx + 1, true);
+  window._emmaPrevSong = () => loadAndPlay(window._emmaMusicIdx - 1, true);
+  window._emmaToggleList = () => { window._emmaShowList = !window._emmaShowList; window._emmaListSel = window._emmaMusicIdx; renderPlayer(); };
+  window._emmaListMove = (dir) => {
+    if (!window._emmaShowList) return;
+    window._emmaListSel = ((window._emmaListSel + dir) % music.length + music.length) % music.length;
+    renderPlayer();
+  };
+  window._emmaListSelect = () => {
+    if (!window._emmaShowList) return;
+    loadAndPlay(window._emmaListSel, true);
+  };
+  window._emmaListOpen = () => window._emmaShowList;
+
+  window._emmaShowList = false;
+  window._emmaListSel = 0;
+  loadAndPlay(window._emmaMusicIdx, true);
 }
 
 // ══════════════════════════════════════════════════════
@@ -536,11 +590,28 @@ document.addEventListener('keydown', function(e) {
 
   // If in a destination, handle destination-specific keys
   if (_inDestination) {
-    // In Emma's World: LEFT/RIGHT skips songs
-    if (document.getElementById('view-emma') &&
-        document.getElementById('view-emma').style.display !== 'none') {
-      if ((key === 'ArrowRight' || code === 39) && window._emmaNextSong) { e.preventDefault(); window._emmaNextSong(); return; }
-      if ((key === 'ArrowLeft'  || code === 37) && window._emmaPrevSong) { e.preventDefault(); window._emmaPrevSong(); return; }
+    const emmaOpen = document.getElementById('view-emma') &&
+                     document.getElementById('view-emma').style.display !== 'none';
+    if (emmaOpen) {
+      const isL = (key === 'ArrowLeft'  || code === 37);
+      const isR = (key === 'ArrowRight' || code === 39);
+      const isU = (key === 'ArrowUp'    || code === 38);
+      const isD = (key === 'ArrowDown'  || code === 40);
+      const isOK = (key === 'Enter' || code === 13 || code === 23);
+
+      // Playlist open: UP/DOWN navigates list, OK selects, DOWN toggles closed at bottom
+      if (window._emmaListOpen && window._emmaListOpen()) {
+        if (isU) { e.preventDefault(); window._emmaListMove(-1); return; }
+        if (isD) { e.preventDefault(); window._emmaListMove(1); return; }
+        if (isOK){ e.preventDefault(); window._emmaListSelect(); return; }
+        if (isL) { e.preventDefault(); window._emmaToggleList(); return; }
+        return;
+      }
+      // Normal player controls
+      if (isL) { e.preventDefault(); window._emmaPrevSong && window._emmaPrevSong(); return; }
+      if (isR) { e.preventDefault(); window._emmaNextSong && window._emmaNextSong(); return; }
+      if (isD) { e.preventDefault(); window._emmaToggleList && window._emmaToggleList(); return; }
+      if (isOK){ e.preventDefault(); window._emmaPlayPause && window._emmaPlayPause(); return; }
     }
     return;
   }
