@@ -376,6 +376,7 @@ function startEmmaPlayer(el) {
     let listHtml = '';
     if (window._emmaShowList) {
       listHtml = '<div style="margin-top:0.9em;border-top:1px solid rgba(255,255,255,0.12);padding-top:0.7em;max-height:20vh;overflow:hidden;">' +
+        '<div style="color:rgba(255,255,255,0.35);font-size:0.4em;text-align:center;margin-bottom:0.5em;letter-spacing:0.05em;">UP/DOWN choose \u00b7 OK play \u00b7 LEFT or BACK close</div>' +
         music.map((m, i) =>
           '<div style="display:flex;align-items:center;gap:0.6em;padding:0.35em 0.5em;border-radius:8px;' +
           (i === window._emmaMusicIdx ? 'background:rgba(255,110,199,0.25);' : '') +
@@ -405,7 +406,7 @@ function startEmmaPlayer(el) {
         '<span>⏮</span><span>' + (playing?'⏸':'▶') + '</span><span>⏭</span><span style="color:' + (window._emmaShowList?'#ff6ec7':'rgba(255,255,255,0.7)') + ';">☰</span>' +
       '</div>' +
       '<div style="text-align:center;color:rgba(255,255,255,0.3);font-size:0.4em;margin-top:0.5em;letter-spacing:0.05em;">' +
-        'OK play/pause · ◀▶ skip · ☰ playlist (press DOWN)' +
+        'OK play/pause · ◀▶ skip song · DOWN open playlist · UP refresh' +
       '</div>' +
       listHtml;
   }
@@ -613,12 +614,13 @@ document.addEventListener('keydown', function(e) {
       const isD = (key === 'ArrowDown'  || code === 40);
       const isOK = (key === 'Enter' || code === 13 || code === 23);
 
-      // Playlist open: UP/DOWN navigates list, OK selects, DOWN toggles closed at bottom
+      // Playlist open: UP/DOWN navigates list, OK selects, LEFT or Back closes
       if (window._emmaListOpen && window._emmaListOpen()) {
         if (isU) { e.preventDefault(); window._emmaListMove(-1); return; }
         if (isD) { e.preventDefault(); window._emmaListMove(1); return; }
         if (isOK){ e.preventDefault(); window._emmaListSelect(); return; }
         if (isL) { e.preventDefault(); window._emmaToggleList(); return; }
+        if (code === 4 || code === 27 || key === 'Escape') { e.preventDefault(); window._emmaToggleList(); return; }
         return;
       }
       // Normal player controls
