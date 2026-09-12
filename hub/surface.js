@@ -326,10 +326,11 @@ async function openEmmaWorld() {
   // Itinerary panel HTML
   let itinHtml = '';
   // Standalone clock (shows even without itinerary)
-  let clockHtml = '<div class="emma-clock-standalone" id="emma-clock-solo"></div>';
+  let clockHtml = '<div class="emma-clock-standalone" id="emma-clock-solo">' +
+    '<span class="emma-clock-spark">\u2726</span><span id="emma-clock-time"></span><span class="emma-clock-spark">\u2726</span></div>';
   if (window._emmaItinerary && window._emmaItinerary.length) {
-    clockHtml = ''; // clock lives inside itinerary panel instead
-    itinHtml = '<div class="emma-itin"><div class="emma-itin-clock" id="emma-clock"></div><div class="emma-itin-title">Today</div>' +
+    // itinerary shows separately; clock stays standalone
+    itinHtml = '<div class="emma-itin"><div class="emma-itin-title">Today</div>' +
       window._emmaItinerary.map(it =>
         '<div class="emma-itin-row"><span class="emma-itin-time">' + it.time_label + '</span>' +
         '<span class="emma-itin-act">' + it.activity + '</span></div>'
@@ -340,9 +341,9 @@ async function openEmmaWorld() {
     '<style>' +
     '.emma-slide{position:absolute;inset:0;background-size:cover;background-position:center;' +
     'transition:opacity 1.6s ease-in-out;}' +
-    '.emma-itin{position:absolute;top:6vh;right:4vw;z-index:4;' +
+    '.emma-itin{position:absolute;bottom:20vh;left:4vw;z-index:4;' +
     'background:rgba(26,0,17,0.6);backdrop-filter:blur(8px);border:1px solid rgba(255,110,199,0.3);' +
-    'border-radius:14px;padding:1.2em 1.5em;max-width:28vw;}' +
+    'border-radius:14px;padding:1em 1.3em;max-width:30vw;}' +
     '.emma-itin-clock{color:#fff;font-size:1.4em;font-weight:800;text-align:center;margin-bottom:0.3em;font-variant-numeric:tabular-nums;}' +
     '.emma-itin-title{color:#ff6ec7;font-size:0.7em;font-weight:700;letter-spacing:0.15em;' +
     'text-transform:uppercase;margin-bottom:0.8em;}' +
@@ -358,7 +359,6 @@ async function openEmmaWorld() {
     slidesHtml +
     itinHtml +
     clockHtml +
-    '<div class="emma-refresh">\u21bb Refresh</div>' +
     '<div class="emma-zone-hint" id="emma-zone-hint"></div>' +
     '<div class="emma-back">Press Back to return home  ·  Press UP to refresh</div>';
 
@@ -384,10 +384,8 @@ async function openEmmaWorld() {
     const now = new Date();
     const h = now.getHours(), m = now.getMinutes();
     const txt = h + ':' + (m<10?'0':'') + m;
-    const c1 = document.getElementById('emma-clock');
-    const c2 = document.getElementById('emma-clock-solo');
-    if (c1) c1.textContent = txt;
-    if (c2) c2.textContent = txt;
+    const c = document.getElementById('emma-clock-time');
+    if (c) c.textContent = txt;
   }
   updateEmmaClock();
   if (window._emmaClockTimer) clearInterval(window._emmaClockTimer);
