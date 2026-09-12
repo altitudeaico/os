@@ -254,6 +254,18 @@ async function loadEmmaContent() {
   }
 }
 
+
+// Refresh Emma's World content (photos, music, itinerary) without leaving
+async function refreshEmmaContent() {
+  probe('EMMA: refreshing...');
+  // Stop current audio cleanly
+  if (window._emmaAudio) { try { window._emmaAudio.pause(); } catch(e){} }
+  window._emmaAudio = null;
+  window._emmaMusicIdx = 0;
+  // Re-open Emma's World — reloads everything from Supabase
+  await openEmmaWorld();
+}
+
 async function openEmmaWorld() {
   probe('EMMA WORLD');
   let el = document.getElementById('view-emma');
@@ -302,12 +314,14 @@ async function openEmmaWorld() {
     '.emma-itin-row{display:flex;gap:0.8em;margin-bottom:0.5em;align-items:baseline;}' +
     '.emma-itin-time{color:#ff6ec7;font-size:0.6em;font-weight:700;flex:0 0 auto;min-width:4em;}' +
     '.emma-itin-act{color:#fff;font-size:0.6em;}' +
+    '.emma-refresh{position:absolute;top:4vh;left:4vw;z-index:6;background:rgba(26,0,17,0.7);border:1px solid rgba(255,110,199,0.4);border-radius:20px;padding:0.5em 1.1em;color:#ff6ec7;font-size:0.5em;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}' +
     '.emma-back{position:absolute;bottom:2vh;left:0;right:0;text-align:center;z-index:3;' +
     'color:rgba(255,255,255,0.35);font-size:0.55em;letter-spacing:0.1em;}' +
     '</style>' +
     slidesHtml +
     itinHtml +
-    '<div class="emma-back">Press Back to return home</div>';
+    '<div class="emma-refresh">\u21bb Refresh</div>' +
+    '<div class="emma-back">Press Back to return home  ·  Press UP to refresh</div>';
 
   // Start slideshow
   _emmaSlideIdx = 0;
@@ -608,6 +622,7 @@ document.addEventListener('keydown', function(e) {
         return;
       }
       // Normal player controls
+      if (isU) { e.preventDefault(); refreshEmmaContent(); return; }
       if (isL) { e.preventDefault(); window._emmaPrevSong && window._emmaPrevSong(); return; }
       if (isR) { e.preventDefault(); window._emmaNextSong && window._emmaNextSong(); return; }
       if (isD) { e.preventDefault(); window._emmaToggleList && window._emmaToggleList(); return; }
