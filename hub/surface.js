@@ -223,9 +223,18 @@ const NAV_ITEMS_COUNT = 5;
 
 function openDestination(dest, label) {
   probe('OPEN: ' + dest);
+  window._returnCardIdx = _cardIdx;  // remember which card to refocus on return
   if (dest === 'emma') { openEmmaWorld(); return; }
   // Other destinations — placeholder for now
   showDestinationPlaceholder(label);
+}
+
+// Called by fos-emma when Emma's World exits back to Home
+function onEmmaExit() {
+  _inDestination = false;
+  _navZone = 'cards';
+  const idx = (typeof window._returnCardIdx === 'number') ? window._returnCardIdx : 0;
+  setCardFocus(idx);
 }
 
 function showDestinationPlaceholder(label) {
@@ -367,13 +376,21 @@ document.addEventListener('keydown', function(e) {
   // If in a destination (e.g. Emma's World), delegate keys to it.
   // The destination's focus manager handles Back (close panel or exit).
   if (_inDestination) {
-    if (typeof emmaHandleKey === 'function') {
+    // Emma's World owns all its keys including Back (via its nav stack)
+    if (document.getElementById('view-emma') &&
+        document.getElementById('view-emma').style.display !== 'none' &&
+        typeof emmaHandleKey === 'function') {
       const handled = emmaHandleKey(key, code);
       if (handled) { e.preventDefault(); return; }
+      e.preventDefault(); return;  // swallow everything while Emma is open
     }
-    // Fallback Back handling if the destination didn't consume it
+    // Placeholder destinations ("Coming soon"): Back returns Home
     if (code === 4 || code === 27 || key === 'Escape' || key === 'GoBack') {
-      e.preventDefault(); closeDestination(); return;
+      e.preventDefault(); closeDestination();
+      _navZone = 'cards';
+      const idx = (typeof window._returnCardIdx === 'number') ? window._returnCardIdx : 0;
+      setCardFocus(idx);
+      return;
     }
     return;
   }
