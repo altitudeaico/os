@@ -119,7 +119,8 @@
     var isOK    = key === 'Enter' || code === 13 || code === 23;
     var isBack  = code === 4 || code === 27 || key === 'Escape' || key === 'GoBack';
 
-    if (isBack)  return this.back();
+    // Back is handled by the destination's nav stack, not here.
+    if (isBack)  return false;
     if (isOK)    { this.activate(); return true; }
     if (isLeft)  { this.move('left');  return true; }
     if (isRight) { this.move('right'); return true; }
