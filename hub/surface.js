@@ -323,16 +323,22 @@ async function openEmmaWorld() {
     '<div class="emma-refresh">\u21bb Refresh</div>' +
     '<div class="emma-back">Press Back to return home  ·  Press UP to refresh</div>';
 
-  // Start slideshow
+  // Slideshow — auto-advance + manual skip
   _emmaSlideIdx = 0;
-  if (_emmaTimer) clearInterval(_emmaTimer);
-  _emmaTimer = setInterval(() => {
+  function showSlide(i) {
     const slides = el.querySelectorAll('.emma-slide');
     if (!slides.length) return;
     slides[_emmaSlideIdx].style.opacity = '0';
-    _emmaSlideIdx = (_emmaSlideIdx + 1) % slides.length;
+    _emmaSlideIdx = ((i % slides.length) + slides.length) % slides.length;
     slides[_emmaSlideIdx].style.opacity = '1';
-  }, 5000);
+  }
+  window._emmaNextPhoto = () => { showSlide(_emmaSlideIdx + 1); restartSlideTimer(); };
+  window._emmaPrevPhoto = () => { showSlide(_emmaSlideIdx - 1); restartSlideTimer(); };
+  function restartSlideTimer() {
+    if (_emmaTimer) clearInterval(_emmaTimer);
+    _emmaTimer = setInterval(() => { showSlide(_emmaSlideIdx + 1); }, 5000);
+  }
+  restartSlideTimer();
 
   // Music player — Spotify-style now-playing card + auto-advance playlist
   startEmmaPlayer(el);
@@ -406,7 +412,7 @@ function startEmmaPlayer(el) {
         '<span>⏮</span><span>' + (playing?'⏸':'▶') + '</span><span>⏭</span><span style="color:' + (window._emmaShowList?'#ff6ec7':'rgba(255,255,255,0.7)') + ';">☰</span>' +
       '</div>' +
       '<div style="text-align:center;color:rgba(255,255,255,0.3);font-size:0.4em;margin-top:0.5em;letter-spacing:0.05em;">' +
-        'OK play/pause · ◀▶ skip song · DOWN open playlist · UP refresh' +
+        '◀▶ photos · OK play/pause · DOWN playlist · UP refresh' +
       '</div>' +
       listHtml;
   }
@@ -623,10 +629,10 @@ document.addEventListener('keydown', function(e) {
         if (code === 4 || code === 27 || key === 'Escape') { e.preventDefault(); window._emmaToggleList(); return; }
         return;
       }
-      // Normal player controls
+      // Normal controls: LEFT/RIGHT skips PHOTOS, OK play/pause music, DOWN playlist, UP refresh
       if (isU) { e.preventDefault(); refreshEmmaContent(); return; }
-      if (isL) { e.preventDefault(); window._emmaPrevSong && window._emmaPrevSong(); return; }
-      if (isR) { e.preventDefault(); window._emmaNextSong && window._emmaNextSong(); return; }
+      if (isL) { e.preventDefault(); window._emmaPrevPhoto && window._emmaPrevPhoto(); return; }
+      if (isR) { e.preventDefault(); window._emmaNextPhoto && window._emmaNextPhoto(); return; }
       if (isD) { e.preventDefault(); window._emmaToggleList && window._emmaToggleList(); return; }
       if (isOK){ e.preventDefault(); window._emmaPlayPause && window._emmaPlayPause(); return; }
     }
