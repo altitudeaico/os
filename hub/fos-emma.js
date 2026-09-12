@@ -4,6 +4,9 @@
    sparkly clock bottom-right, atmospheric sparkle layer.
    ══════════════════════════════════════════════════════════════ */
 
+// Shared destination flag (read by surface.js keydown handler)
+var _inDestination = false;
+
 const EMMA_API = 'https://fypwabbhxnnwcpfjwrda.supabase.co/rest/v1';
 const EMMA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
 
