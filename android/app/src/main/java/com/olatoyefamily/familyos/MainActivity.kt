@@ -107,7 +107,7 @@ class MainActivity : Activity() {
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState)
         } else {
-            webView.loadUrl(HUB_URL)
+            webView.loadUrl(HUB_URL + "?t=" + System.currentTimeMillis())
         }
     }
 
