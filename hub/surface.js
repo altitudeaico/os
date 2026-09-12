@@ -657,21 +657,46 @@ document.addEventListener('keydown', function(e) {
       const isD = (key === 'ArrowDown'  || code === 40);
       const isOK = (key === 'Enter' || code === 13 || code === 23);
 
-      // Playlist open: UP/DOWN navigates list, OK selects, LEFT or Back closes
-      if (window._emmaListOpen && window._emmaListOpen()) {
-        if (isU) { e.preventDefault(); window._emmaListMove(-1); return; }
-        if (isD) { e.preventDefault(); window._emmaListMove(1); return; }
-        if (isOK){ e.preventDefault(); window._emmaListSelect(); return; }
-        if (isL) { e.preventDefault(); window._emmaToggleList(); return; }
-        if (code === 4 || code === 27 || key === 'Escape') { e.preventDefault(); window._emmaToggleList(); return; }
+      // Zone model: PHOTOS -> MUSIC -> PLAYLIST. UP/DOWN switches zone.
+      // window._emmaZone: 'photos' | 'music' | 'playlist'
+      if (!window._emmaZone) window._emmaZone = 'photos';
+
+      // DOWN moves to next zone, UP moves to previous zone
+      if (isD) {
+        e.preventDefault();
+        if (window._emmaZone === 'photos') { window._emmaZone = 'music'; }
+        else if (window._emmaZone === 'music') { window._emmaZone = 'playlist'; window._emmaShowList = true; window._emmaListSel = window._emmaMusicIdx; }
+        else if (window._emmaZone === 'playlist') { window._emmaListMove && window._emmaListMove(1); return; }
+        updateEmmaZoneUI();
         return;
       }
-      // Normal controls: LEFT/RIGHT skips PHOTOS, OK play/pause music, DOWN playlist, UP refresh
-      if (isU) { e.preventDefault(); refreshEmmaContent(); return; }
-      if (isL) { e.preventDefault(); window._emmaPrevPhoto && window._emmaPrevPhoto(); return; }
-      if (isR) { e.preventDefault(); window._emmaNextPhoto && window._emmaNextPhoto(); return; }
-      if (isD) { e.preventDefault(); window._emmaToggleList && window._emmaToggleList(); return; }
-      if (isOK){ e.preventDefault(); window._emmaPlayPause && window._emmaPlayPause(); return; }
+      if (isU) {
+        e.preventDefault();
+        if (window._emmaZone === 'playlist') {
+          // If at top of list already, leave playlist; else move up
+          if (window._emmaListSel === 0) { window._emmaZone = 'music'; window._emmaShowList = false; window._emmaToggleListClose && window._emmaToggleListClose(); }
+          else { window._emmaListMove && window._emmaListMove(-1); return; }
+        }
+        else if (window._emmaZone === 'music') { window._emmaZone = 'photos'; }
+        else if (window._emmaZone === 'photos') { refreshEmmaContent(); return; }
+        updateEmmaZoneUI();
+        return;
+      }
+
+      // LEFT / RIGHT / OK act on the current zone
+      if (window._emmaZone === 'photos') {
+        if (isL) { e.preventDefault(); window._emmaPrevPhoto && window._emmaPrevPhoto(); return; }
+        if (isR) { e.preventDefault(); window._emmaNextPhoto && window._emmaNextPhoto(); return; }
+      }
+      else if (window._emmaZone === 'music') {
+        if (isL) { e.preventDefault(); window._emmaPrevSong && window._emmaPrevSong(); return; }
+        if (isR) { e.preventDefault(); window._emmaNextSong && window._emmaNextSong(); return; }
+        if (isOK){ e.preventDefault(); window._emmaPlayPause && window._emmaPlayPause(); return; }
+      }
+      else if (window._emmaZone === 'playlist') {
+        if (isOK){ e.preventDefault(); window._emmaListSelect && window._emmaListSelect(); return; }
+        if (isL) { e.preventDefault(); window._emmaZone = 'music'; window._emmaShowList = false; window._emmaToggleListClose && window._emmaToggleListClose(); updateEmmaZoneUI(); return; }
+      }
     }
     return;
   }
