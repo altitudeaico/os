@@ -255,6 +255,37 @@ async function loadEmmaContent() {
 }
 
 
+
+// Zone focus UI — highlights the active widget and shows a hint bar
+function updateEmmaZoneUI() {
+  const zone = window._emmaZone || 'photos';
+  const player = document.getElementById('emma-player');
+  const hint = document.getElementById('emma-zone-hint');
+
+  // Highlight the music player when it or the playlist is active
+  if (player) {
+    if (zone === 'music' || zone === 'playlist') {
+      player.style.outline = '2px solid #ff6ec7';
+      player.style.boxShadow = '0 0 30px rgba(255,110,199,0.4)';
+    } else {
+      player.style.outline = 'none';
+      player.style.boxShadow = 'none';
+    }
+  }
+
+  // Update hint bar
+  if (hint) {
+    let txt = '';
+    if (zone === 'photos')   txt = 'PHOTOS  \u2022  \u25c0\u25b6 change photo  \u2022  DOWN for music  \u2022  UP to refresh';
+    if (zone === 'music')    txt = 'MUSIC  \u2022  OK play/pause  \u2022  \u25c0\u25b6 skip song  \u2022  DOWN for playlist  \u2022  UP for photos';
+    if (zone === 'playlist') txt = 'PLAYLIST  \u2022  \u25b2\u25bc choose  \u2022  OK play  \u2022  LEFT to close';
+    hint.textContent = txt;
+  }
+
+  // Playlist visibility handled by _emmaShowList — re-render player
+  if (window._emmaRenderPlayer) window._emmaRenderPlayer();
+}
+
 // Refresh Emma's World content (photos, music, itinerary) without leaving
 async function refreshEmmaContent() {
   probe('EMMA: refreshing...');
@@ -320,6 +351,7 @@ async function openEmmaWorld() {
     '.emma-itin-act{color:#fff;font-size:0.6em;}' +
     '.emma-clock-standalone{position:absolute;top:4vh;right:4vw;z-index:6;color:#fff;font-size:2em;font-weight:800;font-variant-numeric:tabular-nums;text-shadow:0 2px 12px rgba(0,0,0,0.6);}' +
     '.emma-refresh{position:absolute;top:4vh;left:4vw;z-index:6;background:rgba(26,0,17,0.7);border:1px solid rgba(255,110,199,0.4);border-radius:20px;padding:0.5em 1.1em;color:#ff6ec7;font-size:0.5em;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}' +
+    '.emma-zone-hint{position:absolute;bottom:4.5vh;left:0;right:0;text-align:center;z-index:5;color:#ff6ec7;font-size:0.5em;font-weight:700;letter-spacing:0.1em;text-shadow:0 2px 8px rgba(0,0,0,0.8);}' +
     '.emma-back{position:absolute;bottom:2vh;left:0;right:0;text-align:center;z-index:3;' +
     'color:rgba(255,255,255,0.35);font-size:0.55em;letter-spacing:0.1em;}' +
     '</style>' +
@@ -327,6 +359,7 @@ async function openEmmaWorld() {
     itinHtml +
     clockHtml +
     '<div class="emma-refresh">\u21bb Refresh</div>' +
+    '<div class="emma-zone-hint" id="emma-zone-hint"></div>' +
     '<div class="emma-back">Press Back to return home  ·  Press UP to refresh</div>';
 
   // Slideshow — auto-advance + manual skip
@@ -362,6 +395,10 @@ async function openEmmaWorld() {
 
   // Music player — Spotify-style now-playing card + auto-advance playlist
   startEmmaPlayer(el);
+
+  // Default focus zone = photos
+  window._emmaZone = 'photos';
+  setTimeout(updateEmmaZoneUI, 100);
 
   // Auto-poll for new content added via admin page (every 25s) — no button needed
   if (window._emmaPoll) clearInterval(window._emmaPoll);
@@ -475,6 +512,8 @@ function startEmmaPlayer(el) {
   window._emmaNextSong = () => loadAndPlay(window._emmaMusicIdx + 1, true);
   window._emmaPrevSong = () => loadAndPlay(window._emmaMusicIdx - 1, true);
   window._emmaToggleList = () => { window._emmaShowList = !window._emmaShowList; window._emmaListSel = window._emmaMusicIdx; renderPlayer(); };
+  window._emmaToggleListClose = () => { window._emmaShowList = false; renderPlayer(); };
+  window._emmaRenderPlayer = () => renderPlayer();
   window._emmaListMove = (dir) => {
     if (!window._emmaShowList) return;
     window._emmaListSel = ((window._emmaListSel + dir) % music.length + music.length) % music.length;
