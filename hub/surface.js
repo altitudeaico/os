@@ -266,7 +266,8 @@ function onEmmaExit() {
   _inDestination = false;
   _navZone = 'cards';
   const idx = (typeof window._returnCardIdx === 'number') ? window._returnCardIdx : 0;
-  setCardFocus(idx);
+  // Restore focus to the card, and its hero (user has already been navigating)
+  setCardFocus(idx, true);
 }
 
 function showDestinationPlaceholder(label) {
@@ -330,12 +331,13 @@ function renderRail(cards) {
     rail.appendChild(el);
   });
 
-  // Set initial card focus
-  setCardFocus(0);
+  // Set initial card focus WITHOUT changing the hero — keep the Welcome home screen
+  setCardFocus(0, false);
   probe('CARDS: ' + document.querySelectorAll('.rail-card').length);
 }
 
-function setCardFocus(idx) {
+let _heroEngaged = false;  // becomes true once the user moves onto a card
+function setCardFocus(idx, updateHero) {
   const cards = document.querySelectorAll('.rail-card');
   if (!cards.length) return;
   _cardIdx = Math.max(0, Math.min(idx, cards.length - 1));
@@ -350,8 +352,11 @@ function setCardFocus(idx) {
     const offset = cardLeft - (railWidth / 2) + (cardWidth / 2);
     rail.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
   }
-  // Update the hero backdrop + text to reflect the focused card
-  updateHeroForCard(_cardIdx);
+  // Only change the hero once the user has actively engaged (not on first load)
+  if (updateHero !== false) {
+    _heroEngaged = true;
+    updateHeroForCard(_cardIdx);
+  }
 }
 
 let _heroCardTimer = null;
