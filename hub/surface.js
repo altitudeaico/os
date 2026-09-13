@@ -95,6 +95,10 @@ async function showHome() {
 
   // Render cards FIRST — independent of hero setup, so a hero error can't block them
   try {
+    await applyCardOverrides();
+  } catch(e) { /* ignore */ }
+
+  try {
     renderRail(HOME_CARDS);
   } catch(e) {
     (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='RAIL ERR: '+e.message;})();
@@ -169,6 +173,27 @@ function contextForTime() {
   if (h >= 5  && h < 12) return 'Good morning, Olatoye Family';
   if (h >= 12 && h < 17) return 'Good afternoon, Olatoye Family';
   return 'Good evening, Olatoye Family';
+}
+
+async function applyCardOverrides() {
+  // Fetch card thumbnail/label overrides from Supabase and merge into HOME_CARDS
+  try {
+    const API = 'https://fypwabbhxnnwcpfjwrda.supabase.co/rest/v1';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+    const r = await fetch(API + '/home_card_overrides?select=dest,label,img_url', {
+      headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY }
+    });
+    const rows = await r.json();
+    if (Array.isArray(rows)) {
+      rows.forEach(function(o) {
+        const card = HOME_CARDS.find(function(c) { return c.dest === o.dest; });
+        if (card) {
+          if (o.img_url) card.img = o.img_url;
+          if (o.label) card.label = o.label;
+        }
+      });
+    }
+  } catch (e) { /* overrides are best-effort; fall back to defaults */ }
 }
 
 function renderHomeV2() {
