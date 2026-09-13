@@ -153,13 +153,20 @@ function updateClock() {
 
 /* ── Canonical card manifest ── */
 const HOME_CARDS = [
-  { label: 'Academy',        img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png',        dest: 'academy' },
-  { label: "Elsie's World",  img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png',          dest: 'elsie' },
-  { label: "Emma's World",   img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png',           dest: 'emma' },
-  { label: 'Our Adventures', img: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png',     dest: 'adventures' },
-  { label: 'Family Time',    img: 'https://olatoyefamily.com/hub/assets/cards/card-family-time.png',    dest: 'family-time' },
-  { label: 'Watch',          img: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png',        dest: 'watch' },
-  { label: 'Coming Up',      img: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png',    dest: 'coming-up' },
+  { label: 'Academy',        img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png',        dest: 'academy',
+    hero: 'https://olatoyefamily.com/hub/assets/heroes/hero-morning-academy.png', heading: 'Olatoye Academy', meta: 'Learn, discover, grow together' },
+  { label: "Elsie's World",  img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png',          dest: 'elsie',
+    hero: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png', heading: "Elsie's World", meta: 'Art, ideas and imagination' },
+  { label: "Emma's World",   img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png',           dest: 'emma',
+    hero: 'https://olatoyefamily.com/hub/assets/emma/emma-01.png', heading: "Emma's World", meta: 'Unicorns, mermaids and magic' },
+  { label: 'Our Adventures', img: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png',     dest: 'adventures',
+    hero: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png', heading: 'Our Adventures', meta: 'Days out and family trips' },
+  { label: 'Family Time',    img: 'https://olatoyefamily.com/hub/assets/cards/card-family-time.png',    dest: 'family-time',
+    hero: 'https://olatoyefamily.com/hub/assets/heroes/hero-evening-family-B.png', heading: 'Family Time', meta: 'Together at home' },
+  { label: 'Watch',          img: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png',        dest: 'watch',
+    hero: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png', heading: 'Watch', meta: 'Films and shows for everyone' },
+  { label: 'Coming Up',      img: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png',    dest: 'coming-up',
+    hero: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png', heading: 'Coming Up', meta: "What's next for the family" },
 ];
 
 function heroForTime() {
@@ -343,6 +350,31 @@ function setCardFocus(idx) {
     const offset = cardLeft - (railWidth / 2) + (cardWidth / 2);
     rail.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
   }
+  // Update the hero backdrop + text to reflect the focused card
+  updateHeroForCard(_cardIdx);
+}
+
+let _heroCardTimer = null;
+function updateHeroForCard(idx) {
+  const card = HOME_CARDS[idx];
+  if (!card) return;
+  const heroBg = document.getElementById('home-hero-bg');
+  // Debounce slightly so fast scrolling does not thrash image loads
+  if (_heroCardTimer) clearTimeout(_heroCardTimer);
+  _heroCardTimer = setTimeout(() => {
+    if (heroBg && card.hero) {
+      heroBg.style.transition = 'opacity 0.5s ease';
+      heroBg.style.opacity = '0.55';
+      const img = new Image();
+      img.onload = () => {
+        heroBg.style.backgroundImage = 'url(' + card.hero + ')';
+        heroBg.style.opacity = '1';
+      };
+      img.onerror = () => { heroBg.style.opacity = '1'; };
+      img.src = card.hero;
+    }
+    setHeroText({ context: contextForTime(), heading: card.heading || '', meta: card.meta || '' });
+  }, 120);
 }
 
 function setNavFocus(idx) {
