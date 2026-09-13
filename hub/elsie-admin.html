@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elsie's World — Control</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #1c0e33 0%, #0d0518 100%); color: #fff; min-height: 100vh; padding: 20px; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 24px; color: #d8b4fe; margin-bottom: 4px; }
+  .sub { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 24px; }
+  .section { background: rgba(255,255,255,0.05); border: 1px solid rgba(216,180,254,0.25);
+    border-radius: 14px; padding: 18px; margin-bottom: 20px; }
+  .section h2 { font-size: 15px; color: #d8b4fe; margin-bottom: 12px; letter-spacing: 0.05em; text-transform: uppercase; }
+  input, button, textarea, select { font-family: inherit; font-size: 15px; border-radius: 10px; border: none; }
+  input[type=text], input[type=url], textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.3);
+    color: #fff; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 10px; }
+  input[type=file] { color: rgba(255,255,255,0.7); margin-bottom: 10px; width: 100%; }
+  button { background: #8b5cf6; color: #fff; padding: 12px 18px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  button:hover { opacity: 0.85; }
+  button.small { padding: 6px 12px; font-size: 13px; background: rgba(255,255,255,0.15); }
+  button.danger { background: rgba(255,80,80,0.8); }
+  .item { display: flex; align-items: center; gap: 10px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 8px; }
+  .item img { width: 60px; height: 40px; object-fit: cover; border-radius: 5px; }
+  .item .info { flex: 1; font-size: 13px; overflow: hidden; }
+  .item .info .t { font-weight: 600; }
+  .item .info .u { color: rgba(255,255,255,0.4); font-size: 11px; word-break: break-all; }
+  .status { padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: rgba(48,209,88,0.2); color: #30d158; }
+  .status.err { background: rgba(255,80,80,0.2); color: #ff8080; }
+  .row { display: flex; gap: 10px; }
+  .row input { flex: 1; }
+  .hint { font-size: 12px; color: rgba(255,255,255,0.4); margin: 4px 0 8px; }
+  .cardthumb { display:flex; align-items:center; gap:12px; padding:10px; background:rgba(0,0,0,0.2); border-radius:10px; margin-bottom:10px; }
+  .cardthumb img { width:72px; height:45px; object-fit:cover; border-radius:6px; background:#333; }
+  .cardthumb .cn { flex:1; font-weight:600; font-size:14px; }
+  .tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .tab { padding:8px 14px; border-radius:20px; background:rgba(255,255,255,0.08); font-size:13px; cursor:pointer; }
+  .tab.active { background:#8b5cf6; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Elsie's World</h1>
+  <div class="sub">Manage artwork, photos, cheer, music, latest and the Home card — all live to the TV.</div>
+  <div class="status" id="status"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-panel="artwork">Artwork</div>
+    <div class="tab" data-panel="photos">Photos</div>
+    <div class="tab" data-panel="cheer">Cheer</div>
+    <div class="tab" data-panel="music">Music</div>
+    <div class="tab" data-panel="latest">Latest</div>
+    <div class="tab" data-panel="card">Home Card</div>
+  </div>
+
+  <!-- ARTWORK -->
+  <div class="panel active" id="panel-artwork">
+    <div class="section">
+      <h2>My Gallery</h2>
+      <input type="file" id="artwork-file" accept="image/*">
+      <input type="text" id="artwork-title" placeholder="Title (e.g. Companion)">
+      <textarea id="artwork-caption" placeholder="Caption / story (optional)" rows="2"></textarea>
+      <button onclick="uploadArtwork()">Add to gallery</button>
+      <div id="artwork-list" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- PHOTOS (My Story backdrop) -->
+  <div class="panel" id="panel-photos">
+    <div class="section">
+      <h2>Photos — My Story</h2>
+      <div class="hint">These are the full-screen backdrop photos behind Elsie's World.</div>
+      <input type="file" id="photo-file" accept="image/*" multiple>
+      <button onclick="uploadPhotos()">Upload photo(s)</button>
+      <div class="hint">Or paste an image URL:</div>
+      <div class="row"><input type="text" id="photo-url" placeholder="https://..."><button class="small" onclick="addPhotoUrl()">Add</button></div>
+      <div id="photos-list" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- CHEER -->
+  <div class="panel" id="panel-cheer">
+    <div class="section">
+      <h2>Cheer</h2>
+      <div class="hint">Chili, routines, skills, competitions.</div>
+      <input type="file" id="cheer-file" accept="image/*" multiple>
+      <input type="text" id="cheer-caption" placeholder="Caption (optional)">
+      <button onclick="uploadCheer()">Add cheer photo(s)</button>
+      <div id="cheer-list" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- MUSIC -->
+  <div class="panel" id="panel-music">
+    <div class="section">
+      <h2>Music</h2>
+      <input type="file" id="music-file" accept="audio/*">
+      <input type="text" id="music-title" placeholder="Song title (optional)">
+      <button onclick="uploadMusic()">Upload music</button>
+      <div id="music-list" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- LATEST -->
+  <div class="panel" id="panel-latest">
+    <div class="section">
+      <h2>Latest from Elsie</h2>
+      <div class="hint">What's happening in her world right now — a new piece, a skill, a competition, an idea.</div>
+      <div class="row"><input type="text" id="latest-activity" placeholder="e.g. Landed her first back walkover at Chili practice"><button class="small" onclick="addLatest()">Add</button></div>
+      <div id="latest-list" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <!-- HOME CARD -->
+  <div class="panel" id="panel-card">
+    <div class="section">
+      <h2>Elsie's World — Home Card</h2>
+      <div class="hint">Change the thumbnail shown on the Family OS home screen for Elsie's World.</div>
+      <div class="cardthumb"><img id="card-current" src="" alt=""><div class="cn">Elsie's World</div></div>
+      <input type="file" id="card-file" accept="image/*">
+      <button onclick="uploadCardThumb()">Set new thumbnail</button>
+      <div class="hint">Or pick one of Elsie's existing artwork/photos:</div>
+      <div id="card-photo-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+function showStatus(msg, ok) {
+  const el = document.getElementById('status');
+  el.textContent = msg; el.className = 'status show ' + (ok ? 'ok' : 'err');
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById('panel-' + t.dataset.panel).classList.add('active');
+}));
+
+// ── ARTWORK ──
+async function loadArtwork() {
+  const { data } = await sb.from('elsie_artwork').select('*').order('sort_order');
+  document.getElementById('artwork-list').innerHTML = (data||[]).map(a =>
+    '<div class="item"><img src="'+a.url+'"><div class="info"><div class="t">'+(a.title||'Untitled')+'</div><div class="u">'+(a.caption||'')+'</div></div><button class="small danger" onclick="delArtwork(\''+a.id+'\')">Remove</button></div>'
+  ).join('');
+  refreshCardPicker();
+}
+async function uploadArtwork() {
+  const file = document.getElementById('artwork-file').files[0];
+  if (!file) { showStatus('Choose an image first', false); return; }
+  showStatus('Uploading...', true);
+  const name = Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+  const { error: e } = await sb.storage.from('elsie-artwork').upload(name, file);
+  if (e) { showStatus('Upload failed: '+e.message, false); return; }
+  const { data: u } = sb.storage.from('elsie-artwork').getPublicUrl(name);
+  await sb.from('elsie_artwork').insert({
+    url: u.publicUrl,
+    title: document.getElementById('artwork-title').value.trim() || null,
+    caption: document.getElementById('artwork-caption').value.trim() || null,
+    sort_order: Date.now()%100000
+  });
+  showStatus('Added to gallery', true);
+  document.getElementById('artwork-file').value=''; document.getElementById('artwork-title').value=''; document.getElementById('artwork-caption').value='';
+  loadArtwork();
+}
+async function delArtwork(id) { await sb.from('elsie_artwork').delete().eq('id', id); loadArtwork(); }
+
+// ── PHOTOS ──
+async function loadPhotos() {
+  const { data } = await sb.from('elsie_photos').select('*').order('sort_order');
+  document.getElementById('photos-list').innerHTML = (data||[]).map(p =>
+    '<div class="item"><img src="'+p.url+'"><div class="info"><div class="u">'+p.url.split('/').pop()+'</div></div><button class="small danger" onclick="delPhoto(\''+p.id+'\')">Remove</button></div>'
+  ).join('');
+  refreshCardPicker();
+}
+async function uploadPhotos() {
+  const files = document.getElementById('photo-file').files;
+  if (!files.length) { showStatus('Choose a file first', false); return; }
+  showStatus('Uploading...', true);
+  for (const file of files) {
+    const name = Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+    const { error: e } = await sb.storage.from('elsie-photos').upload(name, file);
+    if (e) { showStatus('Upload failed: '+e.message, false); continue; }
+    const { data: u } = sb.storage.from('elsie-photos').getPublicUrl(name);
+    await sb.from('elsie_photos').insert({ url: u.publicUrl, sort_order: Date.now()%100000 });
+  }
+  showStatus('Photo(s) added', true);
+  document.getElementById('photo-file').value=''; loadPhotos();
+}
+async function addPhotoUrl() {
+  const url = document.getElementById('photo-url').value.trim();
+  if (!url) return;
+  await sb.from('elsie_photos').insert({ url, sort_order: Date.now()%100000 });
+  document.getElementById('photo-url').value=''; showStatus('Photo added', true); loadPhotos();
+}
+async function delPhoto(id) { await sb.from('elsie_photos').delete().eq('id', id); loadPhotos(); }
+
+// ── CHEER ──
+async function loadCheer() {
+  const { data } = await sb.from('elsie_cheer').select('*').order('sort_order');
+  document.getElementById('cheer-list').innerHTML = (data||[]).map(c =>
+    '<div class="item"><img src="'+c.url+'"><div class="info"><div class="u">'+(c.caption||'')+'</div></div><button class="small danger" onclick="delCheer(\''+c.id+'\')">Remove</button></div>'
+  ).join('');
+}
+async function uploadCheer() {
+  const files = document.getElementById('cheer-file').files;
+  if (!files.length) { showStatus('Choose a file first', false); return; }
+  showStatus('Uploading...', true);
+  const caption = document.getElementById('cheer-caption').value.trim() || null;
+  for (const file of files) {
+    const name = Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+    const { error: e } = await sb.storage.from('elsie-cheer').upload(name, file);
+    if (e) { showStatus('Upload failed: '+e.message, false); continue; }
+    const { data: u } = sb.storage.from('elsie-cheer').getPublicUrl(name);
+    await sb.from('elsie_cheer').insert({ url: u.publicUrl, caption, sort_order: Date.now()%100000 });
+  }
+  showStatus('Cheer photo(s) added', true);
+  document.getElementById('cheer-file').value=''; document.getElementById('cheer-caption').value=''; loadCheer();
+}
+async function delCheer(id) { await sb.from('elsie_cheer').delete().eq('id', id); loadCheer(); }
+
+// ── MUSIC ──
+async function loadMusic() {
+  const { data } = await sb.from('elsie_music').select('*').order('sort_order');
+  document.getElementById('music-list').innerHTML = (data||[]).map(m =>
+    '<div class="item"><div class="info"><div class="t">'+(m.title||'Untitled')+'</div><div class="u">'+m.url.split('/').pop()+'</div></div><button class="small danger" onclick="delMusic(\''+m.id+'\')">Remove</button></div>'
+  ).join('');
+}
+async function uploadMusic() {
+  const file = document.getElementById('music-file').files[0];
+  if (!file) { showStatus('Choose a music file', false); return; }
+  showStatus('Uploading music...', true);
+  const name = Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+  const { error: e } = await sb.storage.from('elsie-music').upload(name, file);
+  if (e) { showStatus('Upload failed: '+e.message, false); return; }
+  const { data: u } = sb.storage.from('elsie-music').getPublicUrl(name);
+  await sb.from('elsie_music').insert({ url: u.publicUrl, title: document.getElementById('music-title').value.trim(), sort_order: Date.now()%100000 });
+  showStatus('Music added', true);
+  document.getElementById('music-file').value=''; document.getElementById('music-title').value=''; loadMusic();
+}
+async function delMusic(id) { await sb.from('elsie_music').delete().eq('id', id); loadMusic(); }
+
+// ── LATEST (elsie_highlights, reused as an editorial feed rather than a schedule) ──
+async function loadLatest() {
+  const { data } = await sb.from('elsie_highlights').select('*').order('sort_order', { ascending: false });
+  document.getElementById('latest-list').innerHTML = (data||[]).map(h =>
+    '<div class="item"><div class="info"><div class="t">'+h.activity+'</div></div><button class="small danger" onclick="delLatest(\''+h.id+'\')">Remove</button></div>'
+  ).join('');
+}
+async function addLatest() {
+  const a = document.getElementById('latest-activity').value.trim();
+  if (!a) { showStatus('Enter what\'s new', false); return; }
+  await sb.from('elsie_highlights').insert({ activity: a, sort_order: Date.now()%100000 });
+  document.getElementById('latest-activity').value='';
+  showStatus('Added to Latest from Elsie', true); loadLatest();
+}
+async function delLatest(id) { await sb.from('elsie_highlights').delete().eq('id', id); loadLatest(); }
+
+// ── HOME CARD ──
+async function loadCard() {
+  const { data } = await sb.from('home_card_overrides').select('*').eq('dest','elsie').maybeSingle();
+  const cur = document.getElementById('card-current');
+  cur.src = (data && data.img_url) ? data.img_url : 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png';
+}
+async function uploadCardThumb() {
+  const file = document.getElementById('card-file').files[0];
+  if (!file) { showStatus('Choose an image', false); return; }
+  showStatus('Uploading thumbnail...', true);
+  const name = 'elsie-card-'+Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+  const { error: e } = await sb.storage.from('card-thumbnails').upload(name, file);
+  if (e) { showStatus('Upload failed: '+e.message, false); return; }
+  const { data: u } = sb.storage.from('card-thumbnails').getPublicUrl(name);
+  await setCardFromUrl(u.publicUrl);
+  document.getElementById('card-file').value='';
+}
+async function setCardFromUrl(url) {
+  await sb.from('home_card_overrides').upsert({ dest:'elsie', img_url:url, updated_at:new Date().toISOString() });
+  showStatus('Home card updated — appears on the TV shortly', true);
+  loadCard();
+}
+async function refreshCardPicker() {
+  const [{ data: art }, { data: photos }] = await Promise.all([
+    sb.from('elsie_artwork').select('url').order('sort_order'),
+    sb.from('elsie_photos').select('url').order('sort_order')
+  ]);
+  const options = [...(art||[]), ...(photos||[])].slice(0, 20);
+  const picker = document.getElementById('card-photo-picker');
+  if (picker) picker.innerHTML = options.map(p =>
+    '<img src="'+p.url+'" style="width:64px;height:40px;object-fit:cover;border-radius:5px;cursor:pointer;" onclick="setCardFromUrl(\''+p.url.replace(/'/g,"\\'")+'\')">'
+  ).join('');
+}
+
+// Load all
+loadArtwork(); loadPhotos(); loadCheer(); loadMusic(); loadLatest(); loadCard();
+</script>
+</body>
+</html>

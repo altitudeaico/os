@@ -253,10 +253,20 @@ const NAV_ITEMS_COUNT = 5;
 //  DESTINATIONS — what opens when a card is clicked
 // ══════════════════════════════════════════════════════
 
+// Registry of open "World" destinations: viewId = the element that's
+// visible while that World is open, handlerFn = its global key-entry
+// function name (from its own fos-*.js). Add one line per new World —
+// no other change needed to the keydown handler above.
+const WORLD_KEY_HANDLERS = [
+  { viewId: 'view-emma',  handlerFn: 'emmaHandleKey' },
+  { viewId: 'view-elsie', handlerFn: 'elsieHandleKey' },
+];
+
 function openDestination(dest, label) {
   probe('OPEN: ' + dest);
   window._returnCardIdx = _cardIdx;  // remember which card to refocus on return
   if (dest === 'emma') { openEmmaWorld(); return; }
+  if (dest === 'elsie') { openElsieWorld(); return; }
   // Other destinations — placeholder for now
   showDestinationPlaceholder(label);
 }
@@ -267,6 +277,14 @@ function onEmmaExit() {
   _navZone = 'cards';
   const idx = (typeof window._returnCardIdx === 'number') ? window._returnCardIdx : 0;
   // Restore focus to the card, and its hero (user has already been navigating)
+  setCardFocus(idx, true);
+}
+
+// Called by fos-elsie when Elsie's World exits back to Home
+function onElsieExit() {
+  _inDestination = false;
+  _navZone = 'cards';
+  const idx = (typeof window._returnCardIdx === 'number') ? window._returnCardIdx : 0;
   setCardFocus(idx, true);
 }
 
@@ -435,16 +453,18 @@ document.addEventListener('keydown', function(e) {
   const key = e.key || '';
   const code = e.keyCode || 0;
 
-  // If in a destination (e.g. Emma's World), delegate keys to it.
-  // The destination's focus manager handles Back (close panel or exit).
+  // If in a destination (a "World"), delegate keys to it. Each World owns
+  // all its keys including Back (via its own nav stack). Registry keeps
+  // this handler from growing a new hardcoded if-block per World.
   if (_inDestination) {
-    // Emma's World owns all its keys including Back (via its nav stack)
-    if (document.getElementById('view-emma') &&
-        document.getElementById('view-emma').style.display !== 'none' &&
-        typeof emmaHandleKey === 'function') {
-      const handled = emmaHandleKey(key, code);
-      if (handled) { e.preventDefault(); return; }
-      e.preventDefault(); return;  // swallow everything while Emma is open
+    for (let i = 0; i < WORLD_KEY_HANDLERS.length; i++) {
+      const w = WORLD_KEY_HANDLERS[i];
+      const el = document.getElementById(w.viewId);
+      if (el && el.style.display !== 'none' && typeof window[w.handlerFn] === 'function') {
+        window[w.handlerFn](key, code); // return value unused — swallow everything while a World is open
+        e.preventDefault();
+        return;
+      }
     }
     // Placeholder destinations ("Coming soon"): Back returns Home
     if (code === 4 || code === 27 || key === 'Escape' || key === 'GoBack') {
