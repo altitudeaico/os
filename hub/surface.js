@@ -96,6 +96,7 @@ async function showHome() {
   // Render cards FIRST — independent of hero setup, so a hero error can't block them
   try {
     await applyCardOverrides();
+    await applyFeaturedHeroImages();
   } catch(e) { /* ignore */ }
 
   try {
@@ -203,6 +204,36 @@ async function applyCardOverrides() {
   } catch (e) { /* overrides are best-effort; fall back to defaults */ }
 }
 
+// Which tables can feed a card's rotating Home hero, keyed by dest. A card
+// not listed here just uses its static `hero` field, unchanged — this is
+// additive and doesn't touch cards (e.g. Emma's) that aren't opted in.
+const HERO_FEED_TABLES = {
+  elsie: ['elsie_artwork', 'elsie_photos', 'elsie_cheer'],
+};
+
+async function applyFeaturedHeroImages() {
+  const API = 'https://fypwabbhxnnwcpfjwrda.supabase.co/rest/v1';
+  const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+  const hdr = { apikey: KEY, Authorization: 'Bearer ' + KEY };
+  for (const dest in HERO_FEED_TABLES) {
+    const card = HOME_CARDS.find(function(c) { return c.dest === dest; });
+    if (!card) continue;
+    try {
+      const results = await Promise.all(HERO_FEED_TABLES[dest].map(function(table) {
+        return fetch(API + '/' + table + '?select=url,sort_order&featured=eq.true&order=sort_order', { headers: hdr })
+          .then(function(r) { return r.json(); })
+          .catch(function() { return []; });
+      }));
+      const images = [];
+      results.forEach(function(rows) {
+        if (Array.isArray(rows)) rows.forEach(function(row) { if (row.url) images.push(row.url); });
+      });
+      card._heroImages = images; // empty array = fall back to card.hero
+    } catch (e) { card._heroImages = []; }
+  }
+}
+
+
 function renderHomeV2() {
   try {
   // Hero background — time-of-day aware
@@ -265,6 +296,7 @@ const WORLD_KEY_HANDLERS = [
 function openDestination(dest, label) {
   probe('OPEN: ' + dest);
   window._returnCardIdx = _cardIdx;  // remember which card to refocus on return
+  stopHeroCycle();
   if (dest === 'emma') { openEmmaWorld(); return; }
   if (dest === 'elsie') { openElsieWorld(); return; }
   // Other destinations — placeholder for now
@@ -378,23 +410,67 @@ function setCardFocus(idx, updateHero) {
 }
 
 let _heroCardTimer = null;
+let _heroCycleTimer = null;
+let _heroCycleImages = [];
+let _heroCycleIdx = 0;
+let _heroTopLayer = 'a';  // which of the two stacked layers is currently visible
+
+function stopHeroCycle() {
+  if (_heroCycleTimer) { clearInterval(_heroCycleTimer); _heroCycleTimer = null; }
+  _heroCycleImages = [];
+}
+
+// Crossfade the hidden layer in over the visible one, then swap which is "top".
+function crossfadeHeroTo(url) {
+  const a = document.getElementById('home-hero-bg');
+  const b = document.getElementById('home-hero-bg-b');
+  if (!a || !b) return;
+  const showing = (_heroTopLayer === 'a') ? a : b;
+  const hidden  = (_heroTopLayer === 'a') ? b : a;
+  const img = new Image();
+  img.onload = () => {
+    hidden.style.backgroundImage = 'url(' + url + ')';
+    hidden.style.opacity = '1';
+    showing.style.opacity = '0';
+    _heroTopLayer = (_heroTopLayer === 'a') ? 'b' : 'a';
+  };
+  img.src = url;
+}
+
 function updateHeroForCard(idx) {
   const card = HOME_CARDS[idx];
   if (!card) return;
+  stopHeroCycle();
   const heroBg = document.getElementById('home-hero-bg');
+  const heroBgB = document.getElementById('home-hero-bg-b');
+  // Multiple featured images (e.g. Elsie's Gallery/Photos/Cheer) beat the
+  // card's single static hero. Falls back to card.hero when none are featured.
+  const images = (card._heroImages && card._heroImages.length) ? card._heroImages : (card.hero ? [card.hero] : []);
   // Debounce slightly so fast scrolling does not thrash image loads
   if (_heroCardTimer) clearTimeout(_heroCardTimer);
   _heroCardTimer = setTimeout(() => {
-    if (heroBg && card.hero) {
-      heroBg.style.transition = 'opacity 0.5s ease';
+    if (heroBg && images.length) {
+      // Reset both layers to a clean single-image state, then fade the
+      // first image in exactly like before — same feel for the common
+      // one-image case, and the correct starting frame for a cycle.
+      heroBgB.style.opacity = '0';
+      _heroTopLayer = 'a';
       heroBg.style.opacity = '0.55';
       const img = new Image();
       img.onload = () => {
-        heroBg.style.backgroundImage = 'url(' + card.hero + ')';
+        heroBg.style.backgroundImage = 'url(' + images[0] + ')';
         heroBg.style.opacity = '1';
+        if (images.length > 1) {
+          _heroCycleImages = images;
+          _heroCycleIdx = 0;
+          _heroCycleTimer = setInterval(() => {
+            _heroCycleIdx = (_heroCycleIdx + 1) % _heroCycleImages.length;
+            crossfadeHeroTo(_heroCycleImages[_heroCycleIdx]);
+          }, 6000);
+        }
       };
       img.onerror = () => { heroBg.style.opacity = '1'; };
-      img.src = card.hero;
+      img.src = images[0];
     }
     setHeroText({ context: contextForTime(), heading: card.heading || '', meta: card.meta || '' });
   }, 120);
