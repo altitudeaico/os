@@ -75,10 +75,18 @@
   <div class="panel" id="panel-drive">
     <div class="section">
       <h2>Import from Google Drive</h2>
-      <div class="hint">Paste a Google Drive folder link. The folder must be shared "Anyone with the link". All photos in it will be added to Emma's slideshow.</div>
+      <div class="hint">Paste a Drive folder link (shared "Anyone with the link"). Preview the photos, tick the ones you want, then add.</div>
       <input type="url" id="drive-link" placeholder="https://drive.google.com/drive/folders/...">
-      <button onclick="importDrive()">Import all photos</button>
+      <button onclick="listDrive()">Preview folder</button>
       <div class="hint" id="drive-progress" style="margin-top:10px;"></div>
+      <div id="drive-actions" style="display:none;margin-top:12px;">
+        <div class="row" style="align-items:center;">
+          <button class="small" onclick="driveSelectAll(true)">Select all new</button>
+          <button class="small" onclick="driveSelectAll(false)">Clear</button>
+          <button onclick="addDriveSelected()" style="flex:1;">Add selected</button>
+        </div>
+      </div>
+      <div id="drive-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px;"></div>
     </div>
   </div>
 
@@ -171,24 +179,68 @@ async function addPhotoUrl() {
 }
 async function delPhoto(id) { await sb.from('emma_photos').delete().eq('id', id); loadPhotos(); }
 
-// ── DRIVE IMPORT ──
-async function importDrive() {
+// ── DRIVE IMPORT (preview + select) ──
+let _driveItems = [];
+let _driveSel = new Set();
+async function listDrive() {
   const link = document.getElementById('drive-link').value.trim();
   if (!link) { showStatus('Paste a Drive folder link', false); return; }
   const prog = document.getElementById('drive-progress');
-  prog.textContent = 'Importing... this can take a moment.';
+  prog.textContent = 'Loading folder...';
   try {
     const r = await fetch(SUPABASE_URL + '/functions/v1/emma-drive-import', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization':'Bearer '+ANON_KEY },
-      body: JSON.stringify({ operation:'import', payload:{ folder: link } })
+      body: JSON.stringify({ operation:'list', payload:{ folder: link } })
     });
     const d = await r.json();
-    if (!d.ok) { prog.textContent=''; showStatus('Import failed: '+(d.error||'unknown'), false); return; }
-    prog.textContent = 'Found '+d.found+' photos, added '+d.added+' new.';
-    showStatus('Imported '+d.added+' photos from Drive', true);
+    if (!d.ok) { prog.textContent=''; showStatus('Failed: '+(d.error||'unknown'), false); return; }
+    _driveItems = d.items || [];
+    _driveSel = new Set();
+    prog.textContent = d.count + ' photos in folder ('+_driveItems.filter(i=>i.added).length+' already added).';
+    document.getElementById('drive-actions').style.display = _driveItems.length ? 'block' : 'none';
+    renderDriveGrid();
+  } catch(e) { prog.textContent=''; showStatus('Error: '+e.message, false); }
+}
+function renderDriveGrid() {
+  const grid = document.getElementById('drive-grid');
+  grid.innerHTML = _driveItems.map((it, i) => {
+    const sel = _driveSel.has(it.id);
+    const border = it.added ? '2px solid #30d158' : (sel ? '3px solid #ff6ec7' : '2px solid transparent');
+    const badge = it.added ? '<div style="position:absolute;top:2px;right:2px;background:#30d158;color:#000;font-size:9px;padding:1px 4px;border-radius:4px;">added</div>'
+                           : (sel ? '<div style="position:absolute;top:2px;right:2px;background:#ff6ec7;color:#fff;font-size:11px;padding:1px 5px;border-radius:4px;">✓</div>' : '');
+    return '<div style="position:relative;cursor:'+(it.added?'default':'pointer')+';" onclick="'+(it.added?'':'toggleDrive(\''+it.id+'\')')+'">' +
+      '<img src="'+it.thumb+'" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;border:'+border+';opacity:'+(it.added?'0.5':'1')+';">' +
+      badge + '</div>';
+  }).join('');
+}
+function toggleDrive(id) {
+  if (_driveSel.has(id)) _driveSel.delete(id); else _driveSel.add(id);
+  renderDriveGrid();
+}
+function driveSelectAll(on) {
+  _driveSel = new Set();
+  if (on) _driveItems.forEach(it => { if (!it.added) _driveSel.add(it.id); });
+  renderDriveGrid();
+}
+async function addDriveSelected() {
+  if (!_driveSel.size) { showStatus('Tick some photos first', false); return; }
+  const prog = document.getElementById('drive-progress');
+  prog.textContent = 'Adding '+_driveSel.size+' photos...';
+  try {
+    const r = await fetch(SUPABASE_URL + '/functions/v1/emma-drive-import', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization':'Bearer '+ANON_KEY },
+      body: JSON.stringify({ operation:'add', payload:{ ids: Array.from(_driveSel) } })
+    });
+    const d = await r.json();
+    if (!d.ok) { prog.textContent=''; showStatus('Failed: '+(d.error||'unknown'), false); return; }
+    prog.textContent = 'Added '+d.added+' photos.';
+    showStatus('Added '+d.added+' photos to Emma\'s World', true);
+    _driveSel = new Set();
+    listDrive();  // refresh so newly-added show as green
     loadPhotos();
-  } catch(e) { prog.textContent=''; showStatus('Import error: '+e.message, false); }
+  } catch(e) { prog.textContent=''; showStatus('Error: '+e.message, false); }
 }
 
 // ── MUSIC ──
