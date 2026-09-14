@@ -106,6 +106,11 @@ async function showHome() {
   }
 
   try {
+    await applySpotlightOverrides();
+    renderSpotlight();
+  } catch (e) { err('spotlight: ' + e.message); }
+
+  try {
     renderHomeV2();
   } catch (e) {
     err('renderHomeV2 error: ' + e.message);
@@ -151,6 +156,27 @@ function updateClock() {
   el.textContent = now.getHours().toString().padStart(2,'0') + ':' +
                    now.getMinutes().toString().padStart(2,'0');
 }
+
+/* ── Spotlight manifest ──
+   Featured content with an explicit call to action. Distinct from the
+   home cards: a card takes you to a section, a spotlight takes you to a
+   specific THING inside it (via `action`). Rows can be overridden from
+   the Supabase `spotlight` table — see applySpotlightOverrides(). */
+const SPOTLIGHT_ITEMS = [
+  {
+    eyebrow: "Emma's World",
+    title: 'Five Today',
+    meta: "Emma's 5th birthday film \u00b7 3:30",
+    thumb: 'https://olatoyefamily.com/emma5/assets/poster.jpg',
+    cta: 'Watch Now',
+    dest: 'emma',
+    action: 'film',
+  },
+];
+
+let _spotIdx = 0;
+let _spotTimer = null;
+const SPOT_ROTATE_MS = 9000;
 
 /* ── Canonical card manifest ── */
 const HOME_CARDS = [
@@ -293,12 +319,12 @@ const WORLD_KEY_HANDLERS = [
   { viewId: 'view-elsie', handlerFn: 'elsieHandleKey' },
 ];
 
-function openDestination(dest, label) {
+function openDestination(dest, label, opts) {
   probe('OPEN: ' + dest);
   window._returnCardIdx = _cardIdx;  // remember which card to refocus on return
   stopHeroCycle();
-  if (dest === 'emma') { openEmmaWorld(); return; }
-  if (dest === 'elsie') { openElsieWorld(); return; }
+  if (dest === 'emma') { openEmmaWorld(opts); return; }
+  if (dest === 'elsie') { openElsieWorld(opts); return; }
   // Other destinations — placeholder for now
   showDestinationPlaceholder(label);
 }
@@ -306,6 +332,13 @@ function openDestination(dest, label) {
 // Called by fos-emma when Emma's World exits back to Home
 function onEmmaExit() {
   _inDestination = false;
+  if (window._returnToSpotlight) {
+    window._returnToSpotlight = false;
+    _navZone = 'spotlight';
+    setSpotFocus(true);
+    startSpotRotate();
+    return;
+  }
   _navZone = 'cards';
   const idx = (typeof window._returnCardIdx === 'number') ? window._returnCardIdx : 0;
   // Restore focus to the card, and its hero (user has already been navigating)
@@ -354,6 +387,84 @@ window.fosHandleBack = function() {
   }
   return false;
 };
+
+
+/* ══════════════════════════════════════════════════════
+   SPOTLIGHT — featured content with a visible CTA
+══════════════════════════════════════════════════════ */
+async function applySpotlightOverrides() {
+  try {
+    const hdr = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+    const r = await fetch(API + '/spotlight?select=eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order', { headers: hdr });
+    if (!r.ok) return;
+    const rows = await r.json();
+    if (Array.isArray(rows) && rows.length) {
+      SPOTLIGHT_ITEMS.length = 0;
+      rows.forEach(function (x) { SPOTLIGHT_ITEMS.push(x); });
+    }
+  } catch (e) { /* keep built-in defaults */ }
+}
+
+function renderSpotlight() {
+  const el = document.getElementById('home-spotlight');
+  if (!el) return;
+  if (!SPOTLIGHT_ITEMS.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const dots = document.getElementById('spot-dots');
+  if (dots) {
+    dots.innerHTML = SPOTLIGHT_ITEMS.map(function (_, i) {
+      return '<div class="spot-dot' + (i === _spotIdx ? ' on' : '') + '"></div>';
+    }).join('');
+    dots.style.display = SPOTLIGHT_ITEMS.length > 1 ? 'flex' : 'none';
+  }
+  paintSpotlight();
+  startSpotRotate();
+}
+
+function paintSpotlight() {
+  const it = SPOTLIGHT_ITEMS[_spotIdx];
+  if (!it) return;
+  const set = function (id, v) { const n = document.getElementById(id); if (n) n.textContent = v || ''; };
+  const th = document.getElementById('spot-thumb');
+  if (th) th.style.backgroundImage = it.thumb ? 'url(' + it.thumb + ')' : 'none';
+  set('spot-eyebrow', it.eyebrow);
+  set('spot-title', it.title);
+  set('spot-meta', it.meta);
+  set('spot-cta-label', it.cta || 'Open');
+  const dots = document.querySelectorAll('.spot-dot');
+  dots.forEach(function (d, i) { d.classList.toggle('on', i === _spotIdx); });
+}
+
+function setSpotIdx(idx) {
+  if (!SPOTLIGHT_ITEMS.length) return;
+  const el = document.getElementById('home-spotlight');
+  _spotIdx = (idx + SPOTLIGHT_ITEMS.length) % SPOTLIGHT_ITEMS.length;
+  if (!el) { paintSpotlight(); return; }
+  el.classList.add('fading');
+  setTimeout(function () { paintSpotlight(); el.classList.remove('fading'); }, 260);
+}
+
+function startSpotRotate() {
+  stopSpotRotate();
+  if (SPOTLIGHT_ITEMS.length < 2) return;
+  _spotTimer = setInterval(function () {
+    if (_navZone === 'spotlight') return;   // don't move under the user
+    setSpotIdx(_spotIdx + 1);
+  }, SPOT_ROTATE_MS);
+}
+function stopSpotRotate() { if (_spotTimer) { clearInterval(_spotTimer); _spotTimer = null; } }
+
+function setSpotFocus(on) {
+  const el = document.getElementById('home-spotlight');
+  if (el) el.classList.toggle('focused', !!on);
+}
+
+function activateSpotlight() {
+  const it = SPOTLIGHT_ITEMS[_spotIdx];
+  if (!it) return;
+  window._returnToSpotlight = true;
+  openDestination(it.dest, it.title, { action: it.action });
+}
 
 function renderRail(cards) {
   const rail = document.getElementById('rail-cards');
@@ -577,7 +688,16 @@ document.addEventListener('keydown', function(e) {
     }
     if (isLeft)  setCardFocus(_cardIdx - 1);
     if (isRight) setCardFocus(_cardIdx + 1);
-    if (isUp)    trackUpForRefresh();
+    if (isUp) {
+      trackUpForRefresh();               // keep the hidden 3x-UP refresh gesture
+      const spot = document.getElementById('home-spotlight');
+      if (spot && spot.style.display !== 'none') {
+        _navZone = 'spotlight';
+        cards.forEach(c => c.classList.remove('focused'));
+        setSpotFocus(true);
+        return;
+      }
+    }
     if (isDown) {
       _navZone = 'nav';
       cards.forEach(c => c.classList.remove('focused'));
@@ -590,6 +710,23 @@ document.addEventListener('keydown', function(e) {
         openDestination(focused.dataset.dest, focused.dataset.label);
       }
     }
+  } else if (_navZone === 'spotlight') {
+    if (window._refreshPending) {
+      if (isEnter) { e.preventDefault(); fosHardRefresh(); return; }
+      const t = document.getElementById('fos-refresh-toast');
+      if (t) t.style.display = 'none';
+      window._refreshPending = false;
+      return;
+    }
+    if (isUp)    trackUpForRefresh();    // gesture still reachable from here
+    if (isLeft)  setSpotIdx(_spotIdx - 1);
+    if (isRight) setSpotIdx(_spotIdx + 1);
+    if (isDown) {
+      _navZone = 'cards';
+      setSpotFocus(false);
+      setCardFocus(_cardIdx, true);
+    }
+    if (isEnter) { e.preventDefault(); activateSpotlight(); }
   } else {
     // navZone === 'nav'
     if (isLeft)  setNavFocus(_navIdx - 1);

@@ -53,7 +53,7 @@ async function emmaLoadContent() {
   }
 }
 
-async function openEmmaWorld() {
+async function openEmmaWorld(opts) {
   var el = document.getElementById('view-emma');
   if (!el) { el = document.createElement('div'); el.id = 'view-emma'; document.body.appendChild(el); }
   el.style.cssText = 'position:fixed;inset:0;z-index:500;background:#1a0011;overflow:hidden;';
@@ -81,6 +81,14 @@ async function openEmmaWorld() {
   emmaFocusMain('ctrl-play');
 
   emmaStartPoll();
+
+  // Deep link from Home spotlight: jump straight to the film.
+  // BACK from the film pops to emma-main (Emma's World), not Home.
+  if (opts && opts.action === 'film') {
+    emmaState.focus.focus('emma-film');
+    emmaState.nav.markFocus('emma-film');
+    emmaOpenFilm();
+  }
 }
 
 function emmaExitToHome() {

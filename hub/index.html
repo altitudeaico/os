@@ -199,6 +199,62 @@ html, body {
   background: rgba(0,0,0,0.85); color: #0f0; padding: 6px 10px;
   font: 11px monospace; border-radius: 4px; pointer-events: none;
 }
+
+/* ══ SPOTLIGHT — featured content with a visible CTA ══ */
+.home-spotlight{
+  position:absolute; left:4.2vw; right:4.2vw; top:37.5vh;
+  display:flex; align-items:center; gap:1.6vw; z-index:6;
+}
+.spot-inner{
+  display:flex; align-items:center; gap:1.6vw;
+  background:rgba(8,12,10,0.52);
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:1.1vw; padding:1.1vh 1.4vw;
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  transition:border-color .22s, box-shadow .22s, transform .22s;
+  max-width:62vw;
+}
+.home-spotlight.focused .spot-inner{
+  border-color:rgba(255,255,255,0.55);
+  box-shadow:0 0 0 0.18vw rgba(255,255,255,0.22), 0 1.4vh 3.6vh rgba(0,0,0,0.55);
+  transform:translateY(-0.4vh);
+}
+.spot-thumb{
+  width:14.5vw; aspect-ratio:16/9; border-radius:0.7vw; flex:0 0 auto;
+  background-size:cover; background-position:center; background-color:#111;
+  box-shadow:0 0.6vh 1.8vh rgba(0,0,0,0.5); position:relative; overflow:hidden;
+  transition:opacity .45s ease;
+}
+.spot-body{display:flex;flex-direction:column;gap:0.35vh;min-width:0;}
+.spot-eyebrow{
+  color:#C9A84C; font-size:0.72vw; font-weight:800; letter-spacing:0.16em;
+  text-transform:uppercase; transition:opacity .45s ease;
+}
+.spot-title{
+  color:#fff; font-size:1.55vw; font-weight:800; line-height:1.1;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:opacity .45s ease;
+}
+.spot-meta{
+  color:rgba(255,255,255,0.62); font-size:0.78vw; margin-bottom:0.7vh;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:opacity .45s ease;
+}
+.spot-cta{
+  align-self:flex-start; display:inline-flex; align-items:center; gap:0.5em;
+  background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.30);
+  color:#fff; font-size:0.82vw; font-weight:800; letter-spacing:0.06em;
+  padding:0.75vh 1.15vw; border-radius:999px; transition:all .2s;
+}
+.home-spotlight.focused .spot-cta{
+  background:#fff; color:#0b0f0c; border-color:#fff;
+  box-shadow:0 0 2.2vh rgba(255,255,255,0.45);
+}
+.spot-dots{display:flex;gap:0.45vw;align-items:center;}
+.spot-dot{width:0.42vw;height:0.42vw;border-radius:50%;background:rgba(255,255,255,0.28);transition:all .25s;}
+.spot-dot.on{background:#fff;width:1.3vw;border-radius:999px;}
+.home-spotlight.fading .spot-thumb,
+.home-spotlight.fading .spot-eyebrow,
+.home-spotlight.fading .spot-title,
+.home-spotlight.fading .spot-meta{opacity:0;}
 </style>
 </head>
 <body>
@@ -240,6 +296,20 @@ html, body {
     </div>
 
     <!-- Card rail -->
+    <!-- Spotlight: featured content with an explicit call to action -->
+    <div class="home-spotlight" id="home-spotlight" style="display:none;">
+      <div class="spot-inner">
+        <div class="spot-thumb" id="spot-thumb"></div>
+        <div class="spot-body">
+          <div class="spot-eyebrow" id="spot-eyebrow"></div>
+          <div class="spot-title" id="spot-title"></div>
+          <div class="spot-meta" id="spot-meta"></div>
+          <div class="spot-cta" id="spot-cta"><span id="spot-cta-label">Watch Now</span></div>
+        </div>
+      </div>
+      <div class="spot-dots" id="spot-dots"></div>
+    </div>
+
     <div class="home-rails">
       <div class="rail-label" id="rail-label">Up Next</div>
       <div class="rail-cards" id="rail-cards"></div>
