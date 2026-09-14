@@ -166,6 +166,18 @@ function updateClock() {
    the Supabase `spotlight` table — see applySpotlightOverrides(). */
 const SPOTLIGHT_ITEMS = [
   {
+    // The resting state of Home. Time-aware, no CTA - there is nothing to
+    // action here, it is simply where Family OS sits when nothing is featured.
+    welcome: true,
+    eyebrow: null,           // filled from contextForTime() at paint time
+    title: 'Welcome home.',
+    meta: '',
+    thumb: null,             // filled from heroForTime() at paint time
+    cta: null,
+    dest: null,
+    action: null,
+  },
+  {
     eyebrow: "Emma's World",
     title: 'Five Today',
     meta: "Emma's 5th birthday film \u00b7 3:30",
@@ -183,6 +195,8 @@ const SPOT_ROTATE_MS = 11000;   // slower on a TV; tune on the 65"
 
 /* ── Canonical card manifest ── */
 const HOME_CARDS = [
+  { label: 'Home',           img: 'https://olatoyefamily.com/hub/assets/heroes/hero-evening-family-B.png',           dest: 'home',
+    hero: 'https://olatoyefamily.com/hub/assets/heroes/hero-evening-family-B.png', heading: 'Welcome home.', meta: 'Everything in one place' },
   { label: 'Academy',        img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png',        dest: 'academy',
     hero: 'https://olatoyefamily.com/hub/assets/heroes/hero-morning-academy.png', heading: 'Olatoye Academy', meta: 'Learn, discover, grow together' },
   { label: "Elsie's World",  img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png',          dest: 'elsie',
@@ -324,6 +338,7 @@ const WORLD_KEY_HANDLERS = [
 
 function openDestination(dest, label, opts) {
   probe('OPEN: ' + dest);
+  if (dest === 'home') { resetToHome(); return; }
   window._returnCardIdx = _cardIdx;  // remember which card to refocus on return
   stopHeroCycle();
   if (dest === 'emma') { openEmmaWorld(opts); return; }
@@ -436,8 +451,12 @@ function paintSpotlightHero(animate) {
   const it = SPOTLIGHT_ITEMS[_spotIdx];
   if (!it) return;
   const copy = document.querySelector('.home-hero-text');
+  const eyebrow = it.welcome ? contextForTime() : (it.eyebrow || '');
+  const art     = it.welcome ? heroForTime()    : it.thumb;
   const apply = function () {
-    setHeroText({ context: it.eyebrow || '', heading: it.title || '', meta: it.meta || '' });
+    setHeroText({ context: eyebrow, heading: it.title || '', meta: it.meta || '' });
+    const cta = document.getElementById('hero-cta');
+    if (cta) cta.style.display = it.cta ? 'inline-flex' : 'none';
     const lbl = document.getElementById('hero-cta-label');
     if (lbl) lbl.textContent = it.cta || 'Open';
     const dots = document.getElementById('spot-dots');
@@ -447,7 +466,7 @@ function paintSpotlightHero(animate) {
         return '<div class="spot-dot' + (i === _spotIdx ? ' on' : '') + '"></div>';
       }).join('');
     }
-    if (it.thumb) crossfadeHeroTo(it.thumb);
+    if (art) crossfadeHeroTo(art);
   };
   if (animate && copy) {
     copy.classList.add('spot-fading');
@@ -469,6 +488,18 @@ function spotlightOwnHero(animate) {
   if (rail) rail.classList.add('plane-inactive');
   paintSpotlightHero(!!animate);
   return true;
+}
+
+/* The Home card: put Family OS back to its resting state - welcome spotlight
+   owning the hero, rotation running, nothing mid-journey. */
+function resetToHome() {
+  _spotIdx = 0;
+  _navZone = 'cards';
+  setSpotFocus(false);
+  if (spotlightAvailable()) {
+    spotlightOwnHero(true);
+    startSpotRotate();
+  }
 }
 
 /* Give the hero back to the card plane. */
@@ -525,7 +556,7 @@ function exitSpotlightToCards() {
 
 function activateSpotlight() {
   const it = SPOTLIGHT_ITEMS[_spotIdx];
-  if (!it) return;
+  if (!it || !it.dest) return;   // resting/welcome item has nothing to open
   window._returnToSpotlight = true;
   openDestination(it.dest, it.title, { action: it.action });
 }
