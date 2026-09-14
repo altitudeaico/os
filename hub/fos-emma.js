@@ -29,7 +29,11 @@ var emmaState = {
   clockTimer: null, pollTimer: null,
   focus: null, nav: null,
   todaySel: 0, playlistSel: 0,
+  film: null, filmWasPlaying: false, filmPoke: null,
 };
+
+const EMMA_FILM_URL = 'https://olatoyefamily.com/emma5/assets/emma-five-today.mp4';
+const EMMA_FILM_POSTER = 'https://olatoyefamily.com/emma5/assets/poster.jpg';
 
 async function emmaLoadContent() {
   var hdr = { 'apikey': EMMA_KEY, 'Authorization': 'Bearer ' + EMMA_KEY };
@@ -108,6 +112,16 @@ function emmaBuildHTML() {
         '<div class="emma-card-head">Today <span class="emma-card-open">OK</span></div>' +
         '<div class="emma-itin-rows" id="emma-itin-rows"></div>' +
       '</div>' +
+      '<div class="emma-card emma-film-card" id="emma-film-card">' +
+        '<div class="emma-card-head">Highlights <span class="emma-card-open">OK</span></div>' +
+        '<div class="emma-film-row">' +
+          '<div class="emma-film-thumb" style="background-image:url(' + EMMA_FILM_POSTER + ');"><span>\u25b6</span></div>' +
+          '<div class="emma-film-meta">' +
+            '<div class="emma-film-title">Five Today</div>' +
+            '<div class="emma-film-sub">The Film \u00b7 3:30</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
       '<div class="emma-card emma-player-card">' +
         '<div class="emma-np">' +
           '<div class="emma-np-art">\u266a</div>' +
@@ -157,6 +171,23 @@ function emmaInjectStyles() {
     '.emma-itin-row.now .t{color:#ffd6ee;}' +
     '.emma-itin-more{color:rgba(255,255,255,0.4);font-size:clamp(9px,0.6vw,11px);margin-top:0.4em;}' +
 
+    '.emma-film-row{display:flex;gap:0.8em;align-items:center;}' +
+    '.emma-film-thumb{width:clamp(64px,5.2vw,92px);height:clamp(36px,2.95vw,52px);border-radius:10px;flex:0 0 auto;background-size:cover;background-position:center;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}' +
+    '.emma-film-thumb:after{content:"";position:absolute;inset:0;background:rgba(20,0,13,0.28);}' +
+    '.emma-film-thumb span{position:relative;z-index:1;color:#fff;font-size:clamp(13px,1vw,18px);text-shadow:0 2px 8px rgba(0,0,0,0.6);}' +
+    '.emma-film-meta{flex:1;min-width:0;}' +
+    '.emma-film-title{color:#fff;font-size:clamp(12px,0.9vw,16px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}' +
+    '.emma-film-sub{color:#ff9ed8;font-size:clamp(9px,0.6vw,11px);letter-spacing:0.1em;text-transform:uppercase;margin-top:0.2em;}' +
+    '.emma-film-card.fos-focused{border-color:#ff6ec7;box-shadow:0 0 30px rgba(255,110,199,0.4);}' +
+    '.emma-film-card.fos-focused .emma-card-open{opacity:1;}' +
+    '.emma-film-card.fos-focused .emma-film-thumb{transform:scale(1.04);}' +
+    '.emma-filmview{position:absolute;inset:0;z-index:40;background:#000;display:flex;align-items:center;justify-content:center;}' +
+    '.emma-filmview video{width:100%;height:100%;object-fit:contain;background:#000;}' +
+    '.emma-film-osd{position:absolute;left:0;right:0;bottom:0;padding:clamp(18px,3vh,40px) clamp(24px,3vw,56px);z-index:2;background:linear-gradient(to top,rgba(0,0,0,0.78),transparent);transition:opacity 0.3s;}' +
+    '.emma-film-osd.hide{opacity:0;}' +
+    '.emma-film-bar{height:4px;background:rgba(255,255,255,0.22);border-radius:3px;overflow:hidden;}' +
+    '.emma-film-fill{height:100%;width:0%;background:#ff6ec7;}' +
+    '.emma-film-time{display:flex;justify-content:space-between;color:rgba(255,255,255,0.8);font-size:clamp(11px,0.8vw,15px);margin-top:0.6em;font-variant-numeric:tabular-nums;}' +
     '.emma-np{display:flex;gap:0.8em;align-items:center;margin-bottom:0.8em;}' +
     '.emma-np-art{width:clamp(38px,3vw,54px);height:clamp(38px,3vw,54px);border-radius:12px;flex:0 0 auto;background:linear-gradient(135deg,#ff6ec7,#c9457f);display:flex;align-items:center;justify-content:center;font-size:clamp(18px,1.4vw,26px);color:#fff;}' +
     '.emma-np-meta{flex:1;min-width:0;}' +
@@ -350,6 +381,8 @@ function emmaFocusMain(focusId) {
 
   if (photo) fm.register('photo', photo, null);
   if (itin && emmaState.itinerary.length) fm.register('emma-itin', itin, function () { emmaOpenToday(); });
+  var film = document.getElementById('emma-film-card');
+  if (film) fm.register('emma-film', film, function () { emmaOpenFilm(); });
   if (prev) fm.register('ctrl-prev', prev, function () { emmaPlayIdx(emmaState.musicIdx - 1); });
   if (play) fm.register('ctrl-play', play, function () { emmaTogglePlay(); });
   if (next) fm.register('ctrl-next', next, function () { emmaPlayIdx(emmaState.musicIdx + 1); });
@@ -395,6 +428,83 @@ function emmaOpenToday() {
   if (startIdx < 0) startIdx = 0;
   fm.focus('today-' + startIdx);
   emmaSetHint('\u25b2\u25bc  Move    Back  Return');
+}
+
+/* ══ EXPANDED: HIGHLIGHTS FILM ══ */
+function emmaFmt(t) {
+  if (!isFinite(t) || t < 0) t = 0;
+  var m = Math.floor(t / 60), sec = Math.floor(t % 60);
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function emmaFilmExit() {
+  var restored = emmaState.nav.back();
+  if (restored && restored.view === 'emma-main') {
+    emmaFocusMain(restored.focusId || 'emma-film');
+  }
+}
+
+function emmaOpenFilm() {
+  // pause the music so the film has the room
+  emmaState.filmWasPlaying = !!emmaState.playing;
+  if (emmaState.playing) emmaTogglePlay();
+
+  var host = document.getElementById('view-emma');
+  var fv = document.createElement('div');
+  fv.className = 'emma-filmview';
+  fv.id = 'emma-filmview';
+  fv.innerHTML =
+    '<video id="emma-film-video" playsinline preload="auto" poster="' + EMMA_FILM_POSTER + '">' +
+      '<source src="' + EMMA_FILM_URL + '" type="video/mp4">' +
+    '</video>' +
+    '<div class="emma-film-osd" id="emma-film-osd">' +
+      '<div class="emma-film-bar"><div class="emma-film-fill" id="emma-film-fill"></div></div>' +
+      '<div class="emma-film-time">' +
+        '<span id="emma-film-cur">0:00</span>' +
+        '<span>OK  Play / Pause     \u25c0 \u25b6  Skip 10s     Back  Return</span>' +
+        '<span id="emma-film-dur">3:30</span>' +
+      '</div>' +
+    '</div>';
+  host.appendChild(fv);
+
+  var v = document.getElementById('emma-film-video');
+  emmaState.film = v;
+  var osd = document.getElementById('emma-film-osd');
+  var hideT = null;
+  function poke() {
+    if (!osd) return;
+    osd.classList.remove('hide');
+    if (hideT) clearTimeout(hideT);
+    hideT = setTimeout(function () { if (!v.paused) osd.classList.add('hide'); }, 3000);
+  }
+  v.addEventListener('timeupdate', function () {
+    var f = document.getElementById('emma-film-fill');
+    var c = document.getElementById('emma-film-cur');
+    if (f && v.duration) f.style.width = ((v.currentTime / v.duration) * 100) + '%';
+    if (c) c.textContent = emmaFmt(v.currentTime);
+  });
+  v.addEventListener('loadedmetadata', function () {
+    var d = document.getElementById('emma-film-dur');
+    if (d) d.textContent = emmaFmt(v.duration);
+  });
+  v.addEventListener('ended', function () { emmaFilmExit(); });
+  v.play().then(poke).catch(function () { poke(); });
+
+  emmaState.nav.push('emma-film', 'emma-film',
+    null,                     // onEnter (view already built above)
+    function () {             // onLeave
+      try { v.pause(); } catch (e) {}
+      if (hideT) clearTimeout(hideT);
+      var el = document.getElementById('emma-filmview');
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+      emmaState.film = null;
+      emmaState.filmPoke = null;
+      if (emmaState.filmWasPlaying && !emmaState.playing) emmaTogglePlay();
+      emmaState.filmWasPlaying = false;
+    }
+  );
+  emmaState.filmPoke = poke;
+  emmaSetHint('OK  Play / Pause    \u25c0 \u25b6  Skip    Back  Return');
 }
 
 /* ══ EXPANDED: PLAYLIST ══ */
@@ -491,6 +601,19 @@ function emmaHandleKey(key, code) {
       refreshPlaylistMarks();
     }
     return true;
+  }
+
+  // Film view owns the remote while it is open
+  if (view === 'emma-film' && emmaState.film) {
+    var v = emmaState.film;
+    if (key === 'Enter' || key === 'OK' || code === 13 || code === 23 || code === 66) {
+      if (v.paused) { v.play(); } else { v.pause(); }
+      if (emmaState.filmPoke) emmaState.filmPoke();
+      return true;
+    }
+    if (key === 'ArrowRight' || code === 39) { v.currentTime = Math.min(v.duration || 0, v.currentTime + 10); if (emmaState.filmPoke) emmaState.filmPoke(); return true; }
+    if (key === 'ArrowLeft'  || code === 37) { v.currentTime = Math.max(0, v.currentTime - 10); if (emmaState.filmPoke) emmaState.filmPoke(); return true; }
+    return true; // swallow everything else so focus nav can't wander
   }
 
   // Photo canvas: LEFT/RIGHT changes photo directly
