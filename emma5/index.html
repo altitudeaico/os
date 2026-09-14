@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Emma · Five Today</title>
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:title" content="Emma · Five Today">
+<meta property="og:description" content="Emma's 5th birthday · 12 September 2026">
+<meta property="og:image" content="assets/poster.jpg">
+<style>
+@font-face{font-family:'Baloo 2';src:url('assets/fonts/Baloo2.ttf') format('truetype');
+  font-weight:400 800;font-display:swap}
+@font-face{font-family:'Quicksand';src:url('assets/fonts/Quicksand.ttf') format('truetype');
+  font-weight:300 700;font-display:swap}
+:root{
+  --pink:#ec388c; --hot:#ff7ab4; --purple:#924ac4; --lilac:#c496e8;
+  --aqua:#4acdd8; --mint:#96e2cd; --cream:#fff7fc; --ink:#4a2352;
+  --shadow:0 10px 30px rgba(146,74,196,.18);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Quicksand',system-ui,sans-serif; color:var(--ink);
+  background:
+    radial-gradient(1100px 700px at 12% -8%, #ffe3f3 0%, transparent 60%),
+    radial-gradient(1000px 700px at 88% 4%, #dff6fb 0%, transparent 58%),
+    linear-gradient(180deg,#fff7fc 0%,#f6ecff 55%,#eafaf8 100%);
+  background-attachment:fixed; min-height:100vh;
+}
+.bubbles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bubbles i{position:absolute;bottom:-12vh;border-radius:50%;
+  background:radial-gradient(circle at 32% 30%,rgba(255,255,255,.9),rgba(255,214,240,.34) 45%,rgba(160,220,240,.16) 75%);
+  animation:rise linear infinite}
+@keyframes rise{to{transform:translateY(-118vh) translateX(var(--dx,0)) rotate(220deg)}}
+
+/* ---------- gate ---------- */
+#gate{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:22px;
+  background:linear-gradient(180deg,#ffeaf7 0%,#f2e6ff 50%,#e6f9f9 100%)}
+.card{width:min(480px,100%);background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
+  border:2px solid #fff;border-radius:30px;box-shadow:var(--shadow);padding:38px 30px;text-align:center}
+.card h1{font-family:'Baloo 2';font-weight:800;margin:.1em 0 .05em;font-size:clamp(2.1rem,7vw,3rem);line-height:1;
+  background:linear-gradient(180deg,var(--hot),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.card .sub{font-family:'Baloo 2';font-weight:800;font-size:clamp(1.5rem,5vw,2rem);color:var(--aqua);margin:0 0 .5em}
+.card p{margin:.2em 0 1.3em;opacity:.8;font-size:.98rem}
+.row{display:flex;gap:10px}
+input[type=password]{flex:1;min-width:0;padding:15px 18px;border-radius:16px;border:2px solid #f0d7ee;
+  font-family:'Quicksand';font-weight:600;font-size:1.05rem;background:#fff;color:var(--ink);outline:none}
+input[type=password]:focus{border-color:var(--lilac);box-shadow:0 0 0 4px rgba(196,150,232,.25)}
+button{cursor:pointer;border:none;font-family:'Baloo 2';font-weight:800;color:#fff;
+  padding:15px 22px;border-radius:16px;font-size:1.05rem;
+  background:linear-gradient(135deg,var(--hot),var(--purple));box-shadow:0 6px 16px rgba(236,56,140,.32)}
+button:active{transform:translateY(1px)}
+.err{color:var(--pink);font-weight:600;min-height:1.3em;margin-top:12px;font-size:.92rem}
+.shake{animation:sh .4s}
+@keyframes sh{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-5px)}}
+
+/* ---------- page ---------- */
+#app{display:none;position:relative;z-index:1}
+header{text-align:center;padding:42px 20px 10px}
+header h1{font-family:'Baloo 2';font-weight:800;font-size:clamp(2.6rem,9vw,5rem);line-height:.95;margin:0;
+  background:linear-gradient(180deg,#ff8ec4,var(--pink) 55%,var(--purple));
+  -webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 10px rgba(236,56,140,.22))}
+header .t2{font-family:'Baloo 2';font-weight:800;font-size:clamp(2rem,7vw,3.6rem);line-height:1;
+  background:linear-gradient(180deg,#7fe3ea,var(--aqua) 60%,#3ba7c4);
+  -webkit-background-clip:text;background-clip:text;color:transparent;margin-top:-.08em}
+header .date{margin:14px auto 0;display:inline-block;padding:8px 20px;border-radius:999px;
+  background:rgba(255,255,255,.75);border:2px solid #fff;box-shadow:var(--shadow);font-weight:600;letter-spacing:.04em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px 70px}
+.player{margin:26px auto 0;border-radius:26px;overflow:hidden;background:#12000f;
+  border:3px solid #fff;box-shadow:0 20px 50px rgba(146,74,196,.3)}
+.player video{display:block;width:100%;height:auto}
+.note{text-align:center;opacity:.72;margin:14px 0 0;font-size:.93rem}
+
+h2.sec{font-family:'Baloo 2';font-weight:800;text-align:center;margin:56px 0 4px;
+  font-size:clamp(1.9rem,5.5vw,2.8rem);
+  background:linear-gradient(180deg,var(--hot),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+p.seclead{text-align:center;opacity:.75;margin:0 0 24px}
+
+.grid{columns:4 240px;column-gap:14px}
+.tile{break-inside:avoid;margin:0 0 14px;position:relative;border-radius:18px;overflow:hidden;
+  border:3px solid #fff;box-shadow:var(--shadow);cursor:zoom-in;background:#fff;
+  opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s ease}
+.tile.in{opacity:1;transform:none}
+.tile img{display:block;width:100%;height:auto}
+.tile figcaption{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 10px;color:#fff;font-weight:600;
+  font-size:.9rem;background:linear-gradient(180deg,transparent,rgba(74,35,82,.72));
+  opacity:0;transition:opacity .25s}
+.tile:hover figcaption{opacity:1}
+
+/* ---------- lightbox ---------- */
+#lb{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
+  background:rgba(40,12,50,.9);backdrop-filter:blur(6px);padding:18px}
+#lb img{max-width:96vw;max-height:82vh;border-radius:16px;border:3px solid #fff;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#lb .cap{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#fff;font-weight:600}
+#lb .x,#lb .nav{position:absolute;background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.4);
+  color:#fff;width:52px;height:52px;border-radius:50%;font-size:1.5rem;display:flex;align-items:center;justify-content:center}
+#lb .x{top:16px;right:16px}
+#lb .prev{left:14px;top:50%;transform:translateY(-50%)}
+#lb .next{right:14px;top:50%;transform:translateY(-50%)}
+footer{text-align:center;padding:10px 20px 60px;opacity:.7;font-weight:600}
+footer .heart{color:var(--pink)}
+@media(max-width:620px){ .grid{columns:2 150px} .tile figcaption{opacity:1;font-size:.78rem} }
+</style>
+</head>
+<body>
+<div class="bubbles" id="bub"></div>
+
+<!-- ===== password gate ===== -->
+<div id="gate">
+  <div class="card" id="gcard">
+    <h1>Emma</h1>
+    <div class="sub">Five Today</div>
+    <p>A little private page for friends &amp; family.<br>Pop in the password from your invite.</p>
+    <div class="row">
+      <input id="pw" type="password" placeholder="Password" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <button id="go">Enter</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<!-- ===== page ===== -->
+<div id="app">
+  <header>
+    <h1>Emma</h1>
+    <div class="t2">Five Today</div>
+    <div class="date">12 September 2026</div>
+  </header>
+
+  <div class="wrap">
+    <div class="player">
+      <video id="vid" controls playsinline preload="metadata" poster="assets/poster.jpg">
+        <source src="assets/emma-five-today.mp4" type="video/mp4">
+        Your browser can't play this video.
+      </video>
+    </div>
+    <p class="note">Best with the sound up. Tap the arrows to go full screen.</p>
+
+    <h2 class="sec">The Gallery</h2>
+    <p class="seclead">Tap any photo to make it bigger.</p>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <footer>Made with <span class="heart">&hearts;</span> for Emma</footer>
+</div>
+
+<div id="lb">
+  <button class="x" aria-label="Close">&times;</button>
+  <button class="nav prev" aria-label="Previous">&#8249;</button>
+  <img id="lbimg" alt="">
+  <button class="nav next" aria-label="Next">&#8250;</button>
+  <div class="cap" id="lbcap"></div>
+</div>
+
+<script>
+/* ---- bubbles ---- */
+(function(){const b=document.getElementById('bub');
+ for(let i=0;i<22;i++){const s=8+Math.random()*46,e=document.createElement('i');
+  e.style.cssText=`left:${Math.random()*100}vw;width:${s}px;height:${s}px;
+   animation-duration:${13+Math.random()*16}s;animation-delay:${-Math.random()*22}s;--dx:${(Math.random()*90-45)}px`;
+  b.appendChild(e);} })();
+
+/* ---- gate ----
+   NOTE: this is a friendly lock, not real security. See README. */
+const HASH = "06fac79d47dc6b7bb74868668ecb5ef5bf04e210425b273ca8652fc3887d8ffb";
+const KEY  = "emma5_ok";
+
+async function sha256(s){
+  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function open_(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('app').style.display='block';
+  buildGallery();
+}
+async function tryPw(){
+  const v=document.getElementById('pw').value.trim();
+  const h=await sha256(v.toLowerCase());
+  if(h===HASH){ try{localStorage.setItem(KEY,'1')}catch(e){} open_(); }
+  else{
+    const c=document.getElementById('gcard'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+    document.getElementById('err').textContent='Hmm, that’s not it. Try again?';
+  }
+}
+document.getElementById('go').onclick=tryPw;
+document.getElementById('pw').addEventListener('keydown',e=>{if(e.key==='Enter')tryPw()});
+try{ if(localStorage.getItem(KEY)==='1') open_(); }catch(e){}
+
+/* ---- gallery ---- */
+let ITEMS=[],idx=0;
+async function buildGallery(){
+  if(ITEMS.length) return;
+  ITEMS = await (await fetch('assets/gallery.json')).json();
+  const g=document.getElementById('grid');
+  ITEMS.forEach((it,i)=>{
+    const f=document.createElement('figure'); f.className='tile';
+    f.innerHTML=`<img loading="lazy" src="assets/thumbs/${it.id}.jpg" alt="${it.caption}">
+                 <figcaption>${it.caption}</figcaption>`;
+    f.onclick=()=>show(i); g.appendChild(f);
+  });
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{rootMargin:'80px'});
+  document.querySelectorAll('.tile').forEach(t=>io.observe(t));
+}
+const lb=document.getElementById('lb');
+function show(i){ idx=(i+ITEMS.length)%ITEMS.length;
+  document.getElementById('lbimg').src=`assets/gallery/${ITEMS[idx].id}.jpg`;
+  document.getElementById('lbcap').textContent=ITEMS[idx].caption;
+  lb.style.display='flex'; }
+lb.querySelector('.x').onclick=()=>lb.style.display='none';
+lb.querySelector('.prev').onclick=e=>{e.stopPropagation();show(idx-1)};
+lb.querySelector('.next').onclick=e=>{e.stopPropagation();show(idx+1)};
+lb.onclick=e=>{if(e.target===lb)lb.style.display='none'};
+document.addEventListener('keydown',e=>{ if(lb.style.display!=='flex')return;
+  if(e.key==='Escape')lb.style.display='none'; if(e.key==='ArrowRight')show(idx+1); if(e.key==='ArrowLeft')show(idx-1); });
+</script>
+</body>
+</html>
