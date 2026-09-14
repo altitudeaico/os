@@ -106,15 +106,17 @@ async function showHome() {
   }
 
   try {
-    await applySpotlightOverrides();
-    renderSpotlight();
-  } catch (e) { err('spotlight: ' + e.message); }
-
-  try {
     renderHomeV2();
   } catch (e) {
     err('renderHomeV2 error: ' + e.message);
   }
+
+  // Spotlight LAST: at rest it owns the hero and rotates. The moment the user
+  // steers the card rail, the cards take the hero back (see setCardFocus).
+  try {
+    await applySpotlightOverrides();
+    if (spotlightAvailable()) { spotlightOwnHero(false); startSpotRotate(); }
+  } catch (e) { err('spotlight: ' + e.message); }
 
   // Boot visibility is UX state — hide immediately after render attempt.
   // Realtime, clock and auth listener initialise afterwards.
@@ -175,8 +177,9 @@ const SPOTLIGHT_ITEMS = [
 ];
 
 let _spotIdx = 0;
+let _heroOwner = 'cards';   // 'cards' | 'spotlight' — who owns the Home hero
 let _spotTimer = null;
-const SPOT_ROTATE_MS = 9000;
+const SPOT_ROTATE_MS = 11000;   // slower on a TV; tune on the 65"
 
 /* ── Canonical card manifest ── */
 const HOME_CARDS = [
@@ -335,6 +338,7 @@ function onEmmaExit() {
   if (window._returnToSpotlight) {
     window._returnToSpotlight = false;
     _navZone = 'spotlight';
+    spotlightOwnHero(false);
     setSpotFocus(true);
     startSpotRotate();
     return;
@@ -401,7 +405,14 @@ window.fosHandleBack = function() {
 
 
 /* ══════════════════════════════════════════════════════
-   SPOTLIGHT — featured content with a visible CTA
+   SPOTLIGHT — a STATE of the Home hero, not a widget.
+
+   Home has ONE hero renderer with two possible sources:
+     cards      -> focused destination card owns the hero
+     spotlight  -> featured editorial story owns the hero
+   Whichever interaction plane holds focus owns the hero.
+   There is never a state where a card owns the hero while a
+   different spotlight is the active selection.
 ══════════════════════════════════════════════════════ */
 async function applySpotlightOverrides() {
   try {
@@ -416,58 +427,100 @@ async function applySpotlightOverrides() {
   } catch (e) { /* keep built-in defaults */ }
 }
 
-function renderSpotlight() {
-  const el = document.getElementById('home-spotlight');
-  if (!el) return;
-  if (!SPOTLIGHT_ITEMS.length) { el.style.display = 'none'; return; }
-  el.style.display = 'flex';
-  const dots = document.getElementById('spot-dots');
-  if (dots) {
-    dots.innerHTML = SPOTLIGHT_ITEMS.map(function (_, i) {
-      return '<div class="spot-dot' + (i === _spotIdx ? ' on' : '') + '"></div>';
-    }).join('');
-    dots.style.display = SPOTLIGHT_ITEMS.length > 1 ? 'flex' : 'none';
-  }
-  paintSpotlight();
-  startSpotRotate();
-}
+function spotlightAvailable() { return SPOTLIGHT_ITEMS.length > 0; }
 
-function paintSpotlight() {
+/* Paint the hero from the current spotlight item. Crossfades artwork and
+   copy together so it reads as one editorial story changing, not a row of
+   widgets animating independently. */
+function paintSpotlightHero(animate) {
   const it = SPOTLIGHT_ITEMS[_spotIdx];
   if (!it) return;
-  const set = function (id, v) { const n = document.getElementById(id); if (n) n.textContent = v || ''; };
-  const th = document.getElementById('spot-thumb');
-  if (th) th.style.backgroundImage = it.thumb ? 'url(' + it.thumb + ')' : 'none';
-  set('spot-eyebrow', it.eyebrow);
-  set('spot-title', it.title);
-  set('spot-meta', it.meta);
-  set('spot-cta-label', it.cta || 'Open');
-  const dots = document.querySelectorAll('.spot-dot');
-  dots.forEach(function (d, i) { d.classList.toggle('on', i === _spotIdx); });
+  const copy = document.querySelector('.home-hero-text');
+  const apply = function () {
+    setHeroText({ context: it.eyebrow || '', heading: it.title || '', meta: it.meta || '' });
+    const lbl = document.getElementById('hero-cta-label');
+    if (lbl) lbl.textContent = it.cta || 'Open';
+    const dots = document.getElementById('spot-dots');
+    if (dots) {
+      dots.style.display = SPOTLIGHT_ITEMS.length > 1 ? 'flex' : 'none';
+      dots.innerHTML = SPOTLIGHT_ITEMS.map(function (_, i) {
+        return '<div class="spot-dot' + (i === _spotIdx ? ' on' : '') + '"></div>';
+      }).join('');
+    }
+    if (it.thumb) crossfadeHeroTo(it.thumb);
+  };
+  if (animate && copy) {
+    copy.classList.add('spot-fading');
+    setTimeout(function () { apply(); copy.classList.remove('spot-fading'); }, 420);
+  } else {
+    apply();
+  }
+}
+
+/* Hand the hero to the spotlight. Cards stay visible but stop being the
+   active plane and lose their focus treatment. */
+function spotlightOwnHero(animate) {
+  if (!spotlightAvailable()) return false;
+  _heroOwner = 'spotlight';
+  stopHeroCycle();                       // card hero image cycling must not fight us
+  const actions = document.getElementById('hero-spot-actions');
+  if (actions) actions.style.display = 'flex';
+  const rail = document.getElementById('rail-cards');
+  if (rail) rail.classList.add('plane-inactive');
+  paintSpotlightHero(!!animate);
+  return true;
+}
+
+/* Give the hero back to the card plane. */
+function cardsOwnHero() {
+  _heroOwner = 'cards';
+  const actions = document.getElementById('hero-spot-actions');
+  if (actions) actions.style.display = 'none';
+  const cta = document.getElementById('hero-cta');
+  if (cta) cta.classList.remove('focused');
+  const rail = document.getElementById('rail-cards');
+  if (rail) rail.classList.remove('plane-inactive');
 }
 
 function setSpotIdx(idx) {
-  if (!SPOTLIGHT_ITEMS.length) return;
-  const el = document.getElementById('home-spotlight');
+  if (!spotlightAvailable()) return;
   _spotIdx = (idx + SPOTLIGHT_ITEMS.length) % SPOTLIGHT_ITEMS.length;
-  if (!el) { paintSpotlight(); return; }
-  el.classList.add('fading');
-  setTimeout(function () { paintSpotlight(); el.classList.remove('fading'); }, 260);
+  if (_heroOwner === 'spotlight') paintSpotlightHero(true);
 }
 
 function startSpotRotate() {
   stopSpotRotate();
   if (SPOTLIGHT_ITEMS.length < 2) return;
   _spotTimer = setInterval(function () {
-    if (_navZone === 'spotlight') return;   // don't move under the user
+    if (_navZone === 'spotlight') return;    // never move a button under the user
+    if (_heroOwner !== 'spotlight') return;  // cards own the hero right now
     setSpotIdx(_spotIdx + 1);
   }, SPOT_ROTATE_MS);
 }
 function stopSpotRotate() { if (_spotTimer) { clearInterval(_spotTimer); _spotTimer = null; } }
 
 function setSpotFocus(on) {
-  const el = document.getElementById('home-spotlight');
-  if (el) el.classList.toggle('focused', !!on);
+  const cta = document.getElementById('hero-cta');
+  if (cta) cta.classList.toggle('focused', !!on);
+}
+
+/* UP from the cards: spotlight takes the whole hero and the CTA takes focus. */
+function enterSpotlight() {
+  if (!spotlightAvailable()) return false;
+  _navZone = 'spotlight';
+  document.querySelectorAll('.rail-card').forEach(function (c) { c.classList.remove('focused'); });
+  spotlightOwnHero(true);
+  setSpotFocus(true);
+  return true;
+}
+
+/* DOWN: hand the hero back to the card the user was last on. */
+function exitSpotlightToCards() {
+  _navZone = 'cards';
+  setSpotFocus(false);
+  cardsOwnHero();
+  setCardFocus(_cardIdx, true);   // restores focus treatment AND that card's hero
+  startSpotRotate();
 }
 
 function activateSpotlight() {
@@ -527,6 +580,7 @@ function setCardFocus(idx, updateHero) {
   // Only change the hero once the user has actively engaged (not on first load)
   if (updateHero !== false) {
     _heroEngaged = true;
+    if (_heroOwner === 'spotlight') cardsOwnHero();   // cards reclaim the hero
     updateHeroForCard(_cardIdx);
   }
 }
@@ -701,13 +755,7 @@ document.addEventListener('keydown', function(e) {
     if (isRight) setCardFocus(_cardIdx + 1);
     if (isUp) {
       trackUpForRefresh();               // keep the hidden 3x-UP refresh gesture
-      const spot = document.getElementById('home-spotlight');
-      if (spot && spot.style.display !== 'none') {
-        _navZone = 'spotlight';
-        cards.forEach(c => c.classList.remove('focused'));
-        setSpotFocus(true);
-        return;
-      }
+      if (enterSpotlight()) return;
     }
     if (isDown) {
       _navZone = 'nav';
@@ -732,11 +780,7 @@ document.addEventListener('keydown', function(e) {
     if (isUp)    trackUpForRefresh();    // gesture still reachable from here
     if (isLeft)  setSpotIdx(_spotIdx - 1);
     if (isRight) setSpotIdx(_spotIdx + 1);
-    if (isDown) {
-      _navZone = 'cards';
-      setSpotFocus(false);
-      setCardFocus(_cardIdx, true);
-    }
+    if (isDown) exitSpotlightToCards();
     if (isEnter) { e.preventDefault(); activateSpotlight(); }
   } else {
     // navZone === 'nav'
