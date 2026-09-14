@@ -381,6 +381,17 @@ function closeDestination() {
 // Called by Android Back button. Returns true if handled (in a destination),
 // false if at Home (Android should exit).
 window.fosHandleBack = function() {
+  // If a World is open, give it first refusal: its own nav stack should pop
+  // ONE level (e.g. film -> Emma's World) rather than closing the whole
+  // destination. Only fall through to closeDestination() if no World claims it.
+  for (var i = 0; i < WORLD_KEY_HANDLERS.length; i++) {
+    var w = WORLD_KEY_HANDLERS[i];
+    var el = document.getElementById(w.viewId);
+    var fn = window[w.handlerFn];
+    if (el && el.style.display !== 'none' && typeof fn === 'function') {
+      try { if (fn('GoBack', 4)) return true; } catch (e) { /* fall through */ }
+    }
+  }
   if (_inDestination) {
     closeDestination();
     return true;
