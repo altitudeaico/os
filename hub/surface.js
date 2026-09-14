@@ -198,7 +198,7 @@ const HOME_CARDS = [
   { label: 'Home',           img: 'https://olatoyefamily.com/hub/assets/heroes/hero-evening-family-B.png',           dest: 'home',
     hero: 'https://olatoyefamily.com/hub/assets/heroes/hero-evening-family-B.png', heading: 'Welcome home.', meta: 'Everything in one place' },
   { label: 'Academy',        img: 'https://olatoyefamily.com/hub/assets/cards/card-academy.png',        dest: 'academy',
-    hero: 'https://olatoyefamily.com/hub/assets/heroes/hero-morning-academy.png', heading: 'Olatoye Academy', meta: 'Learn, discover, grow together' },
+    hero: 'https://olatoyefamily.com/hub/assets/heroes/hero-academy.png', heading: 'Olatoye Academy', meta: 'Learn, discover, grow together' },
   { label: "Elsie's World",  img: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png',          dest: 'elsie',
     hero: 'https://olatoyefamily.com/hub/assets/cards/card-elsie.png', heading: "Elsie's World", meta: 'Art, ideas and imagination' },
   { label: "Emma's World",   img: 'https://olatoyefamily.com/hub/assets/cards/card-emma.png',           dest: 'emma',
