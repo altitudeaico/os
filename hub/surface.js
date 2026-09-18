@@ -560,7 +560,9 @@ function exitSpotlightToCards() {
   setSpotFocus(false);
   cardsOwnHero();
   setCardFocus(_cardIdx, true);   // restores focus treatment AND that card's hero
-  startSpotRotate();
+  // Rotation belongs to Home only. setCardFocus already restarts it when the
+  // landing card is Home; do not start it here for a non-Home card.
+  if (!isHomeFocused()) stopSpotRotate();
 }
 
 function activateSpotlight() {
