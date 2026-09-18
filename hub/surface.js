@@ -457,16 +457,20 @@ window.fosHandleBack = function() {
    different spotlight is the active selection.
 ══════════════════════════════════════════════════════ */
 async function applySpotlightOverrides() {
+  var dbg = function(t){ var p=document.getElementById('fos-probe'); if(p) p.textContent='SPOT '+t; };
   try {
     const hdr = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+    dbg('fetching...');
     const r = await fetch(API + '/spotlight?select=welcome,eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order', { headers: hdr });
-    if (!r.ok) return;
+    if (!r.ok) { dbg('HTTP '+r.status+' - using fallback'); return; }
     const rows = await r.json();
+    dbg('got '+(Array.isArray(rows)?rows.length:'notarray')+' rows');
     if (Array.isArray(rows) && rows.length) {
       SPOTLIGHT_ITEMS.length = 0;
       rows.forEach(function (x) { SPOTLIGHT_ITEMS.push(x); });
+      dbg('loaded '+SPOTLIGHT_ITEMS.length+' items');
     }
-  } catch (e) { /* keep built-in defaults */ }
+  } catch (e) { dbg('ERR: '+(e && e.message ? e.message : e)); }
 }
 
 function spotlightAvailable() { return SPOTLIGHT_ITEMS.length > 0; }
