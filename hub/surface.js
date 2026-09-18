@@ -432,7 +432,7 @@ window.fosHandleBack = function() {
 async function applySpotlightOverrides() {
   try {
     const hdr = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
-    const r = await fetch(API + '/spotlight?select=eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order', { headers: hdr });
+    const r = await fetch(API + '/spotlight?select=welcome,eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order', { headers: hdr });
     if (!r.ok) return;
     const rows = await r.json();
     if (Array.isArray(rows) && rows.length) {
