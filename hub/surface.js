@@ -115,8 +115,11 @@ async function showHome() {
   // steers the card rail, the cards take the hero back (see setCardFocus).
   try {
     await applySpotlightOverrides();
-    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='SPOTLIGHT: '+SPOTLIGHT_ITEMS.length+' items';})();
-    if (spotlightAvailable()) { spotlightOwnHero(false); startSpotRotate(); }
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='HOME SPOTLIGHT: '+SPOTLIGHT_ITEMS.length+' items';})();
+    // Home Spotlight carousel is scoped to the Home card. On load the Home card
+    // is the resting focus, so the carousel owns the hero and rotates. Focusing
+    // any other card hands the hero to that card (see setCardFocus).
+    if (isHomeFocused() && spotlightAvailable()) { spotlightOwnHero(false); startSpotRotate(); }
   } catch (e) { err('spotlight: ' + e.message); }
 
   // Boot visibility is UX state — hide immediately after render attempt.
@@ -617,8 +620,16 @@ function setCardFocus(idx, updateHero) {
   // Only change the hero once the user has actively engaged (not on first load)
   if (updateHero !== false) {
     _heroEngaged = true;
-    if (_heroOwner === 'spotlight') cardsOwnHero();   // cards reclaim the hero
-    updateHeroForCard(_cardIdx);
+    if (isHomeFocused()) {
+      // Home is a special card: it owns a rotating collection of Spotlight items.
+      if (spotlightAvailable()) { spotlightOwnHero(true); startSpotRotate(); }
+      else { cardsOwnHero(); updateHeroForCard(_cardIdx); }  // safe fallback
+    } else {
+      // Standard card: it owns its single hero. Stop any Home rotation first.
+      stopSpotRotate();
+      if (_heroOwner === 'spotlight') cardsOwnHero();   // cards reclaim the hero
+      updateHeroForCard(_cardIdx);
+    }
   }
 }
 
