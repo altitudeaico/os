@@ -119,8 +119,15 @@ async function showHome() {
   try {
     const withTimeout2 = function(promise, ms){ return Promise.race([ promise, new Promise(function(res){ setTimeout(res, ms); }) ]); };
     await withTimeout2(applySpotlightOverrides(), 4000);
-    if (isHomeFocused() && spotlightAvailable()) { spotlightOwnHero(false); startSpotRotate(); }
-    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-DONE items='+SPOTLIGHT_ITEMS.length+' own='+_heroOwner;})();
+    if (isHomeFocused() && spotlightAvailable()) {
+      spotlightOwnHero(false);
+      startSpotRotate();
+      // Big, obvious on-screen confirmation in the hero copy area (not the tiny
+      // corner probe) so it is impossible to misread how many slides loaded.
+      if (SPOTLIGHT_ITEMS.length < 2) {
+        setHeroText({ context: 'SPOTLIGHT DIAGNOSTIC', heading: 'Only ' + SPOTLIGHT_ITEMS.length + ' slide loaded', meta: 'The TV could not load the featured items from the database. Rotation needs 2 or more.' });
+      }
+    }
   } catch (e) {
     (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-SPOT-ERR: '+(e&&e.message?e.message:e);})();
   }
