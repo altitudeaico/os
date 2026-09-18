@@ -167,8 +167,9 @@ function updateClock() {
    the Supabase `spotlight` table — see applySpotlightOverrides(). */
 const SPOTLIGHT_ITEMS = [
   {
-    // The resting state of Home. Time-aware, no CTA - there is nothing to
-    // action here, it is simply where Family OS sits when nothing is featured.
+    // Safe fallback ONLY. If the Supabase Home Spotlight fetch fails, Home
+    // degrades to this single Welcome slide - never to stale featured content.
+    // The real Home Spotlight collection is editorial and lives in Supabase.
     welcome: true,
     eyebrow: null,           // filled from contextForTime() at paint time
     title: 'Welcome home.',
@@ -177,15 +178,6 @@ const SPOTLIGHT_ITEMS = [
     cta: null,
     dest: null,
     action: null,
-  },
-  {
-    eyebrow: "Emma's World",
-    title: 'Five Today',
-    meta: "Emma's 5th birthday film \u00b7 3:30",
-    thumb: 'https://olatoyefamily.com/emma5/assets/poster.jpg',
-    cta: 'Watch Now',
-    dest: 'emma',
-    action: 'film',
   },
 ];
 
@@ -213,6 +205,19 @@ const HOME_CARDS = [
   { label: 'Coming Up',      img: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png',    dest: 'coming-up',
     hero: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png', heading: 'Coming Up', meta: "What's next for the family" },
 ];
+
+/* ── Home is a SPECIAL card: it owns a rotating collection of editorial
+   Spotlight items. Every other card shows its single hero. This helper
+   answers "is the Home card currently focused?" so the carousel is scoped
+   to Home focus, never to idle or to other cards. ── */
+function homeCardIndex() {
+  for (var i = 0; i < HOME_CARDS.length; i++) {
+    if (HOME_CARDS[i].dest === 'home') return i;
+  }
+  return 0;
+}
+function isHomeFocused() { return _cardIdx === homeCardIndex(); }
+
 
 function heroForTime() {
   const h = new Date().getHours();
