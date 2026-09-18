@@ -115,17 +115,10 @@ async function showHome() {
   // Spotlight LAST: at rest it owns the hero and rotates. The moment the user
   // steers the card rail, the cards take the hero back (see setCardFocus).
   try {
-    var _srcBefore = SPOTLIGHT_ITEMS.length;
     await applySpotlightOverrides();
-    window._fosDiag.items = SPOTLIGHT_ITEMS.length;
-    window._fosDiag.src = (SPOTLIGHT_ITEMS.length > _srcBefore || SPOTLIGHT_ITEMS.length !== 1) ? 'supabase' : 'fallback';
-    window._fosDiag.home = isHomeFocused() ? 'yes' : ('no#'+_cardIdx);
-    fosDiagPaint();
-    // Home Spotlight carousel is scoped to the Home card. On load the Home card
-    // is the resting focus, so the carousel owns the hero and rotates.
+    // Home is the resting focus on load, so the Spotlight Gallery owns the hero
+    // and rotates. Focusing any other card hands the hero to that card.
     if (isHomeFocused() && spotlightAvailable()) { spotlightOwnHero(false); startSpotRotate(); }
-    window._fosDiag.owner = _heroOwner;
-    fosDiagPaint();
   } catch (e) { err('spotlight: ' + e.message); }
 
   // Boot visibility is UX state — hide immediately after render attempt.
@@ -457,20 +450,16 @@ window.fosHandleBack = function() {
    different spotlight is the active selection.
 ══════════════════════════════════════════════════════ */
 async function applySpotlightOverrides() {
-  var dbg = function(t){ var p=document.getElementById('fos-probe'); if(p) p.textContent='SPOT '+t; };
   try {
     const hdr = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
-    dbg('fetching...');
     const r = await fetch(API + '/spotlight?select=welcome,eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order', { headers: hdr });
-    if (!r.ok) { dbg('HTTP '+r.status+' - using fallback'); return; }
+    if (!r.ok) return;
     const rows = await r.json();
-    dbg('got '+(Array.isArray(rows)?rows.length:'notarray')+' rows');
     if (Array.isArray(rows) && rows.length) {
       SPOTLIGHT_ITEMS.length = 0;
       rows.forEach(function (x) { SPOTLIGHT_ITEMS.push(x); });
-      dbg('loaded '+SPOTLIGHT_ITEMS.length+' items');
     }
-  } catch (e) { dbg('ERR: '+(e && e.message ? e.message : e)); }
+  } catch (e) { /* keep Welcome-only fallback */ }
 }
 
 function spotlightAvailable() { return SPOTLIGHT_ITEMS.length > 0; }
@@ -552,18 +541,16 @@ function setSpotIdx(idx) {
 
 function startSpotRotate() {
   stopSpotRotate();
-  if (SPOTLIGHT_ITEMS.length < 2) { window._fosDiag.timer = 'off(len<2)'; fosDiagPaint(); return; }
+  if (SPOTLIGHT_ITEMS.length < 2) return;
+  // Same advancement lifecycle Elsie's Featured cycle uses: a plain interval
+  // that steps the index and calls the renderer. The renderer for Home is
+  // paintSpotlightHero (via setSpotIdx) - rich image/title/meta/CTA/dots.
   _spotTimer = setInterval(function () {
-    window._fosDiag.owner = _heroOwner;
-    if (_navZone === 'spotlight') { window._fosDiag.timer = 'skip(navzone)'; fosDiagPaint(); return; }
-    if (_heroOwner !== 'spotlight') { window._fosDiag.timer = 'skip(owner='+_heroOwner+')'; fosDiagPaint(); return; }
-    setSpotIdx(_spotIdx + 1);
-    window._fosDiag.idx = _spotIdx;
-    window._fosDiag.timer = 'fired';
-    fosDiagPaint();
+    // Only pause if the user has manually grabbed the spotlight CTA.
+    if (_navZone === 'spotlight') return;
+    _spotIdx = (_spotIdx + 1) % SPOTLIGHT_ITEMS.length;
+    paintSpotlightHero(true);
   }, SPOT_ROTATE_MS);
-  window._fosDiag.timer = 'on';
-  fosDiagPaint();
 }
 function stopSpotRotate() {
   if (_spotTimer) { clearInterval(_spotTimer); _spotTimer = null; window._fosDiag.timer = 'stopped'; fosDiagPaint(); }
