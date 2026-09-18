@@ -1,4 +1,4 @@
-try{var _p=document.getElementById('fos-probe');if(_p)_p.textContent='H4-LOADED';}catch(e){}
+try{var _p=document.getElementById('fos-probe');if(_p)_p.textContent='v9';}catch(e){}
 (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='surface.js: LOADED';})();
 /**
  * Family OS TV — Surface Identity & Application Bootstrap
@@ -91,7 +91,7 @@ async function initSurface() {
 
 
 async function showHome() {
-  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='';})();
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='v9';})();
   try { showView('home'); } catch(e){}
 
   // Render cards IMMEDIATELY and synchronously - no network await before this,
