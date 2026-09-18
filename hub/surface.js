@@ -645,6 +645,21 @@ function setCardFocus(idx, updateHero) {
     const offset = cardLeft - (railWidth / 2) + (cardWidth / 2);
     rail.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
   }
+  // DIAG: report the focused card's real runtime state
+  try {
+    var fc = document.querySelector('.rail-card.focused');
+    var p = document.getElementById('fos-probe');
+    if (p) {
+      if (!fc) { p.textContent = 'FOCUS: none! idx='+_cardIdx; }
+      else {
+        var cs = window.getComputedStyle(fc);
+        p.textContent = 'idx='+_cardIdx+' dest='+(fc.dataset.dest||'?')+
+          ' foc='+fc.classList.contains('focused')+
+          ' w='+Math.round(fc.getBoundingClientRect().width)+
+          ' bord='+cs.borderTopColor.replace(/\s/g,'');
+      }
+    }
+  } catch(e){}
   // Only change the hero once the user has actively engaged (not on first load)
   if (updateHero !== false) {
     _heroEngaged = true;
