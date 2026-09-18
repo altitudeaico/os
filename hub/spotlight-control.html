@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Spotlight — Control</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #0d1a0d 0%, #060a06 100%); color: #fff; min-height: 100vh; padding: 20px; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 22px; color: #C9A84C; margin-bottom: 4px; }
+  .sub { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 20px; }
+  .status { padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; display: none; }
+  .status.show { display: block; }
+  .status.ok { background: rgba(48,209,88,0.2); color: #30d158; }
+  .status.err { background: rgba(255,80,80,0.2); color: #ff8080; }
+  .section { background: rgba(255,255,255,0.05); border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+  .section h2 { font-size: 14px; color: #C9A84C; margin-bottom: 12px; letter-spacing: 0.05em; text-transform: uppercase; }
+  input, button, select { font-family: inherit; font-size: 15px; border-radius: 10px; border: none; }
+  input[type=text], input[type=url] { width: 100%; padding: 11px; background: rgba(0,0,0,0.3);
+    color: #fff; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 9px; }
+  button { background: #C9A84C; color: #1a1400; padding: 11px 16px; font-weight: 700; cursor: pointer; }
+  button.small { padding: 6px 11px; font-size: 13px; background: rgba(255,255,255,0.15); color: #fff; }
+  button.danger { background: rgba(255,80,80,0.85); color: #fff; }
+  .slide { display: flex; align-items: center; gap: 11px; padding: 10px;
+    background: rgba(0,0,0,0.25); border-radius: 10px; margin-bottom: 9px; }
+  .slide img { width: 72px; height: 45px; object-fit: cover; border-radius: 6px; background: #222; flex: 0 0 auto; }
+  .slide .info { flex: 1; min-width: 0; }
+  .slide .eyebrow { color: #C9A84C; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .slide .title { font-weight: 700; font-size: 15px; }
+  .slide .meta { color: rgba(255,255,255,0.5); font-size: 12px; }
+  .slide .badges { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+  .slide .acts { display: flex; flex-direction: column; gap: 5px; flex: 0 0 auto; }
+  .hint { font-size: 12px; color: rgba(255,255,255,0.4); margin: 4px 0 9px; }
+  .row { display: flex; gap: 9px; }
+  .off { opacity: 0.45; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Home Spotlight</h1>
+  <div class="sub">The slides that rotate in the big area when the Home card is selected on the TV.</div>
+  <div class="status" id="status"></div>
+
+  <div class="section">
+    <h2>Current slides</h2>
+    <div class="hint">These are exactly what the TV loads. If you see them here, the TV can load them too.</div>
+    <div id="slides"></div>
+  </div>
+
+  <div class="section">
+    <h2>Add a slide</h2>
+    <input type="text" id="s-eyebrow" placeholder="Small label (e.g. Now Showing)">
+    <input type="text" id="s-title" placeholder="Headline (e.g. Emma is Five)">
+    <input type="text" id="s-meta" placeholder="Sub-line (e.g. Her birthday film)">
+    <input type="url" id="s-thumb" placeholder="Background image URL (optional)">
+    <div class="row">
+      <input type="text" id="s-dest" placeholder="Opens (emma, elsie, academy...) optional">
+      <input type="text" id="s-cta" placeholder="Button text (e.g. Open)" style="flex:0 0 140px;">
+    </div>
+    <button onclick="addSlide()">Add slide</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+function showStatus(msg, ok) {
+  const el = document.getElementById('status');
+  el.textContent = msg; el.className = 'status show ' + (ok ? 'ok' : 'err');
+  setTimeout(() => el.classList.remove('show'), 4500);
+}
+
+async function load() {
+  const { data, error } = await sb.from('spotlight').select('*').order('sort_order');
+  const list = document.getElementById('slides');
+  if (error) { list.innerHTML = '<div style="color:#ff8080">Could not load: '+error.message+'</div>'; return; }
+  if (!data || !data.length) { list.innerHTML = '<div class="hint">No slides yet.</div>'; return; }
+  list.innerHTML = data.map(function(s) {
+    const img = s.thumb ? '<img src="'+s.thumb+'">' : '<div style="width:72px;height:45px;border-radius:6px;background:rgba(255,255,255,0.08);flex:0 0 auto;"></div>';
+    const title = s.welcome ? 'Welcome home (resting slide)' : (s.title||'(no title)');
+    const badges = [];
+    badges.push(s.active ? 'On' : 'Off');
+    if (s.dest) badges.push('opens '+s.dest);
+    if (s.cta) badges.push('button: '+s.cta);
+    badges.push('order '+s.sort_order);
+    return '<div class="slide '+(s.active?'':'off')+'">'+img+
+      '<div class="info">'+
+        (s.eyebrow?'<div class="eyebrow">'+s.eyebrow+'</div>':'')+
+        '<div class="title">'+title+'</div>'+
+        (s.meta?'<div class="meta">'+s.meta+'</div>':'')+
+        '<div class="badges">'+badges.join(' · ')+'</div>'+
+      '</div>'+
+      '<div class="acts">'+
+        '<button class="small" onclick="toggleActive(\''+s.id+'\','+(!s.active)+')">'+(s.active?'Turn off':'Turn on')+'</button>'+
+        (s.welcome ? '' : '<button class="small danger" onclick="removeSlide(\''+s.id+'\')">Remove</button>')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+async function addSlide() {
+  const title = document.getElementById('s-title').value.trim();
+  if (!title) { showStatus('Add a headline at least', false); return; }
+  const { data: maxRow } = await sb.from('spotlight').select('sort_order').order('sort_order',{ascending:false}).limit(1).maybeSingle();
+  const nextOrder = ((maxRow && maxRow.sort_order) || 0) + 1;
+  const { error } = await sb.from('spotlight').insert({
+    welcome: false,
+    eyebrow: document.getElementById('s-eyebrow').value.trim() || null,
+    title: title,
+    meta: document.getElementById('s-meta').value.trim() || null,
+    thumb: document.getElementById('s-thumb').value.trim() || null,
+    dest: document.getElementById('s-dest').value.trim() || null,
+    cta: document.getElementById('s-cta').value.trim() || null,
+    active: true, sort_order: nextOrder
+  });
+  if (error) { showStatus('Failed: '+error.message, false); return; }
+  ['s-eyebrow','s-title','s-meta','s-thumb','s-dest','s-cta'].forEach(id=>document.getElementById(id).value='');
+  showStatus('Slide added. It appears on the TV within seconds.', true);
+  load();
+}
+async function toggleActive(id, on) {
+  const { error } = await sb.from('spotlight').update({ active: on }).eq('id', id);
+  if (error) { showStatus('Failed: '+error.message, false); return; }
+  showStatus(on?'Slide turned on':'Slide turned off', true);
+  load();
+}
+async function removeSlide(id) {
+  const { error } = await sb.from('spotlight').delete().eq('id', id);
+  if (error) { showStatus('Failed: '+error.message, false); return; }
+  showStatus('Slide removed', true);
+  load();
+}
+
+load();
+</script>
+</body>
+</html>
