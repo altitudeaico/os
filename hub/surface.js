@@ -91,7 +91,7 @@ async function initSurface() {
 
 
 async function showHome() {
-  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-START';})();
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='';})();
   try { showView('home'); } catch(e){}
 
   // Render cards IMMEDIATELY and synchronously - no network await before this,
@@ -102,7 +102,6 @@ async function showHome() {
     (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='RAIL ERR: '+e.message;})();
   }
   try { renderHomeV2(); } catch (e) { err('renderHomeV2 error: ' + e.message); }
-  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-CARDS';})();
 
   // Network-dependent enrichment runs AFTER cards are up, each guarded by a
   // timeout so a hanging TV network connection cannot freeze the boot.
@@ -118,15 +117,10 @@ async function showHome() {
   // steers the card rail, the cards take the hero back (see setCardFocus).
   try {
     const withTimeout2 = function(promise, ms){ return Promise.race([ promise, new Promise(function(res){ setTimeout(res, ms); }) ]); };
-    await withTimeout2(applySpotlightOverrides(), 4000);
+    await withTimeout2(applySpotlightOverrides(), 12000);
     if (isHomeFocused() && spotlightAvailable()) {
       spotlightOwnHero(false);
       startSpotRotate();
-      // Big, obvious on-screen confirmation in the hero copy area (not the tiny
-      // corner probe) so it is impossible to misread how many slides loaded.
-      if (SPOTLIGHT_ITEMS.length < 2) {
-        setHeroText({ context: 'SPOTLIGHT DIAGNOSTIC', heading: 'Only ' + SPOTLIGHT_ITEMS.length + ' slide loaded', meta: 'The TV could not load the featured items from the database. Rotation needs 2 or more.' });
-      }
     }
   } catch (e) {
     (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-SPOT-ERR: '+(e&&e.message?e.message:e);})();
@@ -461,16 +455,25 @@ window.fosHandleBack = function() {
    different spotlight is the active selection.
 ══════════════════════════════════════════════════════ */
 async function applySpotlightOverrides() {
-  try {
-    const hdr = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
-    const r = await fetch(API + '/spotlight?select=welcome,eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order', { headers: hdr });
-    if (!r.ok) return;
-    const rows = await r.json();
-    if (Array.isArray(rows) && rows.length) {
-      SPOTLIGHT_ITEMS.length = 0;
-      rows.forEach(function (x) { SPOTLIGHT_ITEMS.push(x); });
-    }
-  } catch (e) { /* keep Welcome-only fallback */ }
+  const hdr = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+  const url = API + '/spotlight?select=welcome,eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order';
+  // Retry up to 3 times - a TV's wifi to Supabase can be slow/cold on first hit.
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await fetch(url, { headers: hdr, cache: 'no-store' });
+      if (r.ok) {
+        const rows = await r.json();
+        if (Array.isArray(rows) && rows.length) {
+          SPOTLIGHT_ITEMS.length = 0;
+          rows.forEach(function (x) { SPOTLIGHT_ITEMS.push(x); });
+          return; // success
+        }
+      }
+    } catch (e) { /* try again */ }
+    // brief backoff before retry
+    await new Promise(function(res){ setTimeout(res, 800); });
+  }
+  // All attempts failed - keep Welcome-only fallback.
 }
 
 function spotlightAvailable() { return SPOTLIGHT_ITEMS.length > 0; }
