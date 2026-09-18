@@ -622,15 +622,19 @@ function setCardFocus(idx, updateHero) {
   // Only change the hero once the user has actively engaged (not on first load)
   if (updateHero !== false) {
     _heroEngaged = true;
+    // INVARIANT: the focused card owns the hero region and cycles its own
+    // collection. Home presents the rich Spotlight Gallery from the spotlight
+    // table; every other card presents its Featured collection via
+    // updateHeroForCard (which cycles _heroImages, or shows a single hero, or
+    // falls back to the card's static hero). Only ONE cycle timer runs at a time.
     if (isHomeFocused()) {
-      // Home is a special card: it owns a rotating collection of Spotlight items.
+      stopHeroCycle();                 // stop any World Featured cycle
       if (spotlightAvailable()) { spotlightOwnHero(true); startSpotRotate(); }
       else { cardsOwnHero(); updateHeroForCard(_cardIdx); }  // safe fallback
     } else {
-      // Standard card: it owns its single hero. Stop any Home rotation first.
-      stopSpotRotate();
+      stopSpotRotate();                // stop Home Spotlight Gallery
       if (_heroOwner === 'spotlight') cardsOwnHero();   // cards reclaim the hero
-      updateHeroForCard(_cardIdx);
+      updateHeroForCard(_cardIdx);     // Featured cycle OR single/static hero
     }
   }
 }
