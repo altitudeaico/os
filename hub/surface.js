@@ -92,32 +92,33 @@ async function initSurface() {
 
 async function showHome() {
   (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-START';})();
-  showView('home');
+  try { showView('home'); } catch(e){}
 
-  // Render cards FIRST — independent of hero setup, so a hero error can't block them
-  try {
-    await applyCardOverrides();
-    await applyFeaturedHeroImages();
-  } catch(e) { /* ignore */ }
-
+  // Render cards IMMEDIATELY and synchronously - no network await before this,
+  // so a slow/hanging fetch can never prevent the Home screen from appearing.
   try {
     renderRail(HOME_CARDS);
   } catch(e) {
     (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='RAIL ERR: '+e.message;})();
   }
+  try { renderHomeV2(); } catch (e) { err('renderHomeV2 error: ' + e.message); }
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-CARDS';})();
 
-  try {
-    renderHomeV2();
-  } catch (e) {
-    err('renderHomeV2 error: ' + e.message);
-  }
+  // Network-dependent enrichment runs AFTER cards are up, each guarded by a
+  // timeout so a hanging TV network connection cannot freeze the boot.
+  const withTimeout = function(promise, ms){
+    return Promise.race([ promise, new Promise(function(res){ setTimeout(res, ms); }) ]);
+  };
+  try { await withTimeout(applyCardOverrides(), 4000); } catch(e){}
+  try { await withTimeout(applyFeaturedHeroImages(), 4000); } catch(e){}
+  // Re-render rail so any override images/featured images now apply
+  try { renderRail(HOME_CARDS); } catch(e){}
 
   // Spotlight LAST: at rest it owns the hero and rotates. The moment the user
   // steers the card rail, the cards take the hero back (see setCardFocus).
   try {
-    await applySpotlightOverrides();
-    // Home is the resting focus on load, so the Spotlight Gallery owns the hero
-    // and rotates. Focusing any other card hands the hero to that card.
+    const withTimeout2 = function(promise, ms){ return Promise.race([ promise, new Promise(function(res){ setTimeout(res, ms); }) ]); };
+    await withTimeout2(applySpotlightOverrides(), 4000);
     if (isHomeFocused() && spotlightAvailable()) { spotlightOwnHero(false); startSpotRotate(); }
     (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-DONE items='+SPOTLIGHT_ITEMS.length+' own='+_heroOwner;})();
   } catch (e) {
