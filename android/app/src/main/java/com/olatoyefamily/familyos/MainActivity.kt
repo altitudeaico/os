@@ -74,7 +74,7 @@ class MainActivity : Activity() {
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
 
                 // Cache — use default (network when available, cache as fallback)
-                cacheMode = if (BuildConfig.DEBUG) WebSettings.LOAD_NO_CACHE else WebSettings.LOAD_DEFAULT
+                cacheMode = WebSettings.LOAD_NO_CACHE  // always fresh — web layer is the product
 
                 // TV display — no zoom
                 builtInZoomControls = false
@@ -107,7 +107,8 @@ class MainActivity : Activity() {
         if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState)
         } else {
-            webView.loadUrl(HUB_URL + "?t=" + System.currentTimeMillis())
+            webView.clearCache(true)  // wipe any stale cached JS/HTML from previous installs
+        webView.loadUrl(HUB_URL + "?t=" + System.currentTimeMillis())
         }
     }
 
