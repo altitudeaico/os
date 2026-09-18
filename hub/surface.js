@@ -516,6 +516,7 @@ function spotlightOwnHero(animate) {
   if (!spotlightAvailable()) return false;
   _heroOwner = 'spotlight';
   stopHeroCycle();                       // card hero image cycling must not fight us
+  if (_heroCardTimer) { clearTimeout(_heroCardTimer); _heroCardTimer = null; }  // cancel any pending debounced card-hero paint that would overwrite the spotlight
   const actions = document.getElementById('hero-spot-actions');
   if (actions) actions.style.display = 'flex';
   const rail = document.getElementById('rail-cards');
@@ -650,21 +651,6 @@ function setCardFocus(idx, updateHero) {
     const offset = cardLeft - (railWidth / 2) + (cardWidth / 2);
     rail.scrollTo({ left: Math.max(0, offset), behavior: 'smooth' });
   }
-  // DIAG: report the focused card's real runtime state
-  try {
-    var fc = document.querySelector('.rail-card.focused');
-    var p = document.getElementById('fos-probe');
-    if (p) {
-      if (!fc) { p.textContent = 'FOCUS: none! idx='+_cardIdx; }
-      else {
-        var cs = window.getComputedStyle(fc);
-        p.textContent = 'idx='+_cardIdx+' dest='+(fc.dataset.dest||'?')+
-          ' foc='+fc.classList.contains('focused')+
-          ' w='+Math.round(fc.getBoundingClientRect().width)+
-          ' bord='+cs.borderTopColor.replace(/\s/g,'');
-      }
-    }
-  } catch(e){}
   // Only change the hero once the user has actively engaged (not on first load)
   if (updateHero !== false) {
     _heroEngaged = true;
@@ -725,6 +711,7 @@ function updateHeroForCard(idx) {
   // Debounce slightly so fast scrolling does not thrash image loads
   if (_heroCardTimer) clearTimeout(_heroCardTimer);
   _heroCardTimer = setTimeout(() => {
+    if (_heroOwner === 'spotlight') return;   // spotlight took over; do not overwrite it
     if (heroBg && images.length) {
       // Reset both layers to a clean single-image state, then fade the
       // first image in exactly like before — same feel for the common
