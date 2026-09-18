@@ -115,6 +115,7 @@ async function showHome() {
   // steers the card rail, the cards take the hero back (see setCardFocus).
   try {
     await applySpotlightOverrides();
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='SPOTLIGHT: '+SPOTLIGHT_ITEMS.length+' items';})();
     if (spotlightAvailable()) { spotlightOwnHero(false); startSpotRotate(); }
   } catch (e) { err('spotlight: ' + e.message); }
 
