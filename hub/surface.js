@@ -1,4 +1,4 @@
-try{var _p=document.getElementById('fos-probe');if(_p)_p.textContent='SURFACE-DIAG1-LOADED';}catch(e){}
+try{var _p=document.getElementById('fos-probe');if(_p)_p.textContent='H4-LOADED';}catch(e){}
 (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='surface.js: LOADED';})();
 /**
  * Family OS TV — Surface Identity & Application Bootstrap
@@ -91,7 +91,7 @@ async function initSurface() {
 
 
 async function showHome() {
-  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='DIAG1-LIVE-START';})();
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-START';})();
   showView('home');
 
   // Render cards FIRST — independent of hero setup, so a hero error can't block them
@@ -119,7 +119,10 @@ async function showHome() {
     // Home is the resting focus on load, so the Spotlight Gallery owns the hero
     // and rotates. Focusing any other card hands the hero to that card.
     if (isHomeFocused() && spotlightAvailable()) { spotlightOwnHero(false); startSpotRotate(); }
-  } catch (e) { err('spotlight: ' + e.message); }
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-DONE items='+SPOTLIGHT_ITEMS.length+' own='+_heroOwner;})();
+  } catch (e) {
+    (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='H4-SPOT-ERR: '+(e&&e.message?e.message:e);})();
+  }
 
   // Boot visibility is UX state — hide immediately after render attempt.
   // Realtime, clock and auth listener initialise afterwards.
