@@ -57,6 +57,7 @@
     <div class="tab" data-panel="music">Music</div>
     <div class="tab" data-panel="schedule">Schedule</div>
     <div class="tab" data-panel="card">Home Card</div>
+    <div class="tab" data-panel="featured">Featured</div>
   </div>
 
   <!-- PHOTOS -->
@@ -120,6 +121,27 @@
       <button onclick="uploadCardThumb()">Set new thumbnail</button>
       <div class="hint">Or pick one of Emma's existing photos:</div>
       <div id="card-photo-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- FEATURED -->
+  <div class="panel" id="panel-featured">
+    <div class="section">
+      <h2>Featured on Home</h2>
+      <div class="hint">These rotate in the big banner at the top of the Family OS home screen when nobody is using the remote. Drag order by sort number. Keep "Welcome home" first.</div>
+      <div id="featured-list" style="margin-top:8px;"></div>
+      <div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:16px;padding-top:14px;">
+        <div style="font-size:13px;color:#ff6ec7;font-weight:700;margin-bottom:8px;">Add a featured item</div>
+        <input type="text" id="feat-eyebrow" placeholder="Small label (e.g. Emma's World)">
+        <input type="text" id="feat-title" placeholder="Headline (e.g. Emma is Five)">
+        <input type="text" id="feat-meta" placeholder="Sub-line (e.g. Her birthday film)">
+        <input type="url" id="feat-thumb" placeholder="Background image URL">
+        <div class="row">
+          <input type="text" id="feat-dest" placeholder="Opens (emma, elsie, family-time...)">
+          <input type="text" id="feat-cta" placeholder="Button (e.g. Open)" style="flex:0 0 130px;">
+        </div>
+        <button onclick="addFeatured()">Add featured item</button>
+      </div>
     </div>
   </div>
 </div>
@@ -303,8 +325,39 @@ async function setCardFromUrl(url) {
   loadCard();
 }
 
+// ── FEATURED ──
+async function loadFeatured() {
+  const { data } = await sb.from('spotlight').select('*').order('sort_order');
+  const list = document.getElementById('featured-list');
+  if (!list) return;
+  list.innerHTML = (data||[]).map(f => {
+    const img = f.thumb ? '<img src="'+f.thumb+'" style="width:60px;height:38px;object-fit:cover;border-radius:5px;">' : '<div style="width:60px;height:38px;border-radius:5px;background:rgba(255,255,255,0.1);"></div>';
+    const title = f.welcome ? 'Welcome home (resting card)' : ((f.eyebrow?f.eyebrow+' — ':'')+(f.title||''));
+    const onoff = f.active ? 'On' : 'Off';
+    return '<div class="item">'+img+'<div class="info"><div class="t">'+title+'</div><div class="u">order '+f.sort_order+' · '+onoff+(f.dest?' · opens '+f.dest:'')+'</div></div>'+
+      (f.welcome ? '' : '<button class="small danger" onclick="delFeatured(\''+f.id+'\')">Remove</button>')+'</div>';
+  }).join('');
+}
+async function addFeatured() {
+  const eyebrow = document.getElementById('feat-eyebrow').value.trim();
+  const title = document.getElementById('feat-title').value.trim();
+  if (!title) { showStatus('Add a headline at least', false); return; }
+  const meta = document.getElementById('feat-meta').value.trim();
+  const thumb = document.getElementById('feat-thumb').value.trim();
+  const dest = document.getElementById('feat-dest').value.trim();
+  const cta = document.getElementById('feat-cta').value.trim();
+  // put it at the end
+  const { data: maxRow } = await sb.from('spotlight').select('sort_order').order('sort_order',{ascending:false}).limit(1).maybeSingle();
+  const nextOrder = ((maxRow && maxRow.sort_order) || 0) + 1;
+  await sb.from('spotlight').insert({ welcome:false, eyebrow, title, meta, thumb, dest, cta: cta||'Open', active:true, sort_order: nextOrder });
+  ['feat-eyebrow','feat-title','feat-meta','feat-thumb','feat-dest','feat-cta'].forEach(id=>document.getElementById(id).value='');
+  showStatus('Featured item added — appears on the TV shortly', true);
+  loadFeatured();
+}
+async function delFeatured(id) { await sb.from('spotlight').delete().eq('id', id); loadFeatured(); }
+
 // Load all
-loadPhotos(); loadMusic(); loadItinerary(); loadCard();
+loadPhotos(); loadMusic(); loadItinerary(); loadCard(); loadFeatured();
 </script>
 </body>
 </html>
