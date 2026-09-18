@@ -1,3 +1,4 @@
+try{var _p=document.getElementById('fos-probe');if(_p)_p.textContent='SURFACE-DIAG1-LOADED';}catch(e){}
 (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='surface.js: LOADED';})();
 /**
  * Family OS TV — Surface Identity & Application Bootstrap
@@ -90,7 +91,7 @@ async function initSurface() {
 
 
 async function showHome() {
-  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='showHome: START v9';})();
+  (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='DIAG1-LIVE-START';})();
   showView('home');
 
   // Render cards FIRST — independent of hero setup, so a hero error can't block them
