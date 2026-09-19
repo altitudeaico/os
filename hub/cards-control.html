@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Home Cards — Control</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #12100a 0%, #060a06 100%); color: #fff; min-height: 100vh; padding: 20px; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .backlink { display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:rgba(255,255,255,0.75);
+    font-weight:600;font-size:13px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);
+    border-radius:20px;padding:8px 14px;margin-bottom:16px; }
+  h1 { font-size: 22px; color: #C9A84C; margin-bottom: 4px; }
+  .sub { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 20px; }
+  .status { padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; display: none; }
+  .status.show { display: block; } .status.ok { background: rgba(48,209,88,0.2); color: #30d158; } .status.err { background: rgba(255,80,80,0.2); color: #ff8080; }
+  input, button { font-family: inherit; font-size: 15px; border-radius: 10px; border: none; }
+  input[type=text], input[type=url] { width: 100%; padding: 10px; background: rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.15); margin-bottom: 8px; }
+  button { background: #C9A84C; color:#1a1400; padding:10px 15px; font-weight:700; cursor:pointer; }
+  button.small { padding:6px 11px; font-size:13px; background:rgba(255,255,255,0.15); color:#fff; }
+  .card { display:flex; align-items:center; gap:11px; padding:10px; background:rgba(0,0,0,0.25); border-radius:10px; margin-bottom:9px; }
+  .card img { width:72px; height:45px; object-fit:cover; border-radius:6px; background:#222; flex:0 0 auto; }
+  .card .info { flex:1; min-width:0; }
+  .card .name { font-weight:700; font-size:15px; }
+  .card .desc { color:rgba(255,255,255,0.5); font-size:12px; }
+  .card .badges { color:rgba(255,255,255,0.4); font-size:11px; margin-top:3px; }
+  .card .acts { display:flex; flex-direction:column; gap:5px; flex:0 0 auto; }
+  .editbox { background:rgba(0,0,0,0.35); border:1px solid rgba(201,168,76,0.4); border-radius:10px; padding:12px; margin-bottom:9px; }
+  .lbl { font-size:11px; color:rgba(255,255,255,0.5); margin:2px 0 3px; }
+  .off { opacity:0.45; }
+  .row { display:flex; gap:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="backlink" href="/hub/control.html">← Central Control</a>
+  <h1>Home Cards</h1>
+  <div class="sub">The cards in the TV Home rail. Edit image, name, hero and order. Changes appear on the TV on next open.</div>
+  <div class="status" id="status"></div>
+  <div id="cards"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL='https://fypwabbhxnnwcpfjwrda.supabase.co';
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const sb=supabase.createClient(SUPABASE_URL,ANON_KEY);
+let _editing=null;
+function showStatus(m,ok){const el=document.getElementById('status');el.textContent=m;el.className='status show '+(ok?'ok':'err');setTimeout(()=>el.classList.remove('show'),4500);}
+function esc(s){return (s||'').replace(/"/g,'&quot;');}
+
+async function load(){
+  const {data,error}=await sb.from('home_cards').select('*').order('sort_order');
+  const list=document.getElementById('cards');
+  if(error){list.innerHTML='<div style="color:#ff8080">Could not load: '+error.message+'</div>';return;}
+  list.innerHTML=data.map(function(c){
+    if(_editing===c.id) return form(c);
+    const img=c.img?'<img src="'+c.img+'">':'<div style="width:72px;height:45px;border-radius:6px;background:rgba(255,255,255,0.08);flex:0 0 auto;"></div>';
+    const badges=[c.active?'On':'Off','order '+c.sort_order,'opens '+c.dest];
+    return '<div class="card '+(c.active?'':'off')+'">'+img+
+      '<div class="info"><div class="name">'+c.label+'</div>'+
+      '<div class="desc">'+(c.heading||'')+(c.meta?' · '+c.meta:'')+'</div>'+
+      '<div class="badges">'+badges.join(' · ')+'</div></div>'+
+      '<div class="acts">'+
+        '<button class="small" onclick="edit(\''+c.id+'\')">Edit</button>'+
+        '<button class="small" onclick="toggle(\''+c.id+'\','+(!c.active)+')">'+(c.active?'Hide':'Show')+'</button>'+
+      '</div></div>';
+  }).join('');
+}
+function form(c){
+  return '<div class="editbox">'+
+    '<div class="lbl">Card name (rail label)</div><input type="text" id="f-label" value="'+esc(c.label)+'">'+
+    '<div class="lbl">Card thumbnail image URL</div><input type="url" id="f-img" value="'+esc(c.img)+'">'+
+    '<div class="lbl">Hero background image URL (big backdrop when focused)</div><input type="url" id="f-hero" value="'+esc(c.hero)+'">'+
+    '<div class="lbl">Hero heading</div><input type="text" id="f-heading" value="'+esc(c.heading)+'">'+
+    '<div class="lbl">Hero sub-line</div><input type="text" id="f-meta" value="'+esc(c.meta)+'">'+
+    '<div class="lbl">Order (lower = further left)</div><input type="text" id="f-order" value="'+c.sort_order+'">'+
+    '<div class="row"><button onclick="save(\''+c.id+'\')">Save</button><button class="small" onclick="cancel()">Cancel</button></div>'+
+  '</div>';
+}
+function edit(id){_editing=id;load();}
+function cancel(){_editing=null;load();}
+async function save(id){
+  const upd={
+    label:document.getElementById('f-label').value.trim(),
+    img:document.getElementById('f-img').value.trim()||null,
+    hero:document.getElementById('f-hero').value.trim()||null,
+    heading:document.getElementById('f-heading').value.trim()||null,
+    meta:document.getElementById('f-meta').value.trim()||null,
+    sort_order:parseInt(document.getElementById('f-order').value.trim()||'0',10)||0
+  };
+  if(!upd.label){showStatus('Card needs a name',false);return;}
+  const {error}=await sb.from('home_cards').update(upd).eq('id',id);
+  if(error){showStatus('Failed: '+error.message,false);return;}
+  _editing=null;showStatus('Card saved',true);load();
+}
+async function toggle(id,on){const {error}=await sb.from('home_cards').update({active:on}).eq('id',id);if(error){showStatus('Failed: '+error.message,false);return;}showStatus(on?'Shown':'Hidden',true);load();}
+load();
+</script>
+</body>
+</html>
