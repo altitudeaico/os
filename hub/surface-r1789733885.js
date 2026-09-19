@@ -116,7 +116,6 @@ async function showHome() {
   const withTimeout = function(promise, ms){
     return Promise.race([ promise, new Promise(function(res){ setTimeout(res, ms); }) ]);
   };
-  try { await withTimeout(applyCardOverrides(), 4000); } catch(e){}
   try { await withTimeout(applyFeaturedHeroImages(), 4000); } catch(e){}
   // Re-render rail so any override images/featured images now apply
   try { renderRail(HOME_CARDS); } catch(e){}
@@ -285,7 +284,7 @@ async function applyHomeCardsFromDB() {
   } catch (e) { /* keep built-in HOME_CARDS */ }
 }
 
-async function applyCardOverrides() {
+
   // Fetch card thumbnail/label overrides from Supabase and merge into HOME_CARDS
   try {
     const API = 'https://fypwabbhxnnwcpfjwrda.supabase.co/rest/v1';
