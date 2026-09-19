@@ -314,22 +314,37 @@ html, body {
   var ov = document.getElementById('opener');
   var v = document.getElementById('opener-video');
   if (!ov || !v) return;
-  var gone = false;
+  var gone = false, started = false;
   function dismiss(){
     if (gone) return; gone = true;
     ov.style.opacity = '0';
     setTimeout(function(){ ov.style.display = 'none'; try{v.pause();}catch(e){} }, 850);
   }
+  // Once it is genuinely playing, only end when the clip ends (or hard cap).
+  v.addEventListener('playing', function(){ started = true; });
+  v.addEventListener('timeupdate', function(){ if (v.currentTime > 0.1) started = true; });
   v.addEventListener('ended', dismiss);
   v.addEventListener('error', dismiss);
-  // Try to play. If the WebView blocks autoplay, dismiss quickly so no play
-  // button lingers and Home is revealed underneath.
-  var p = v.play();
-  if (p && p.catch) { p.catch(function(){ dismiss(); }); }
-  // If it hasn't actually started within 1.2s, give up gracefully.
-  setTimeout(function(){ if (!gone && (v.paused || v.currentTime === 0)) dismiss(); }, 1200);
-  // Absolute safety cap.
-  setTimeout(dismiss, 11000);
+
+  function tryPlay(){
+    var p = v.play();
+    if (p && p.catch) { p.catch(function(){ /* may need another nudge */ }); }
+  }
+  // Nudge play a few times as the WebView/buffer becomes ready.
+  tryPlay();
+  v.addEventListener('canplay', tryPlay);
+  v.addEventListener('loadeddata', tryPlay);
+  var nudges = 0;
+  var iv = setInterval(function(){
+    nudges++;
+    if (started || gone || nudges > 8) { clearInterval(iv); return; }
+    tryPlay();
+  }, 500);
+
+  // Give buffering a fair chance: only bail if it hasn't started after 5s.
+  setTimeout(function(){ if (!started && !gone) dismiss(); }, 5000);
+  // Absolute safety cap (clip is ~10s).
+  setTimeout(dismiss, 12000);
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
