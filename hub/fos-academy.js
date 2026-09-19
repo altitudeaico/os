@@ -369,7 +369,7 @@ function acadInjectStyles(){
    '.acad-motto-yo{color:rgba(255,255,255,0.5);font-size:clamp(10px,0.75vw,13px);letter-spacing:0.16em;text-transform:uppercase;margin-top:4px;font-style:italic;}'+
    '.acad-hero{position:absolute;top:27vh;left:4vw;right:4vw;text-align:center;z-index:3;transition:opacity 0.5s ease;min-height:34vh;display:flex;flex-direction:column;justify-content:center;}'+
    'X;font-size:clamp(11px,0.9vw,15px);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:0.6em;}'+
-   '.acad-hero-quote{color:#fff;font-size:clamp(40px,5.2vw,92px);font-weight:400;line-height:1.2;font-family:Georgia,serif;max-width:94%;margin:0 auto;text-shadow:0 2px 24px rgba(0,0,0,0.85);}'+
+   '.acad-hero-quote{color:#fff;font-size:clamp(60px,7.8vw,138px);font-weight:400;line-height:1.2;font-family:Georgia,serif;max-width:94%;margin:0 auto;text-shadow:0 2px 24px rgba(0,0,0,0.85);}'+
    '.acad-hero-pillar{color:#fff;font-size:clamp(42px,5.4vw,96px);font-weight:700;text-shadow:0 2px 24px rgba(0,0,0,0.85);}'+
    '.acad-hero-by{color:rgba(255,255,255,0.8);font-size:clamp(18px,1.7vw,32px);margin-top:1em;text-shadow:0 2px 14px rgba(0,0,0,0.85);}'+
    '.acad-tiles{position:absolute;bottom:6vh;left:0;right:0;display:flex;justify-content:center;gap:clamp(10px,1.4vw,20px);z-index:4;padding:0 4vw;}'+
