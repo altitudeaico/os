@@ -370,11 +370,11 @@ function acadInjectStyles(){
    '.acad-title{color:#fff;font-size:clamp(26px,3vw,52px);font-weight:800;letter-spacing:-0.01em;}'+
    '.acad-motto{color:'+ACAD_GOLD+';font-size:clamp(11px,0.9vw,16px);letter-spacing:0.18em;text-transform:uppercase;margin-top:8px;}'+
    '.acad-motto-yo{color:rgba(255,255,255,0.5);font-size:clamp(10px,0.75vw,13px);letter-spacing:0.16em;text-transform:uppercase;margin-top:4px;font-style:italic;}'+
-   '.acad-hero{position:absolute;top:31vh;left:8vw;right:8vw;text-align:center;z-index:3;transition:opacity 0.5s ease;min-height:20vh;}'+
+   '.acad-hero{position:absolute;top:27vh;left:4vw;right:4vw;text-align:center;z-index:3;transition:opacity 0.5s ease;min-height:34vh;display:flex;flex-direction:column;justify-content:center;}'+
    'X;font-size:clamp(11px,0.9vw,15px);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:0.6em;}'+
-   '.acad-hero-quote{color:#fff;font-size:clamp(30px,3.6vw,62px);font-weight:300;line-height:1.3;font-family:Georgia,serif;max-width:88%;margin:0 auto;text-shadow:0 2px 20px rgba(0,0,0,0.8);}'+
-   '.acad-hero-pillar{color:#fff;font-size:clamp(30px,3.6vw,60px);font-weight:700;text-shadow:0 2px 20px rgba(0,0,0,0.8);}'+
-   '.acad-hero-by{color:rgba(255,255,255,0.75);font-size:clamp(15px,1.3vw,24px);margin-top:0.9em;text-shadow:0 2px 12px rgba(0,0,0,0.8);}'+
+   '.acad-hero-quote{color:#fff;font-size:clamp(40px,5.2vw,92px);font-weight:400;line-height:1.2;font-family:Georgia,serif;max-width:94%;margin:0 auto;text-shadow:0 2px 24px rgba(0,0,0,0.85);}'+
+   '.acad-hero-pillar{color:#fff;font-size:clamp(42px,5.4vw,96px);font-weight:700;text-shadow:0 2px 24px rgba(0,0,0,0.85);}'+
+   '.acad-hero-by{color:rgba(255,255,255,0.8);font-size:clamp(18px,1.7vw,32px);margin-top:1em;text-shadow:0 2px 14px rgba(0,0,0,0.85);}'+
    '.acad-tiles{position:absolute;bottom:6vh;left:0;right:0;display:flex;justify-content:center;gap:clamp(10px,1.4vw,20px);z-index:4;padding:0 4vw;}'+
    '.acad-tile{flex:0 0 auto;width:clamp(150px,17vw,240px);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(12px,1.3vw,20px);transition:all 0.18s;}'+
    '.acad-tile.fos-focused{border-color:'+ACAD_GOLD+';background:rgba(201,168,76,0.14);transform:scale(1.05);box-shadow:0 0 26px rgba(201,168,76,0.3);}'+
