@@ -94,8 +94,12 @@ async function showHome() {
   (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='v9';})();
   try { showView('home'); } catch(e){}
 
-  // Render cards IMMEDIATELY and synchronously - no network await before this,
-  // so a slow/hanging fetch can never prevent the Home screen from appearing.
+  // Load editable cards from Control (home_cards table); falls back to code list.
+  // Guarded by a short timeout so a slow network can't delay first paint much.
+  try {
+    const _wt = function(p,ms){ return Promise.race([p, new Promise(function(res){ setTimeout(res, ms); })]); };
+    await _wt(applyHomeCardsFromDB(), 3000);
+  } catch(e){}
   try {
     renderRail(HOME_CARDS);
   } catch(e) {
@@ -256,6 +260,25 @@ function contextForTime() {
   if (h >= 5  && h < 12) return 'Good morning, Olatoye Family';
   if (h >= 12 && h < 17) return 'Good afternoon, Olatoye Family';
   return 'Good evening, Olatoye Family';
+}
+
+async function applyHomeCardsFromDB() {
+  // Cards are editable from Control via the home_cards table. If the fetch
+  // succeeds and returns rows, they replace the built-in HOME_CARDS list.
+  // On any failure we keep the code list (safe fallback).
+  try {
+    const hdr = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
+    const url = SUPABASE_URL + '/rest/v1/home_cards?select=dest,label,img,hero,heading,meta,active,sort_order&active=eq.true&order=sort_order';
+    const r = await fetch(url, { headers: hdr, cache: 'no-store' });
+    if (!r.ok) return;
+    const rows = await r.json();
+    if (Array.isArray(rows) && rows.length) {
+      HOME_CARDS.length = 0;
+      rows.forEach(function (x) {
+        HOME_CARDS.push({ label:x.label, img:x.img, dest:x.dest, hero:x.hero, heading:x.heading, meta:x.meta });
+      });
+    }
+  } catch (e) { /* keep built-in HOME_CARDS */ }
 }
 
 async function applyCardOverrides() {
