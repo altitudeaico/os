@@ -52,7 +52,7 @@ window.addEventListener('load', async () => {
     if (!boot) return;
     const hidden = boot.style.display === 'none' || boot.classList.contains('fade-out');
     if (!hidden) {
-      err('Boot watchdog (load): boot still visible after 5s — forcing removal');
+      err('Boot watchdog (load): boot still visible after 12s — forcing removal');
       boot.style.display = 'none';
       const diag = document.createElement('div');
       diag.style.cssText = 'position:fixed;top:2%;left:50%;transform:translateX(-50%);' +
@@ -134,12 +134,12 @@ async function showHome() {
   hideBoot();
   (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='HOME: SHOWN';})();
 
-  // Diagnostic watchdog: if boot is somehow still visible after 5s, force-remove it
+  // Diagnostic watchdog: if boot is somehow still visible after 12s, force-remove it
   // and surface a minimal indicator so we can see what is underneath.
   setTimeout(() => {
     const boot = document.getElementById('boot');
     if (boot && boot.style.display !== 'none' && !boot.classList.contains('fade-out')) {
-      err('Boot watchdog: boot still visible after 5s — forcing removal');
+      err('Boot watchdog: boot still visible after 12s — forcing removal');
       boot.style.display = 'none';
       const diag = document.createElement('div');
       diag.id = 'home-init-diag';
