@@ -14,10 +14,12 @@
     color: #fff; min-height: 100vh; padding: 22px 18px 40px;
   }
   .wrap { max-width: 520px; margin: 0 auto; }
-  .head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
-  .head img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; }
-  h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
-  .sub { color: rgba(255,255,255,0.5); font-size: 13px; margin: 2px 0 22px 52px; }
+  .head { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 8px 0 26px; }
+  .head img { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; margin-bottom: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+  .head-title { font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+  .head-sub { color: #C9A84C; font-size: 12px; font-weight: 700; letter-spacing: 0.22em;
+    text-transform: uppercase; margin-top: 4px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
   .tile {
     position: relative; display: block; text-decoration: none; color: #fff;
@@ -49,10 +51,10 @@
 <body>
 <div class="wrap">
   <div class="head">
-    <img src="https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png" onerror="this.style.display='none'" alt="">
-    <h1>Family OS Control</h1>
+    <img src="https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png" onerror="this.style.display='none'" alt="Family OS">
+    <div class="head-title">Family OS</div>
+    <div class="head-sub">Central Control</div>
   </div>
-  <div class="sub">Manage everything in one place</div>
 
   <!-- TV NOW - wide, primary -->
   <a class="tile wide tvnow" href="/control/">
