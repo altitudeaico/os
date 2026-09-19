@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="/hub/control.webmanifest">
+<meta name="theme-color" content="#0d1410">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OS Control">
+<link rel="apple-touch-icon" href="https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Family OS Control</title>
@@ -112,13 +118,32 @@
     </a>
   </div>
 
-  <div class="foot">Olatoye Family OS</div>
+  <div style="text-align:center;margin-top:22px;"><button id="installBtn" onclick="fosInstall()" style="display:none;background:#C9A84C;color:#1a1400;border:none;border-radius:22px;padding:11px 22px;font-weight:700;font-size:14px;cursor:pointer;">⬇ Install as app</button></div><div class="foot">Olatoye Family OS</div>
 </div>
 
 <script>
 function soon(name){
   alert(name + " controls are being built. For now this area isn't available yet.");
   return false;
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/hub/control-sw.js', { scope: '/hub/' }).catch(function(){});
+}
+// Android/Chrome install prompt
+var _deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault(); _deferredPrompt = e;
+  var b = document.getElementById('installBtn');
+  if (b) b.style.display = 'inline-flex';
+});
+function fosInstall(){
+  if (_deferredPrompt){ _deferredPrompt.prompt(); _deferredPrompt = null;
+    var b=document.getElementById('installBtn'); if(b) b.style.display='none';
+  } else {
+    alert('To install: open the browser menu and choose "Add to Home screen" / "Install app".');
+  }
 }
 </script>
 </body>
