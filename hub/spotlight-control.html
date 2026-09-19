@@ -89,6 +89,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/hub/fos-imagepicker.js"></script>
 <script>
 const SUPABASE_URL='https://fypwabbhxnnwcpfjwrda.supabase.co';
 const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
@@ -146,7 +147,9 @@ function editForm(s){
     '<div class="row"><button onclick="saveEdit(\''+s.id+'\')">Save</button>'+
     '<button class="small" onclick="cancelEdit()">Cancel</button></div></div>';
 }
-function edit(id){_editing=id;load();}
+function edit(id){_editing=id;load();setTimeout(function(){
+    if(window.FOSImagePicker){var t=document.getElementById('e-thumb'); if(t) FOSImagePicker.attach(t, sb);}
+  },60);}
 function cancelEdit(){_editing=null;load();}
 async function saveEdit(id){
   const upd={
@@ -179,6 +182,12 @@ async function toggleActive(id,on){const {error}=await sb.from('spotlight').upda
 async function removeSlide(id){const {error}=await sb.from('spotlight').delete().eq('id',id);if(error){showStatus('Failed: '+error.message,false);return;}showStatus('Removed',true);load();}
 
 loadHomeCard();load();
+setTimeout(function(){
+  if(window.FOSImagePicker){
+    var hc=document.getElementById('homecard-url'); if(hc) FOSImagePicker.attach(hc, sb);
+    var st=document.getElementById('s-thumb'); if(st) FOSImagePicker.attach(st, sb);
+  }
+},80);
 </script>
 </body>
 </html>
