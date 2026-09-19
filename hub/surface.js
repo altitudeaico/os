@@ -515,7 +515,7 @@ function paintSpotlightHero(animate) {
   if (!it) return;
   const copy = document.querySelector('.home-hero-text');
   const eyebrow = it.welcome ? contextForTime() : (it.eyebrow || '');
-  const art     = it.welcome ? heroForTime()    : it.thumb;
+  const art     = it.welcome ? (it.thumb || heroForTime()) : it.thumb;
   const apply = function () {
     setHeroText({ context: eyebrow, heading: it.title || '', meta: it.meta || '' });
     const cta = document.getElementById('hero-cta');
