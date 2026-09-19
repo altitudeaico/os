@@ -97,6 +97,7 @@ html, body {
 .home-identity { display: flex; align-items: center; gap: 0.5em; }
 .home-icon { color: #C9A84C; font-size: 0.9em; }
 .home-wordmark { color: #C9A84C; font-size: 0.6em; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+#home-status-pill { position: absolute; right: clamp(24px,3vw,56px); bottom: clamp(16px,3vh,40px); z-index: 6; }
 .home-status {
   display: flex; align-items: center; gap: 0.4em;
   background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
@@ -260,18 +261,10 @@ html, body {
     <div class="home-hero-gradient"></div>
 
     <!-- Top chrome -->
-    <div class="home-header">
-      <div class="home-identity">
-        <div class="home-icon">⌂</div>
-        <div class="home-wordmark">Olatoye Family OS</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:0.8em;">
-        <div class="home-status">
-          <div class="home-status-dot" id="realtime-dot"></div>
-          <div class="home-status-text" id="realtime-label">Family OS</div>
-        </div>
-        <div class="home-clock" id="home-clock"></div>
-      </div>
+    <!-- Status pill, bottom-right -->
+    <div class="home-status" id="home-status-pill">
+      <div class="home-status-dot" id="realtime-dot"></div>
+      <div class="home-status-text" id="realtime-label">Family OS</div>
     </div>
 
     <!-- Large ambient clock, bottom-right (Emma/Elsie treatment) -->
@@ -293,18 +286,12 @@ html, body {
 
     <!-- Card rail -->
     <div class="home-rails">
-      <div class="rail-label" id="rail-label">Up Next</div>
+      
       <div class="rail-cards" id="rail-cards"></div>
     </div>
 
     <!-- Navigation -->
-    <div class="home-nav" id="home-nav">
-      <div class="nav-item active focused" data-nav="home">Home</div>
-      <div class="nav-item" data-nav="academy">Academy</div>
-      <div class="nav-item" data-nav="watch">Watch</div>
-      <div class="nav-item" data-nav="memories">Memories</div>
-      <div class="nav-item" data-nav="family">Family</div>
-    </div>
+    
 
   </div>
 </div>
