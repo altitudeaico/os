@@ -991,22 +991,8 @@ function showView(name) {
 function hideBoot() {
   const boot = document.getElementById('boot');
   if (!boot) return;
-  const vid = document.getElementById('boot-video');
-  var done = false;
-  function finish() {
-    if (done) return; done = true;
-    boot.classList.add('fade-out');
-    setTimeout(function(){ boot.style.display = 'none'; }, 900);
-  }
-  if (vid) {
-    // Let the opener play; fade to Home when it ends, or after a safety max.
-    vid.addEventListener('ended', finish);
-    setTimeout(finish, 10800);          // safety: never hang longer than the clip
-    // If the video can't autoplay at all, don't get stuck on a frozen frame.
-    setTimeout(function(){ if (vid.paused && vid.currentTime === 0) finish(); }, 1500);
-  } else {
-    finish();
-  }
+  boot.classList.add('fade-out');
+  setTimeout(function(){ boot.style.display = 'none'; }, 700);
 }
 
 /* ════════════════════════════════════════════════════════════════
