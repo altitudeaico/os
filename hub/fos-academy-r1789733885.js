@@ -169,7 +169,6 @@ function openOurAcademy(){
   }).join('');
   ov.innerHTML='<div class="acad-ov-inner">'+
     '<div class="acad-ov-head">Our Academy</div>'+
-    '<div class="acad-ov-sub">Christ at the Centre · Excellence in All</div>'+
     '<div class="acad-section-label">The Nine Pillars</div>'+
     '<div class="acad-pills">'+pills+'</div>'+
     '<div class="acad-ourrow">'+
