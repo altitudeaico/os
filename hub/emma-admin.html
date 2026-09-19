@@ -305,9 +305,9 @@ async function delItin(id) { await sb.from('emma_itinerary').delete().eq('id', i
 
 // ── HOME CARD ──
 async function loadCard() {
-  const { data } = await sb.from('home_card_overrides').select('*').eq('dest','emma').maybeSingle();
+  const { data } = await sb.from('home_cards').select('img').eq('dest','emma').maybeSingle();
   const cur = document.getElementById('card-current');
-  cur.src = (data && data.img_url) ? data.img_url : 'https://olatoyefamily.com/hub/assets/emma/emma-01.png';
+  cur.src = (data && data.img) ? data.img : 'https://olatoyefamily.com/hub/assets/emma/emma-01.png';
 }
 async function uploadCardThumb() {
   const file = document.getElementById('card-file').files[0];
@@ -321,7 +321,7 @@ async function uploadCardThumb() {
   document.getElementById('card-file').value='';
 }
 async function setCardFromUrl(url) {
-  await sb.from('home_card_overrides').upsert({ dest:'emma', img_url:url, updated_at:new Date().toISOString() });
+  await sb.from('home_cards').update({ img:url }).eq('dest','emma');
   showStatus('Home card updated — appears on the TV shortly', true);
   loadCard();
 }
