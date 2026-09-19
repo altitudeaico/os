@@ -84,8 +84,6 @@ function renderAcademyHome(el){
     '<div class="acad-sparkles" id="acad-sparkles"></div>'+
     '<div class="acad-head">'+
       '<img class="acad-logo" src="'+logoUrl+'" alt="Olatoye Academy" onerror="this.style.display=\'none\'">'+
-      '<div class="acad-motto">Christ at the Centre · Excellence in All</div>'+
-      '<div class="acad-motto-yo">Didara Ninu Gbogbo Nkan</div>'+
     '</div>'+
     '<div class="acad-hero" id="acad-hero"></div>'+
     '<div class="acad-tiles">'+tiles+'</div>'+
@@ -361,7 +359,7 @@ function acadInjectStyles(){
   if(document.getElementById('acad-styles')) return;
   var s=document.createElement('style'); s.id='acad-styles';
   s.textContent=
-   '.acad-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,#151528 0%,#0a0a0f 60%,#050507 100%);background-size:cover;background-position:center;}.acad-bg-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,8,14,0.55) 0%,rgba(8,8,14,0.35) 40%,rgba(8,8,14,0.8) 100%);}.acad-logo{height:clamp(70px,9vh,130px);width:auto;object-fit:contain;margin-bottom:10px;filter:drop-shadow(0 4px 20px rgba(0,0,0,0.6));}'+
+   '.acad-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,#151528 0%,#0a0a0f 60%,#050507 100%);background-size:cover;background-position:center;}.acad-bg-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,8,14,0.55) 0%,rgba(8,8,14,0.35) 40%,rgba(8,8,14,0.8) 100%);}.acad-logo{height:clamp(96px,13vh,180px);width:clamp(96px,13vh,180px);object-fit:cover;border-radius:50%;border:3px solid rgba(201,168,76,0.55);background:rgba(0,0,0,0.35);margin-bottom:6px;filter:drop-shadow(0 6px 26px rgba(0,0,0,0.7));}'+
    '.acad-sparkles{position:absolute;inset:0;pointer-events:none;overflow:hidden;}'+
    '.acad-spark{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,0.9),transparent 70%);opacity:0;animation:acadTw 4s ease-in-out infinite;}'+
    '@keyframes acadTw{0%,100%{opacity:0;transform:scale(0.6);}50%{opacity:0.8;transform:scale(1);}}'+
