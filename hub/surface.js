@@ -456,7 +456,7 @@ window.fosHandleBack = function() {
 ══════════════════════════════════════════════════════ */
 async function applySpotlightOverrides() {
   const hdr = { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY };
-  const url = API + '/spotlight?select=welcome,eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order';
+  const url = SUPABASE_URL + '/rest/v1/spotlight?select=welcome,eyebrow,title,meta,thumb,cta,dest,action,sort_order&active=eq.true&order=sort_order';
   // Retry up to 3 times - a TV's wifi to Supabase can be slow/cold on first hit.
   for (var attempt = 0; attempt < 3; attempt++) {
     try {
@@ -469,7 +469,7 @@ async function applySpotlightOverrides() {
           return; // success
         }
       }
-    } catch (e) { /* try again */ }
+    } catch (e) { __D && __D('spotlight fetch err: '+(e&&e.message?e.message:e)); }
     // brief backoff before retry
     await new Promise(function(res){ setTimeout(res, 800); });
   }
