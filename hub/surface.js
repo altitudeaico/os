@@ -469,7 +469,7 @@ async function applySpotlightOverrides() {
           return; // success
         }
       }
-    } catch (e) { __D && __D('spotlight fetch err: '+(e&&e.message?e.message:e)); }
+    } catch (e) { /* fetch failed; keep fallback */ }
     // brief backoff before retry
     await new Promise(function(res){ setTimeout(res, 800); });
   }
