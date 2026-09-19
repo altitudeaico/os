@@ -36,8 +36,10 @@ async function openAcademyWorld(opts){
     acadFetch('/academy_quotes?select=text,author,pillar&active=eq.true'),
     acadFetch('/inspiration_creed?select=line,sort_order&order=sort_order'),
     acadFetch('/academy_children?select=name,year_group,key_stage,age_approx,colour&order=age_approx.desc'),
+    acadFetch('/academy_config?select=background_url,logo_url&id=eq.1'),
   ]);
   acadState.pillars=res[0]; acadState.quotes=res[1]; acadState.creed=res[2]; acadState.children=res[3];
+  acadState.config=(res[4] && res[4][0]) ? res[4][0] : {};
 
   acadInjectStyles();
   acadState.nav = new FOSNav();
@@ -74,11 +76,14 @@ function renderAcademyHome(el){
     '</div>';
   }).join('');
 
+  var bgUrl = acadState.config.background_url || '';
+  var logoUrl = acadState.config.logo_url || 'https://olatoyefamily.com/logo.jpg';
   el.innerHTML =
-    '<div class="acad-bg"></div><div class="acad-sparkles" id="acad-sparkles"></div>'+
+    '<div class="acad-bg" style="'+(bgUrl?'background-image:url('+bgUrl+');':'')+'"></div>'+
+    '<div class="acad-bg-scrim"></div>'+
+    '<div class="acad-sparkles" id="acad-sparkles"></div>'+
     '<div class="acad-head">'+
-      '<div class="acad-crest">✝</div>'+
-      '<div class="acad-title">Olatoye Academy</div>'+
+      '<img class="acad-logo" src="'+logoUrl+'" alt="Olatoye Academy" onerror="this.style.display=\'none\'">'+
       '<div class="acad-motto">Christ at the Centre · Excellence in All</div>'+
       '<div class="acad-motto-yo">Didara Ninu Gbogbo Nkan</div>'+
     '</div>'+
@@ -356,7 +361,7 @@ function acadInjectStyles(){
   if(document.getElementById('acad-styles')) return;
   var s=document.createElement('style'); s.id='acad-styles';
   s.textContent=
-   '.acad-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,#151528 0%,#0a0a0f 60%,#050507 100%);}'+
+   '.acad-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,#151528 0%,#0a0a0f 60%,#050507 100%);background-size:cover;background-position:center;}.acad-bg-scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,8,14,0.55) 0%,rgba(8,8,14,0.35) 40%,rgba(8,8,14,0.8) 100%);}.acad-logo{height:clamp(70px,9vh,130px);width:auto;object-fit:contain;margin-bottom:10px;filter:drop-shadow(0 4px 20px rgba(0,0,0,0.6));}'+
    '.acad-sparkles{position:absolute;inset:0;pointer-events:none;overflow:hidden;}'+
    '.acad-spark{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,0.9),transparent 70%);opacity:0;animation:acadTw 4s ease-in-out infinite;}'+
    '@keyframes acadTw{0%,100%{opacity:0;transform:scale(0.6);}50%{opacity:0.8;transform:scale(1);}}'+
@@ -366,10 +371,10 @@ function acadInjectStyles(){
    '.acad-motto{color:'+ACAD_GOLD+';font-size:clamp(11px,0.9vw,16px);letter-spacing:0.18em;text-transform:uppercase;margin-top:8px;}'+
    '.acad-motto-yo{color:rgba(255,255,255,0.5);font-size:clamp(10px,0.75vw,13px);letter-spacing:0.16em;text-transform:uppercase;margin-top:4px;font-style:italic;}'+
    '.acad-hero{position:absolute;top:31vh;left:8vw;right:8vw;text-align:center;z-index:3;transition:opacity 0.5s ease;min-height:20vh;}'+
-   '.acad-hero-eyebrow{color:'+ACAD_GOLD+';font-size:clamp(11px,0.9vw,15px);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:0.6em;}'+
-   '.acad-hero-quote{color:#fff;font-size:clamp(20px,2.4vw,40px);font-weight:300;line-height:1.35;font-family:Georgia,serif;max-width:80%;margin:0 auto;}'+
-   '.acad-hero-pillar{color:#fff;font-size:clamp(22px,2.6vw,44px);font-weight:700;}'+
-   '.acad-hero-by{color:rgba(255,255,255,0.6);font-size:clamp(12px,1vw,18px);margin-top:0.8em;}'+
+   'X;font-size:clamp(11px,0.9vw,15px);letter-spacing:0.16em;text-transform:uppercase;margin-bottom:0.6em;}'+
+   '.acad-hero-quote{color:#fff;font-size:clamp(30px,3.6vw,62px);font-weight:300;line-height:1.3;font-family:Georgia,serif;max-width:88%;margin:0 auto;text-shadow:0 2px 20px rgba(0,0,0,0.8);}'+
+   '.acad-hero-pillar{color:#fff;font-size:clamp(30px,3.6vw,60px);font-weight:700;text-shadow:0 2px 20px rgba(0,0,0,0.8);}'+
+   '.acad-hero-by{color:rgba(255,255,255,0.75);font-size:clamp(15px,1.3vw,24px);margin-top:0.9em;text-shadow:0 2px 12px rgba(0,0,0,0.8);}'+
    '.acad-tiles{position:absolute;bottom:6vh;left:0;right:0;display:flex;justify-content:center;gap:clamp(10px,1.4vw,20px);z-index:4;padding:0 4vw;}'+
    '.acad-tile{flex:0 0 auto;width:clamp(150px,17vw,240px);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(12px,1.3vw,20px);transition:all 0.18s;}'+
    '.acad-tile.fos-focused{border-color:'+ACAD_GOLD+';background:rgba(201,168,76,0.14);transform:scale(1.05);box-shadow:0 0 26px rgba(201,168,76,0.3);}'+
