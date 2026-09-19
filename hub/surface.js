@@ -160,11 +160,18 @@ async function showHome() {
 }
 
 function updateClock() {
-  const el = document.getElementById('home-clock');
-  if (!el) return;
   const now = new Date();
-  el.textContent = now.getHours().toString().padStart(2,'0') + ':' +
-                   now.getMinutes().toString().padStart(2,'0');
+  const hh = now.getHours().toString().padStart(2,'0');
+  const mm = now.getMinutes().toString().padStart(2,'0');
+  const small = document.getElementById('home-clock');
+  if (small) small.textContent = hh + ':' + mm;
+  // Large ambient clock + date
+  const big = document.getElementById('home-bigclock-time');
+  if (big) big.textContent = hh + ':' + mm;
+  const dt = document.getElementById('home-bigclock-date');
+  if (dt) {
+    dt.textContent = now.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+  }
 }
 
 /* ── Spotlight manifest ──
