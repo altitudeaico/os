@@ -1,25 +1,6 @@
 
-/* TEMP DIAGNOSTIC PANEL */
-window.__BUILD__ = 'DIAGPANEL-1';
-(function(){
-  var d = document.createElement('div');
-  d.id = 'diag-panel';
-  d.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;max-width:60vw;'+
-    'background:rgba(0,0,0,0.85);color:#0f0;font:14px/1.35 monospace;'+
-    'padding:8px 10px;white-space:pre-wrap;pointer-events:none;';
-  d.textContent = 'BUILD: ' + window.__BUILD__ + '\n(waiting...)';
-  var add = function(){ if(document.body){document.body.appendChild(d);} else {setTimeout(add,50);} };
-  add();
-  var t0 = Date.now();
-  window.__diag = function(msg){
-    var line = ('+'+(Date.now()-t0)+'ms ').padStart ? ('+'+(Date.now()-t0)+'ms').padEnd(9,' ') : ('+'+(Date.now()-t0)+'ms');
-    d.textContent += '\n' + line + ' ' + msg;
-    // keep last ~16 lines
-    var lines = d.textContent.split('\n');
-    if (lines.length > 18) d.textContent = lines.slice(-18).join('\n');
-  };
-})();
-function __D(m){ try{ if(window.__diag) window.__diag(m); }catch(e){} }
+
+function __D(m){}  // diagnostics removed
 
 try{var _p=document.getElementById('fos-probe');if(_p)_p.textContent='v9';}catch(e){}
 (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='surface.js: LOADED';})();
@@ -492,7 +473,7 @@ async function applySpotlightOverrides() {
           return; // success
         }
       }
-    } catch (e) { __D && __D('spotlight fetch err: '+(e&&e.message?e.message:e)); }
+    } catch (e) { /* fetch failed; keep fallback */ }
     // brief backoff before retry
     await new Promise(function(res){ setTimeout(res, 800); });
   }
@@ -505,7 +486,6 @@ function spotlightAvailable() { return SPOTLIGHT_ITEMS.length > 0; }
    copy together so it reads as one editorial story changing, not a row of
    widgets animating independently. */
 function paintSpotlightHero(animate) {
-  __D("paintSpotlightHero idx="+_spotIdx);
   const it = SPOTLIGHT_ITEMS[_spotIdx];
   if (!it) return;
   const copy = document.querySelector('.home-hero-text');
@@ -537,7 +517,6 @@ function paintSpotlightHero(animate) {
 /* Hand the hero to the spotlight. Cards stay visible but stop being the
    active plane and lose their focus treatment. */
 function spotlightOwnHero(animate) {
-  __D("spotlightOwnHero() items="+SPOTLIGHT_ITEMS.length);
   if (!spotlightAvailable()) return false;
   _heroOwner = 'spotlight';
   stopHeroCycle();                       // card hero image cycling must not fight us
@@ -553,7 +532,6 @@ function spotlightOwnHero(animate) {
 /* The Home card: put Family OS back to its resting state - welcome spotlight
    owning the hero, rotation running, nothing mid-journey. */
 function resetToHome() {
-  __D("resetToHome() [Home pressed]");
   _spotIdx = 0;
   _navZone = 'cards';
   setSpotFocus(false);
@@ -565,7 +543,6 @@ function resetToHome() {
 
 /* Give the hero back to the card plane. */
 function cardsOwnHero() {
-  __D("cardsOwnHero() <-- takes hero from spotlight");
   _heroOwner = 'cards';
   const actions = document.getElementById('hero-spot-actions');
   if (actions) actions.style.display = 'none';
@@ -582,7 +559,6 @@ function setSpotIdx(idx) {
 }
 
 function startSpotRotate() {
-  __D("startSpotRotate() len="+SPOTLIGHT_ITEMS.length);
   stopSpotRotate();
   if (SPOTLIGHT_ITEMS.length < 2) return;
   // Same advancement lifecycle Elsie's Featured cycle uses: a plain interval
@@ -596,7 +572,6 @@ function startSpotRotate() {
   }, SPOT_ROTATE_MS);
 }
 function stopSpotRotate() {
-  __D("stopSpotRotate()");
   if (_spotTimer) { clearInterval(_spotTimer); _spotTimer = null; window._fosDiag.timer = 'stopped'; fosDiagPaint(); }
 }
 
@@ -729,7 +704,6 @@ function crossfadeHeroTo(url) {
 }
 
 function updateHeroForCard(idx) {
-  __D("updateHeroForCard("+idx+") owner="+_heroOwner);
   const card = HOME_CARDS[idx];
   if (!card) return;
   stopHeroCycle();
