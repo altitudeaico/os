@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Academy — Control</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #12100a 0%, #060a06 100%); color: #fff; min-height: 100vh; padding: 20px; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .backlink { display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:rgba(255,255,255,0.75);
+    font-weight:600;font-size:13px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);
+    border-radius:20px;padding:8px 14px;margin-bottom:16px; }
+  h1 { font-size: 22px; color: #C9A84C; margin-bottom: 4px; }
+  .sub { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 20px; }
+  .status { padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; display: none; }
+  .status.show { display: block; } .status.ok { background: rgba(48,209,88,0.2); color: #30d158; } .status.err { background: rgba(255,80,80,0.2); color: #ff8080; }
+  .section { background: rgba(255,255,255,0.05); border: 1px solid rgba(201,168,76,0.3); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+  .section h2 { font-size: 14px; color: #C9A84C; margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .hint { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
+  input[type=url]{ width:100%; padding:11px; background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:10px; margin-bottom:9px; }
+  button { background:#C9A84C; color:#1a1400; padding:11px 16px; font-weight:700; border:none; border-radius:10px; cursor:pointer; font-size:15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="backlink" href="/hub/control.html">← Central Control</a>
+  <h1>Academy</h1>
+  <div class="sub">The look of the Academy screen on the TV. Content (pillars, quotes, creed) is managed separately.</div>
+  <div class="status" id="status"></div>
+
+  <div class="section">
+    <h2>Background image</h2>
+    <div class="hint">The backdrop behind the whole Academy screen.</div>
+    <input type="url" id="bg" placeholder="Background image">
+  </div>
+
+  <div class="section">
+    <h2>Academy logo</h2>
+    <div class="hint">Shown at the top of the Academy screen.</div>
+    <input type="url" id="logo" placeholder="Logo image">
+  </div>
+
+  <button onclick="save()">Save Academy look</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/hub/fos-imagepicker.js"></script>
+<script>
+const SUPABASE_URL='https://fypwabbhxnnwcpfjwrda.supabase.co';
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const sb=supabase.createClient(SUPABASE_URL,ANON_KEY);
+function showStatus(m,ok){const el=document.getElementById('status');el.textContent=m;el.className='status show '+(ok?'ok':'err');setTimeout(()=>el.classList.remove('show'),4500);}
+async function load(){
+  const {data}=await sb.from('academy_config').select('*').eq('id',1).maybeSingle();
+  if(data){ document.getElementById('bg').value=data.background_url||''; document.getElementById('logo').value=data.logo_url||''; }
+  if(window.FOSImagePicker){ FOSImagePicker.attach(document.getElementById('bg'),sb); FOSImagePicker.attach(document.getElementById('logo'),sb); }
+}
+async function save(){
+  const {error}=await sb.from('academy_config').upsert({id:1,background_url:document.getElementById('bg').value.trim()||null,logo_url:document.getElementById('logo').value.trim()||null,updated_at:new Date().toISOString()});
+  if(error){showStatus('Failed: '+error.message,false);return;}
+  showStatus('Saved. Appears on the TV next time Academy opens.',true);
+}
+load();
+</script>
+</body>
+</html>
