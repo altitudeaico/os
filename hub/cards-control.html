@@ -44,6 +44,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/hub/fos-imagepicker.js"></script>
 <script>
 const SUPABASE_URL='https://fypwabbhxnnwcpfjwrda.supabase.co';
 const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
@@ -81,7 +82,12 @@ function form(c){
     '<div class="row"><button onclick="save(\''+c.id+'\')">Save</button><button class="small" onclick="cancel()">Cancel</button></div>'+
   '</div>';
 }
-function edit(id){_editing=id;load();}
+function edit(id){_editing=id;load();setTimeout(function(){
+    if(window.FOSImagePicker){
+      var i1=document.getElementById('f-img'); if(i1) FOSImagePicker.attach(i1, sb);
+      var i2=document.getElementById('f-hero'); if(i2) FOSImagePicker.attach(i2, sb);
+    }
+  },60);}
 function cancel(){_editing=null;load();}
 async function save(id){
   const upd={
