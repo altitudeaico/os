@@ -1,0 +1,25 @@
+{
+  "name": "Family OS Control",
+  "short_name": "OS Control",
+  "description": "Manage Olatoye Family OS",
+  "start_url": "/hub/control.html",
+  "scope": "/hub/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060a06",
+  "theme_color": "#0d1410",
+  "icons": [
+    {
+      "src": "https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
