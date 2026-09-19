@@ -368,6 +368,7 @@ const NAV_ITEMS_COUNT = 5;
 const WORLD_KEY_HANDLERS = [
   { viewId: 'view-emma',  handlerFn: 'emmaHandleKey' },
   { viewId: 'view-elsie', handlerFn: 'elsieHandleKey' },
+  { viewId: 'view-academy', handlerFn: 'acadHandleKey' },
 ];
 
 function openDestination(dest, label, opts) {
