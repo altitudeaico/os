@@ -381,11 +381,14 @@ function openDestination(dest, label, opts) {
   stopHeroCycle();
   if (dest === 'emma') { openEmmaWorld(opts); return; }
   if (dest === 'elsie') { openElsieWorld(opts); return; }
+  if (dest === 'academy') { openAcademyWorld(opts); return; }
   // Other destinations — placeholder for now
   showDestinationPlaceholder(label);
 }
 
 // Called by fos-emma when Emma's World exits back to Home
+function onAcademyExit(){ _inDestination=false; _navZone="cards"; const i=(typeof window._returnCardIdx==="number")?window._returnCardIdx:0; setCardFocus(i, true); }
+
 function onEmmaExit() {
   _inDestination = false;
   if (window._returnToSpotlight) {
