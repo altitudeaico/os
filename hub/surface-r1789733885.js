@@ -229,7 +229,7 @@ const HOME_CARDS = [
   { label: 'Our Adventures', img: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png',     dest: 'adventures',
     hero: 'https://olatoyefamily.com/hub/assets/cards/card-adventures.png', heading: 'Our Adventures', meta: 'Days out and family trips' },
   { label: 'Family Time',    img: 'https://olatoyefamily.com/hub/assets/cards/card-family-time.png',    dest: 'family-time',
-    hero: 'https://olatoyefamily.com/hub/assets/heroes/hero-family-time.png', heading: 'Family Time', meta: 'Together at home' },
+    hero: 'https://olatoyefamily.com/hub/assets/cards/card-family-time.png', heading: 'Family Time', meta: 'Together at home' },
   { label: 'Watch',          img: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png',        dest: 'watch',
     hero: 'https://olatoyefamily.com/hub/assets/cards/card-watch-B.png', heading: 'Watch', meta: 'Films and shows for everyone' },
   { label: 'Coming Up',      img: 'https://olatoyefamily.com/hub/assets/cards/card-coming-up-A.png',    dest: 'coming-up',
