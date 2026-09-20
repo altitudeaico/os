@@ -365,6 +365,47 @@ diag('DOM ready');
 
 <div class="scroll">
 
+  <!-- ── LIVING ROOM TV (new architecture — hub_commands, no sign-in required) ── -->
+  <div class="card open">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-icon">🛋️</div>
+      <div><div class="card-title">Living Room TV</div><div class="card-sub">Push straight to the Home screen &amp; Worlds</div></div>
+      <div class="card-chevron">›</div>
+    </div>
+    <div class="card-body">
+      <div>
+        <div class="field-label">Jump to</div>
+        <div class="send-row">
+          <button class="send-btn both" onclick="lrNavigate('home')">Home</button>
+          <button class="send-btn both" onclick="lrNavigate('elsie')">Elsie</button>
+          <button class="send-btn both" onclick="lrNavigate('emma')">Emma</button>
+          <button class="send-btn both" onclick="lrNavigate('academy')">Academy</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="field-label">Refresh content</div>
+        <div class="send-row">
+          <button class="send-btn d1" onclick="lrRefresh('elsie')">Elsie's World</button>
+          <button class="send-btn d1" onclick="lrRefresh('emma')">Emma's World</button>
+          <button class="send-btn d2" onclick="lrRefresh('home')">Home cards</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="field-label">Announcement banner</div>
+        <input id="lr-headline" placeholder="e.g. Dinner in 5 minutes">
+      </div>
+      <div>
+        <div class="field-label">Body (optional)</div>
+        <textarea id="lr-body" placeholder="Additional detail…" rows="2"></textarea>
+      </div>
+      <div class="send-row">
+        <button class="send-btn both" onclick="lrAnnounce()">↗ Send to TV</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── IDLE ── -->
   <div class="card open">
     <div class="card-header" onclick="toggleCard(this)">
@@ -624,6 +665,46 @@ diag('DOM ready');
 
 const SUPABASE_URL     = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+
+/* ── Living Room TV push (hub_commands) ──
+   Anon-key, household-trust write — same model as home_cards/spotlight.
+   Does NOT require Google sign-in; independent of the (unfinished) Surface
+   Identity pairing flow that hub_state's Display 1/2 controls above use. */
+const LR_HOUSEHOLD_ID = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+const LR_SURFACE_ID   = '58f16a85-5af2-4371-8745-5fcd97abfd67';
+
+async function lrPush(command_type, target_id, payload) {
+  const row = {
+    household_id: LR_HOUSEHOLD_ID,
+    surface_id: LR_SURFACE_ID,
+    command_type: command_type,
+    target_type: command_type === 'announcement' ? 'surface' : 'world',
+    target_id: target_id || null,
+    payload: payload || {},
+    status: 'pending'
+  };
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/hub_commands', {
+      method: 'POST',
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify(row)
+    });
+    if (!r.ok) { const t = await r.text().catch(()=> ''); throw new Error(r.status + ' ' + t.slice(0,120)); }
+    showToast('Sent to Living Room TV', 'success');
+  } catch (e) {
+    showToast('Push failed: ' + e.message, 'error');
+  }
+}
+function lrNavigate(dest) { lrPush('navigate', dest, {}); }
+function lrRefresh(target) { lrPush('refresh', target, {}); }
+function lrAnnounce() {
+  const headline = document.getElementById('lr-headline').value.trim();
+  const body = document.getElementById('lr-body').value.trim();
+  if (!headline) { showToast('Add a headline first', 'error'); return; }
+  lrPush('announcement', 'living-room', { headline: headline, body: body, duration_ms: 8000 });
+  document.getElementById('lr-headline').value = '';
+  document.getElementById('lr-body').value = '';
+}
 
 /* ── Supabase Auth client ── */
 let _sb = null;

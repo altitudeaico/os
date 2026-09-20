@@ -153,6 +153,7 @@ async function showHome() {
   }, 5000);
 
   connectRealtime();
+  connectCommandsChannel();
 
   // Clock tick
   updateClock();
@@ -975,6 +976,110 @@ function applyHubState(state) {
       meta:    content.meta || '',
     });
   }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   COMMANDS — one-shot pushes from Control Room (hub_commands table).
+   Independent of the surface pairing session on purpose: the TV runs
+   in display-only mode (see initSurface) and the Surface Identity
+   pairing flow was never completed for this device, so this channel
+   uses the same anon-key, household-trust RLS as home_cards/spotlight
+   rather than the surface-scoped auth hub_state's channel expects.
+   ════════════════════════════════════════════════════════════════ */
+let _commandsChan   = null;
+let _announceTimer  = null;
+
+function connectCommandsChannel() {
+  if (!_sb) return;
+  if (_commandsChan) { _sb.removeChannel(_commandsChan); _commandsChan = null; }
+  log('Connecting hub_commands channel');
+  _commandsChan = _sb
+    .channel('hub_commands_living_room')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'hub_commands' },
+      (payload) => { handleHubCommand(payload.new); }
+    )
+    .subscribe((status) => {
+      log('Commands channel status: ' + status);
+      if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+        setTimeout(connectCommandsChannel, 5000);
+      }
+    });
+}
+
+async function handleHubCommand(cmd) {
+  if (!cmd || cmd.status !== 'pending') return;
+  log('hub_command received: ' + cmd.command_type + ' -> ' + (cmd.target_id || ''));
+  let ok = true, errMsg = null;
+  try {
+    if (cmd.command_type === 'announcement') {
+      showAnnouncement(cmd.payload || {});
+    } else if (cmd.command_type === 'refresh') {
+      await runRefreshCommand(cmd.target_id);
+    } else if (cmd.command_type === 'navigate') {
+      openDestination(cmd.target_id || 'home');
+    } else {
+      ok = false; errMsg = 'unknown command_type: ' + cmd.command_type;
+    }
+  } catch (e) {
+    ok = false; errMsg = e && e.message ? e.message : String(e);
+  }
+  try {
+    await _sb.from('hub_commands').update({
+      status: ok ? 'completed' : 'failed',
+      result: ok ? { ok: true } : { ok: false, error: errMsg },
+      processed_at: new Date().toISOString()
+    }).eq('id', cmd.id);
+  } catch (e) { warn('command ack failed: ' + (e && e.message ? e.message : e)); }
+}
+
+async function runRefreshCommand(target) {
+  const emmaEl  = document.getElementById('view-emma');
+  const elsieEl = document.getElementById('view-elsie');
+  const emmaOpen  = !!(emmaEl  && emmaEl.style.display  !== 'none');
+  const elsieOpen = !!(elsieEl && elsieEl.style.display !== 'none');
+  const wantsCurrent = !target || target === 'current';
+
+  if (target === 'emma' || (wantsCurrent && emmaOpen)) {
+    if (typeof openEmmaWorld === 'function') await openEmmaWorld({});
+  } else if (target === 'elsie' || (wantsCurrent && elsieOpen)) {
+    if (typeof openElsieWorld === 'function') await openElsieWorld({});
+  }
+  // Home cards can always refresh regardless of what else is open
+  if (!target || target === 'home' || target === 'all') {
+    try { await applyHomeCardsFromDB(); renderRail(HOME_CARDS); } catch (e) {}
+  }
+}
+
+function showAnnouncement(payload) {
+  payload = payload || {};
+  let el = document.getElementById('fos-announcement');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fos-announcement';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:950;' +
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;' +
+      'padding:2.2em 3em 1.7em;background:linear-gradient(180deg, rgba(6,10,6,0.96) 0%, rgba(6,10,6,0.86) 70%, rgba(6,10,6,0) 100%);' +
+      'transform:translateY(-100%);transition:transform 0.45s cubic-bezier(.22,.9,.35,1);';
+    document.body.appendChild(el);
+  }
+  const headline = (payload.headline || '').toString();
+  const body = (payload.body || '').toString();
+  el.innerHTML =
+    '<div style="color:#C9A84C;font-size:0.7em;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:0.4em;">Announcement</div>' +
+    '<div style="color:#fff;font-size:1.8em;font-weight:800;line-height:1.2;max-width:16em;">' + escHtml(headline) + '</div>' +
+    (body ? '<div style="color:rgba(255,255,255,0.7);font-size:1em;margin-top:0.5em;max-width:26em;">' + escHtml(body) + '</div>' : '');
+  requestAnimationFrame(function () { el.style.transform = 'translateY(0)'; });
+  if (_announceTimer) clearTimeout(_announceTimer);
+  const dur = Math.max(2000, Math.min(30000, Number(payload.duration_ms) || 8000));
+  _announceTimer = setTimeout(function () { el.style.transform = 'translateY(-100%)'; }, dur);
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════
