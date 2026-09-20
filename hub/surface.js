@@ -372,8 +372,23 @@ const WORLD_KEY_HANDLERS = [
   { viewId: 'view-academy', handlerFn: 'acadHandleKey' },
 ];
 
+// Hide every World view so a fresh destination always starts from a clean
+// slate — needed because each World only hides ITSELF on its own normal
+// exit; nothing hides the others. Without this, jumping straight from one
+// World to another (as a pushed navigate command does, bypassing Home)
+// leaves the previous World's screen visible underneath the new one.
+function closeAllWorlds() {
+  ['view-emma', 'view-elsie', 'view-academy', 'view-destination'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  if (typeof emmaCleanup === 'function') { try { emmaCleanup(); } catch (e) {} }
+  _inDestination = false;
+}
+
 function openDestination(dest, label, opts) {
   probe('OPEN: ' + dest);
+  closeAllWorlds();
   if (dest === 'home') { resetToHome(); return; }
   window._returnCardIdx = _cardIdx;  // remember which card to refocus on return
   stopHeroCycle();
@@ -428,12 +443,7 @@ function showDestinationPlaceholder(label) {
 }
 
 function closeDestination() {
-  const el = document.getElementById('view-destination');
-  const emma = document.getElementById('view-emma');
-  if (el) el.style.display = 'none';
-  if (emma) emma.style.display = 'none';
-  _inDestination = false;
-  if (typeof emmaCleanup === 'function') emmaCleanup();
+  closeAllWorlds();
 }
 
 // Called by Android Back button. Returns true if handled (in a destination),
