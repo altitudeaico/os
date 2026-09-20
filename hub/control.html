@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <link rel="manifest" href="/hub/control.webmanifest">
-<meta name="theme-color" content="#0d1410">
+<meta name="theme-color" content="#F2F2F7">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="OS Control">
 <link rel="apple-touch-icon" href="https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -13,45 +13,82 @@
 <title>Family OS Control</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  :root { padding-top: env(safe-area-inset-top,0); padding-bottom: env(safe-area-inset-bottom,0); }
+  :root {
+    --bg: #F2F2F7;
+    --card: #FFFFFF;
+    --border: rgba(60,60,67,0.12);
+    --text: #1C1C1E;
+    --text-2: #8A8A8E;
+    --gold: #B8863B;
+    --green: #22A559;
+    --purple: #8B5CF6;
+    --pink: #EC4899;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 10px 24px -10px rgba(0,0,0,0.14);
+    --r-lg: 20px;
+    --r-md: 13px;
+    padding-top: env(safe-area-inset-top,0);
+    padding-bottom: env(safe-area-inset-bottom,0);
+  }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(170deg, #0d1410 0%, #060a06 55%, #0a0410 100%);
-    color: #fff; min-height: 100vh; padding: 22px 18px 40px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 28px 20px 48px;
+    -webkit-font-smoothing: antialiased;
   }
   .wrap { max-width: 520px; margin: 0 auto; }
-  .head { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 8px 0 26px; }
-  .head img { width: 84px; height: 84px; border-radius: 20px; object-fit: cover; margin-bottom: 14px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
-  .head-title { font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
-  .head-sub { color: #C9A84C; font-size: 12px; font-weight: 700; letter-spacing: 0.22em;
-    text-transform: uppercase; margin-top: 4px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+
+  .head { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 4px 0 36px; }
+  .head img { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .head-title { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+  .head-sub { color: var(--text-2); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 6px; }
+
+  .sec-label { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); margin: 32px 2px 14px; }
+  .sec-label:first-of-type { margin-top: 0; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
   .tile {
-    position: relative; display: block; text-decoration: none; color: #fff;
-    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 18px; padding: 18px 16px 16px; min-height: 116px;
-    transition: transform 0.12s, background 0.12s; overflow: hidden;
+    position: relative; display: block; text-decoration: none; color: var(--text);
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--r-lg); box-shadow: var(--shadow);
+    padding: 20px 18px 18px; min-height: 124px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
-  .tile:active { transform: scale(0.97); background: rgba(255,255,255,0.1); }
-  .tile.wide { grid-column: 1 / -1; min-height: 84px; display: flex; align-items: center; gap: 14px; }
-  .tile .emoji { font-size: 26px; display: block; margin-bottom: 10px; }
-  .tile.wide .emoji { margin-bottom: 0; font-size: 30px; }
-  .tile .name { font-size: 16px; font-weight: 700; }
-  .tile .desc { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 3px; line-height: 1.3; }
-  .tile.soon { opacity: 0.6; }
+  .tile:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+  .tile.wide { grid-column: 1 / -1; min-height: auto; display: flex; align-items: center; gap: 16px; padding: 18px 20px; }
+  .tile.wide .name { font-size: 17px; }
+  .tile.wide .desc { margin-top: 2px; }
+
+  .icon { width: 46px; height: 46px; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; margin-bottom: 14px; }
+  .tile.wide .icon { margin-bottom: 0; }
+
+  .tile.tvnow { border-color: rgba(184,134,59,0.35); }
+  .tile.tvnow .icon { background: rgba(184,134,59,0.14); }
+  .tile.home .icon { background: rgba(34,165,89,0.14); }
+  .tile.elsie .icon { background: rgba(139,92,246,0.14); }
+  .tile.emma .icon { background: rgba(236,72,153,0.14); }
+  .tile.plain .icon { background: rgba(60,60,67,0.07); }
+
+  .name { font-size: 16px; font-weight: 600; color: var(--text); }
+  .desc { font-size: 13px; color: var(--text-2); margin-top: 4px; line-height: 1.35; }
+
+  .tile.soon { opacity: 0.55; }
   .badge {
-    position: absolute; top: 12px; right: 12px; font-size: 9px; font-weight: 700;
-    letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border-radius: 20px;
-    background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.6);
+    position: absolute; top: 14px; right: 14px; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border-radius: 20px;
+    background: rgba(60,60,67,0.08); color: var(--text-2);
   }
-  .tile.tvnow { background: linear-gradient(135deg, rgba(201,168,76,0.22), rgba(201,168,76,0.06)); border-color: rgba(201,168,76,0.4); }
-  .tile.home { background: linear-gradient(135deg, rgba(48,209,88,0.16), rgba(48,209,88,0.04)); border-color: rgba(48,209,88,0.3); }
-  .tile.elsie { background: linear-gradient(135deg, rgba(179,136,255,0.18), rgba(179,136,255,0.04)); border-color: rgba(179,136,255,0.32); }
-  .tile.emma { background: linear-gradient(135deg, rgba(255,110,199,0.18), rgba(255,110,199,0.04)); border-color: rgba(255,110,199,0.32); }
-  .sec-label { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
-    color: rgba(255,255,255,0.4); margin: 26px 0 12px 4px; }
-  .foot { text-align: center; color: rgba(255,255,255,0.3); font-size: 11px; margin-top: 30px; }
+
+  .install-row { text-align: center; margin-top: 28px; }
+  #installBtn {
+    display: none; background: var(--text); color: #fff; border: none; border-radius: 22px;
+    padding: 12px 24px; font-weight: 600; font-size: 14px; cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  .foot { text-align: center; color: rgba(60,60,67,0.35); font-size: 12px; margin-top: 36px; }
 </style>
 </head>
 <body>
@@ -64,45 +101,45 @@
 
   <!-- TV NOW - wide, primary -->
   <a class="tile wide tvnow" href="/control/">
-    <span class="emoji">📺</span>
-    <span><span class="name">TV Now</span><span class="desc">Control what's on the living room screen right now</span></span>
+    <span class="icon">📺</span>
+    <span><span class="name">TV Now</span><br><span class="desc">Control what's on the living room screen right now</span></span>
   </a>
 
   <div class="sec-label">Manage</div>
   <div class="grid">
     <a class="tile home" href="/hub/spotlight-control.html">
-      <span class="emoji">🏠</span>
+      <span class="icon">🏠</span>
       <span class="name">Home Spotlight</span>
       <span class="desc">Slides &amp; Home card</span>
     </a>
-    <a class="tile" href="/hub/cards-control.html">
-      <span class="emoji">🃏</span>
+    <a class="tile plain" href="/hub/cards-control.html">
+      <span class="icon">🃏</span>
       <span class="name">Home Cards</span>
       <span class="desc">The TV rail cards</span>
     </a>
-    <a class="tile" href="/hub/academy-control.html">
-      <span class="emoji">🎓</span>
+    <a class="tile plain" href="/hub/academy-control.html">
+      <span class="icon">🎓</span>
       <span class="name">Academy</span>
       <span class="desc">Look &amp; feel (content coming soon)</span>
     </a>
     <a class="tile elsie" href="/hub/elsie-admin.html">
-      <span class="emoji">💜</span>
+      <span class="icon">💜</span>
       <span class="name">Elsie</span>
       <span class="desc">Her World</span>
     </a>
     <a class="tile emma" href="/hub/emma-admin.html">
-      <span class="emoji">🩷</span>
+      <span class="icon">🩷</span>
       <span class="name">Emma</span>
       <span class="desc">Her World</span>
     </a>
-    <a class="tile soon" href="#" onclick="return soon('Family Time')">
-      <span class="emoji">👨‍👩‍👧‍👧</span>
+    <a class="tile soon plain" href="#" onclick="return soon('Family Time')">
+      <span class="icon">👨‍👩‍👧‍👧</span>
       <span class="name">Family Time</span>
       <span class="desc">Coming soon</span>
       <span class="badge">Soon</span>
     </a>
-    <a class="tile soon" href="#" onclick="return soon('Adventures')">
-      <span class="emoji">✈️</span>
+    <a class="tile soon plain" href="#" onclick="return soon('Adventures')">
+      <span class="icon">✈️</span>
       <span class="name">Adventures</span>
       <span class="desc">Coming soon</span>
       <span class="badge">Soon</span>
@@ -111,14 +148,15 @@
 
   <div class="sec-label">System</div>
   <div class="grid">
-    <a class="tile soon wide" href="#" onclick="return soon('Settings')">
-      <span class="emoji">⚙️</span>
-      <span><span class="name">Settings</span><span class="desc">Guardian, devices and Family OS configuration — coming soon</span></span>
+    <a class="tile soon plain wide" href="#" onclick="return soon('Settings')">
+      <span class="icon">⚙️</span>
+      <span><span class="name">Settings</span><br><span class="desc">Guardian, devices and Family OS configuration — coming soon</span></span>
       <span class="badge">Soon</span>
     </a>
   </div>
 
-  <div style="text-align:center;margin-top:22px;"><button id="installBtn" onclick="fosInstall()" style="display:none;background:#C9A84C;color:#1a1400;border:none;border-radius:22px;padding:11px 22px;font-weight:700;font-size:14px;cursor:pointer;">⬇ Install as app</button></div><div class="foot">Olatoye Family OS</div>
+  <div class="install-row"><button id="installBtn" onclick="fosInstall()">⬇ Install as app</button></div>
+  <div class="foot">Olatoye Family OS</div>
 </div>
 
 <script>

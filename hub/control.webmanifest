@@ -6,8 +6,8 @@
   "scope": "/hub/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#060a06",
-  "theme_color": "#0d1410",
+  "background_color": "#F2F2F7",
+  "theme_color": "#F2F2F7",
   "icons": [
     {
       "src": "https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png",
