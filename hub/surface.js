@@ -94,6 +94,8 @@ async function showHome() {
   (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='v9';})();
   try { showView('home'); } catch(e){}
 
+  loadWorldIntros(); // fire-and-forget — has until the user actually opens a World
+
   // Load editable cards from Control (home_cards table); falls back to code list.
   // Guarded by a short timeout so a slow network can't delay first paint much.
   try {
@@ -387,12 +389,28 @@ function closeAllWorlds() {
 }
 
 // Per-destination intro video, played once before the World itself opens.
-// Add a line here for any other section that gets its own intro clip —
-// nothing else needs to change (openDestination() picks this up generically).
-const WORLD_INTROS = {
+// Loaded from the world_intro_videos table at boot (loadWorldIntros) — the
+// media library of every generated take, one active per dest. These are just
+// the last-known-good fallback in case that fetch fails; the DB is the real
+// source of truth so a new/replacement clip is a data change, not a push.
+let WORLD_INTROS = {
   elsie: 'https://olatoyefamily.com/hub/assets/world-intros/elsie-intro.mp4',
   emma: 'https://olatoyefamily.com/hub/assets/world-intros/emma-intro.mp4'
 };
+
+async function loadWorldIntros() {
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/world_intro_videos?is_active=eq.true&select=dest,video_url', {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    if (!r.ok) return;
+    const rows = await r.json();
+    if (!Array.isArray(rows) || !rows.length) return;
+    const fresh = {};
+    rows.forEach(function (row) { if (row.dest && row.video_url) fresh[row.dest] = row.video_url; });
+    WORLD_INTROS = fresh; // replace wholesale — a dest with no active row simply gets no intro
+  } catch (e) { warn('loadWorldIntros failed, using fallback: ' + (e && e.message ? e.message : e)); }
+}
 
 let _introVideoEl = null;
 let _introActive  = false;
