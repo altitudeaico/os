@@ -408,9 +408,19 @@ function playWorldIntro(url, onDone) {
     done = true;
     _introActive = false;
     _introFinish = null;
-    if (_introVideoEl) { _introVideoEl.pause(); _introVideoEl.style.display = 'none'; }
     document.removeEventListener('keydown', onKey);
-    onDone();
+    onDone(); // open the destination now, underneath the still-visible video
+    // Crossfade: let the World render behind the video, then fade the video
+    // away rather than cutting straight to it.
+    if (_introVideoEl) {
+      var v = _introVideoEl;
+      v.style.opacity = '0';
+      setTimeout(function () {
+        v.pause();
+        v.style.display = 'none';
+        v.style.opacity = '1'; // reset for next time
+      }, 520);
+    }
   }
   _introFinish = finish;
   function onKey(e) {
@@ -423,10 +433,11 @@ function playWorldIntro(url, onDone) {
   if (!_introVideoEl) {
     _introVideoEl = document.createElement('video');
     _introVideoEl.id = 'fos-world-intro';
-    _introVideoEl.style.cssText = 'position:fixed;inset:0;z-index:980;width:100%;height:100%;object-fit:cover;background:#000;';
+    _introVideoEl.style.cssText = 'position:fixed;inset:0;z-index:980;width:100%;height:100%;object-fit:cover;background:#000;opacity:1;transition:opacity 0.5s ease;';
     _introVideoEl.setAttribute('playsinline', '');
     document.body.appendChild(_introVideoEl);
   }
+  _introVideoEl.style.opacity = '1';
   _introVideoEl.src = url;
   _introVideoEl.style.display = 'block';
   _introVideoEl.currentTime = 0;
