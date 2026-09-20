@@ -67,6 +67,10 @@
 
   .tile.tvnow { border-color: rgba(184,134,59,0.35); }
   .tile.tvnow .icon { background: rgba(184,134,59,0.14); }
+  .tile.guardian { border-color: rgba(229,72,77,0.3); }
+  .tile.guardian .icon { background: rgba(229,72,77,0.14); }
+  .tile.guardian.attention { border-color: rgba(229,72,77,0.55); }
+  .tile.guardian.attention .desc { color: #E5484D; font-weight: 700; }
   .tile.home .icon { background: rgba(34,165,89,0.14); }
   .tile.elsie .icon { background: rgba(139,92,246,0.14); }
   .tile.emma .icon { background: rgba(236,72,153,0.14); }
@@ -103,6 +107,12 @@
   <a class="tile wide tvnow" href="/control/">
     <span class="icon">📺</span>
     <span><span class="name">TV Now</span><br><span class="desc">Control what's on the living room screen right now</span></span>
+  </a>
+
+  <!-- GUARDIAN - wide, primary -->
+  <a class="tile wide guardian" href="/hub/guardian-control.html" id="guardian-tile">
+    <span class="icon">🛡️</span>
+    <span><span class="name">Guardian</span><br><span class="desc" id="guardian-desc">Checking…</span></span>
   </a>
 
   <div class="sec-label">Manage</div>
@@ -164,6 +174,30 @@ function soon(name){
   alert(name + " controls are being built. For now this area isn't available yet.");
   return false;
 }
+</script>
+<script>
+(function () {
+  var SUPABASE_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+  fetch(SUPABASE_URL + '/rest/v1/guardian_access_requests?status=eq.pending&select=id', {
+    headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY }
+  }).then(function (r) { return r.json(); })
+    .then(function (rows) {
+      var desc = document.getElementById('guardian-desc');
+      var tile = document.getElementById('guardian-tile');
+      if (!desc || !tile) return;
+      var n = Array.isArray(rows) ? rows.length : 0;
+      if (n > 0) {
+        desc.textContent = n + (n === 1 ? ' request needs' : ' requests need') + ' your attention';
+        tile.classList.add('attention');
+      } else {
+        desc.textContent = 'All clear — nothing waiting';
+      }
+    }).catch(function () {
+      var desc = document.getElementById('guardian-desc');
+      if (desc) desc.textContent = 'Approvals, permissions & decisions';
+    });
+})();
 </script>
 <script>
 if ('serviceWorker' in navigator) {
