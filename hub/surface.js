@@ -386,9 +386,69 @@ function closeAllWorlds() {
   _inDestination = false;
 }
 
+// Per-destination intro video, played once before the World itself opens.
+// Add a line here for any other section that gets its own intro clip —
+// nothing else needs to change (openDestination() picks this up generically).
+const WORLD_INTROS = {
+  elsie: 'https://olatoyefamily.com/hub/assets/world-intros/elsie-intro.mp4'
+};
+
+let _introVideoEl = null;
+let _introActive  = false;
+let _introFinish  = null;
+
+// Plays url fullscreen, then calls onDone — on natural end, on GoBack/OK
+// (skip), or on any playback error (fail open: never block navigation on a
+// bad or slow video).
+function playWorldIntro(url, onDone) {
+  _introActive = true;
+  let done = false;
+  function finish() {
+    if (done) return;
+    done = true;
+    _introActive = false;
+    _introFinish = null;
+    if (_introVideoEl) { _introVideoEl.pause(); _introVideoEl.style.display = 'none'; }
+    document.removeEventListener('keydown', onKey);
+    onDone();
+  }
+  _introFinish = finish;
+  function onKey(e) {
+    var k = e.key, c = e.keyCode;
+    if (k === 'Enter' || k === 'OK' || c === 13 || c === 23 || c === 66 ||
+        k === 'Escape' || k === 'GoBack' || c === 4 || c === 27) {
+      finish();
+    }
+  }
+  if (!_introVideoEl) {
+    _introVideoEl = document.createElement('video');
+    _introVideoEl.id = 'fos-world-intro';
+    _introVideoEl.style.cssText = 'position:fixed;inset:0;z-index:980;width:100%;height:100%;object-fit:cover;background:#000;';
+    _introVideoEl.setAttribute('playsinline', '');
+    document.body.appendChild(_introVideoEl);
+  }
+  _introVideoEl.src = url;
+  _introVideoEl.style.display = 'block';
+  _introVideoEl.currentTime = 0;
+  _introVideoEl.onended = finish;
+  _introVideoEl.onerror = finish;
+  var p = _introVideoEl.play();
+  if (p && typeof p.catch === 'function') p.catch(function () { finish(); });
+  document.addEventListener('keydown', onKey);
+}
+
 function openDestination(dest, label, opts) {
   probe('OPEN: ' + dest);
   closeAllWorlds();
+  const introUrl = WORLD_INTROS[dest];
+  if (introUrl) {
+    playWorldIntro(introUrl, function () { openDestinationNow(dest, label, opts); });
+    return;
+  }
+  openDestinationNow(dest, label, opts);
+}
+
+function openDestinationNow(dest, label, opts) {
   if (dest === 'home') { resetToHome(); return; }
   window._returnCardIdx = _cardIdx;  // remember which card to refocus on return
   stopHeroCycle();
@@ -449,6 +509,12 @@ function closeDestination() {
 // Called by Android Back button. Returns true if handled (in a destination),
 // false if at Home (Android should exit).
 window.fosHandleBack = function() {
+  // Intro video owns the remote while it's playing — skip it rather than
+  // falling through to World/Home handling (or, at Home, exiting the app).
+  if (_introActive) {
+    if (_introFinish) _introFinish();
+    return true;
+  }
   // If a World is open, give it first refusal: its own nav stack should pop
   // ONE level (e.g. film -> Emma's World) rather than closing the whole
   // destination. Only fall through to closeDestination() if no World claims it.
