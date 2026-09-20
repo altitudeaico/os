@@ -390,7 +390,8 @@ function closeAllWorlds() {
 // Add a line here for any other section that gets its own intro clip —
 // nothing else needs to change (openDestination() picks this up generically).
 const WORLD_INTROS = {
-  elsie: 'https://olatoyefamily.com/hub/assets/world-intros/elsie-intro.mp4'
+  elsie: 'https://olatoyefamily.com/hub/assets/world-intros/elsie-intro.mp4',
+  emma: 'https://olatoyefamily.com/hub/assets/world-intros/emma-intro.mp4'
 };
 
 let _introVideoEl = null;
