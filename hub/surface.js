@@ -300,7 +300,7 @@ async function applyFeaturedHeroImages() {
     if (!card) continue;
     try {
       const results = await Promise.all(HERO_FEED_TABLES[dest].map(function(table) {
-        return fetch(API + '/' + table + '?select=url,sort_order&featured=eq.true&order=sort_order', { headers: hdr })
+        return fetch(API + '/' + table + '?select=url,sort_order&featured=eq.true&hidden=eq.false&order=sort_order', { headers: hdr })
           .then(function(r) { return r.json(); })
           .catch(function() { return []; });
       }));
