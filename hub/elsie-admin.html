@@ -42,6 +42,38 @@
   .tab.active { background:#8b5cf6; }
   .panel { display:none; }
   .panel.active { display:block; }
+
+.uploadzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:26px 16px;border:2px dashed rgba(139,92,246,0.5);border-radius:14px;cursor:pointer;
+  background:rgba(139,92,246,0.06);transition:all 0.15s;text-align:center;}
+.uploadzone:active{background:rgba(139,92,246,0.14);}
+.uploadzone-icon{font-size:26px;color:#8b5cf6;}
+.uploadzone-t{font-weight:700;font-size:15px;color:#fff;}
+.uploadzone-s{font-size:12px;color:rgba(255,255,255,0.5);}
+#upload-progress{margin-top:10px;}
+.upitem{display:flex;align-items:center;gap:9px;font-size:12px;padding:6px 0;color:rgba(255,255,255,0.7);}
+.upitem .bar{flex:1;height:4px;background:rgba(255,255,255,0.12);border-radius:2px;overflow:hidden;}
+.upitem .bar i{display:block;height:100%;background:#8b5cf6;width:0;transition:width 0.2s;}
+.upitem.done{color:#30d158;}.upitem.fail{color:#ff8080;}
+.mediagrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+.mediacard{position:relative;border-radius:10px;overflow:hidden;background:#1a1a22;aspect-ratio:1;}
+.mediacard img,.mediacard video{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;}
+.mediacard.hidden-m{opacity:0.4;}
+.mediacard .vbadge{position:absolute;top:5px;left:5px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;
+  padding:2px 6px;border-radius:10px;}
+.mediacard .star{position:absolute;top:5px;right:5px;font-size:15px;color:#8b5cf6;text-shadow:0 1px 3px rgba(0,0,0,0.8);}
+.mediacard .acts{position:absolute;bottom:0;left:0;right:0;display:flex;gap:2px;padding:4px;
+  background:linear-gradient(to top,rgba(0,0,0,0.85),transparent);}
+.mediacard .acts button{flex:1;font-size:10px;padding:5px 2px;border:none;border-radius:6px;
+  background:rgba(255,255,255,0.18);color:#fff;font-weight:700;cursor:pointer;}
+.mediacard .acts button.on{background:#8b5cf6;}
+.mediacard .acts button.rm{background:rgba(255,80,80,0.8);}
+.lightbox{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.94);display:none;
+  align-items:center;justify-content:center;padding:16px;}
+.lightbox.show{display:flex;}
+.lightbox img,.lightbox video{max-width:100%;max-height:90vh;border-radius:10px;}
+.lightbox .close{position:absolute;top:16px;right:20px;color:#fff;font-size:34px;cursor:pointer;line-height:1;}
+
 </style>
 </head>
 <body>
@@ -76,13 +108,16 @@
   <!-- PHOTOS (My Story backdrop) -->
   <div class="panel" id="panel-photos">
     <div class="section">
-      <h2>Photos — My Story</h2>
-      <div class="hint">These are the full-screen backdrop photos behind Elsie's World. Featured photos also join the Home-screen background rotation.</div>
-      <input type="file" id="photo-file" accept="image/*" multiple>
-      <button onclick="uploadPhotos()">Upload photo(s)</button>
-      <div class="hint">Or paste an image URL:</div>
-      <div class="row"><input type="text" id="photo-url" placeholder="https://..."><button class="small" onclick="addPhotoUrl()">Add</button></div>
-      <div id="photos-list" style="margin-top:12px;"></div>
+      <h2>Photos &amp; Videos — My Story</h2>
+      <div class="hint">The backdrop media behind Elsie's World. \u2605 Featured also joins the Home-screen rotation. Hidden stays in the library but off the TV.</div>
+      <label class="uploadzone" for="photo-file">
+        <div class="uploadzone-icon">\u2b06</div>
+        <div class="uploadzone-t">Tap to add photos or videos</div>
+        <div class="uploadzone-s">Select as many as you like</div>
+      </label>
+      <input type="file" id="photo-file" accept="image/*,video/*" multiple style="display:none" onchange="bulkUpload()">
+      <div id="upload-progress"></div>
+      <div id="photos-grid" class="mediagrid"></div>
     </div>
   </div>
 
@@ -186,15 +221,68 @@ async function delArtwork(id) { await sb.from('elsie_artwork').delete().eq('id',
 // ── PHOTOS ──
 async function loadPhotos() {
   const { data } = await sb.from('elsie_photos').select('*').order('sort_order');
-  document.getElementById('photos-list').innerHTML = (data||[]).map(p =>
-    '<div class="item" style="'+(p.hidden?'opacity:0.5;':'')+'"><img src="'+p.url+'">'+
-    '<div class="info"><div class="u">'+p.url.split('/').pop()+(p.hidden?' \u00b7 Hidden':'')+'</div></div>'+
-    '<button class="small" style="background:'+(p.featured?'#8b5cf6':'rgba(255,255,255,0.15)')+';" onclick="toggleFeatured(\'elsie_photos\',\''+p.id+'\','+(!!p.featured)+')">'+(p.featured?'\u2605 Featured':'\u2606 Feature')+'</button>'+
-    '<button class="small" onclick="toggleHidden(\'elsie_photos\',\''+p.id+'\','+(!!p.hidden)+')">'+(p.hidden?'Show':'Hide')+'</button>'+
-    '<button class="small danger" onclick="delPhoto(\''+p.id+'\')">Remove</button></div>'
-  ).join('');
-  refreshCardPicker();
+  window._elsiePhotos = data || [];
+  const grid = document.getElementById('photos-grid');
+  grid.innerHTML = (data||[]).map(function(p, idx){
+    var isVid = /\.(mp4|webm|mov|m4v)$/i.test(p.url);
+    var media = isVid
+      ? '<video src="'+p.url+'#t=0.1" muted preload="metadata" onclick="openLightbox('+idx+')"></video><div class="vbadge">\u25b6 Video</div>'
+      : '<img src="'+p.url+'" onclick="openLightbox('+idx+')">';
+    return '<div class="mediacard'+(p.hidden?' hidden-m':'')+'">'+media+
+      (p.featured?'<div class="star">\u2605</div>':'')+
+      '<div class="acts">'+
+        '<button class="'+(p.featured?'on':'')+'" onclick="toggleFeatured(\'elsie_photos\',\''+p.id+'\','+(!!p.featured)+')">\u2605</button>'+
+        '<button onclick="toggleHidden(\'elsie_photos\',\''+p.id+'\','+(!!p.hidden)+')">'+(p.hidden?'Show':'Hide')+'</button>'+
+        '<button class="rm" onclick="delPhoto(\''+p.id+'\')">\u2715</button>'+
+      '</div></div>';
+  }).join('');
+  if (typeof refreshCardPicker==='function') refreshCardPicker();
 }
+
+function openLightbox(idx){
+  var p = (window._elsiePhotos||[])[idx]; if(!p) return;
+  var isVid = /\.(mp4|webm|mov|m4v)$/i.test(p.url);
+  document.getElementById('lightbox-content').innerHTML = isVid
+    ? '<video src="'+p.url+'" controls autoplay playsinline></video>'
+    : '<img src="'+p.url+'">';
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(e, force){
+  if(force || e.target.id==='lightbox'){
+    document.getElementById('lightbox').classList.remove('show');
+    document.getElementById('lightbox-content').innerHTML='';
+  }
+}
+
+async function bulkUpload(){
+  const files = Array.from(document.getElementById('photo-file').files||[]);
+  if(!files.length) return;
+  const prog = document.getElementById('upload-progress');
+  prog.innerHTML = files.map(function(f,i){
+    return '<div class="upitem" id="up-'+i+'"><span>'+f.name.slice(0,24)+'</span><div class="bar"><i></i></div><span id="upst-'+i+'">…</span></div>';
+  }).join('');
+  var maxOrder = 0;
+  try { const { data:mx } = await sb.from('elsie_photos').select('sort_order').order('sort_order',{ascending:false}).limit(1).maybeSingle(); maxOrder = (mx&&mx.sort_order)||0; } catch(e){}
+  for (var i=0;i<files.length;i++){
+    var f=files[i]; var row=document.getElementById('up-'+i); var st=document.getElementById('upst-'+i);
+    var barI = row.querySelector('.bar i');
+    try{
+      barI.style.width='40%';
+      var name = Date.now()+'-'+i+'-'+f.name.replace(/[^a-zA-Z0-9.]/g,'_');
+      var up = await sb.storage.from('elsie-photos').upload(name, f, {contentType:f.type||undefined});
+      if(up.error) throw up.error;
+      barI.style.width='80%';
+      var pub = sb.storage.from('elsie-photos').getPublicUrl(name);
+      await sb.from('elsie_photos').insert({ url: pub.data.publicUrl, sort_order: (++maxOrder) });
+      barI.style.width='100%'; row.classList.add('done'); st.textContent='\u2713';
+    }catch(err){ row.classList.add('fail'); st.textContent='failed'; }
+  }
+  document.getElementById('photo-file').value='';
+  showStatus('Upload complete', true);
+  setTimeout(function(){ prog.innerHTML=''; }, 2500);
+  loadPhotos();
+}
+
 async function uploadPhotos() {
   const files = document.getElementById('photo-file').files;
   if (!files.length) { showStatus('Choose a file first', false); return; }
@@ -334,5 +422,9 @@ async function refreshCardPicker() {
 // Load all
 loadArtwork(); loadPhotos(); loadCheer(); loadMusic(); loadLatest(); loadCard();
 </script>
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <span class="close" onclick="closeLightbox(event,true)">\u00d7</span>
+  <div id="lightbox-content"></div>
+</div>
 </body>
 </html>
