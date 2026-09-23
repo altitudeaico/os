@@ -37,7 +37,7 @@ async function elsieLoadContent() {
   var hdr = { 'apikey': ELSIE_KEY, 'Authorization': 'Bearer ' + ELSIE_KEY };
   try {
     var res = await Promise.all([
-      fetch(ELSIE_API + '/elsie_photos?select=url&order=sort_order', { headers: hdr }).then(function (r) { return r.json(); }),
+      fetch(ELSIE_API + '/elsie_photos?select=url&order=sort_order&hidden=eq.false', { headers: hdr }).then(function (r) { return r.json(); }),
       fetch(ELSIE_API + '/elsie_artwork?select=url,title,caption&order=sort_order', { headers: hdr }).then(function (r) { return r.json(); }),
       fetch(ELSIE_API + '/elsie_cheer?select=url,caption&order=sort_order', { headers: hdr }).then(function (r) { return r.json(); }),
       fetch(ELSIE_API + '/elsie_music?select=url,title&order=sort_order', { headers: hdr }).then(function (r) { return r.json(); }),
