@@ -275,7 +275,7 @@ async function bulkUpload(){
       var pub = sb.storage.from('elsie-photos').getPublicUrl(name);
       await sb.from('elsie_photos').insert({ url: pub.data.publicUrl, sort_order: (++maxOrder) });
       barI.style.width='100%'; row.classList.add('done'); st.textContent='\u2713';
-    }catch(err){ row.classList.add('fail'); st.textContent='failed'; }
+    }catch(err){ row.classList.add('fail'); var msg=(err&&err.message)?err.message:(''+err); st.textContent=msg.slice(0,40); showStatus('Upload error: '+msg, false); console.error('upload error', err); }
   }
   document.getElementById('photo-file').value='';
   showStatus('Upload complete', true);
