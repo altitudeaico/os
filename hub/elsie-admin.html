@@ -187,8 +187,10 @@ async function delArtwork(id) { await sb.from('elsie_artwork').delete().eq('id',
 async function loadPhotos() {
   const { data } = await sb.from('elsie_photos').select('*').order('sort_order');
   document.getElementById('photos-list').innerHTML = (data||[]).map(p =>
-    '<div class="item"><img src="'+p.url+'"><div class="info"><div class="u">'+p.url.split('/').pop()+'</div></div>'+
+    '<div class="item" style="'+(p.hidden?'opacity:0.5;':'')+'"><img src="'+p.url+'">'+
+    '<div class="info"><div class="u">'+p.url.split('/').pop()+(p.hidden?' \u00b7 Hidden':'')+'</div></div>'+
     '<button class="small" style="background:'+(p.featured?'#8b5cf6':'rgba(255,255,255,0.15)')+';" onclick="toggleFeatured(\'elsie_photos\',\''+p.id+'\','+(!!p.featured)+')">'+(p.featured?'\u2605 Featured':'\u2606 Feature')+'</button>'+
+    '<button class="small" onclick="toggleHidden(\'elsie_photos\',\''+p.id+'\','+(!!p.hidden)+')">'+(p.hidden?'Show':'Hide')+'</button>'+
     '<button class="small danger" onclick="delPhoto(\''+p.id+'\')">Remove</button></div>'
   ).join('');
   refreshCardPicker();
@@ -226,6 +228,15 @@ async function loadCheer() {
 }
 
 // ── FEATURED (drives the rotating Home-screen hero for Elsie's card) ──
+async function toggleHidden(table, id, isHidden){
+  const { error } = await sb.from(table).update({ hidden: !isHidden }).eq('id', id);
+  if (error) { showStatus('Failed: '+error.message, false); return; }
+  showStatus(!isHidden ? 'Hidden from the TV (kept in library)' : 'Shown on the TV again', true);
+  if (table==='elsie_photos') loadPhotos();
+  else if (table==='elsie_artwork') loadArtwork();
+  else if (table==='elsie_cheer') loadCheer();
+}
+
 async function toggleFeatured(table, id, current) {
   await sb.from(table).update({ featured: !current }).eq('id', id);
   if (table === 'elsie_artwork') loadArtwork();
