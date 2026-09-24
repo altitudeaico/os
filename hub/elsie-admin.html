@@ -43,10 +43,10 @@
   .panel { display:none; }
   .panel.active { display:block; }
 
-.reelgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:10px;}
+.reelgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px;}
 .reel{background:rgba(255,255,255,0.05);border:1px solid rgba(216,180,254,0.2);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
 .reel video{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;display:block;}
-.reel .rb{padding:10px;display:flex;flex-direction:column;gap:6px;}
+.reel .rb{padding:9px;display:flex;flex-direction:column;gap:6px;}
 .reel .rt{font-weight:700;font-size:14px;}
 .reel .rd{font-size:12px;color:rgba(255,255,255,0.55);}
 .reel .pill{align-self:flex-start;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;letter-spacing:0.03em;}
@@ -135,7 +135,7 @@
   <div class="panel" id="panel-reels">
     <div class="section">
       <h2>My Reels</h2>
-      <div class="hint">Finished edits made from your photos and videos. You're the creator: watch each one, then choose. <b>Approve</b> puts it on the Watch screen on the TV. <b>Not yet</b> keeps it here as a draft. <b>Hide</b> tucks it away.</div>
+      <div class="hint">Finished edits made from your photos and videos. You're the creator: watch each one, then choose. <b>Approve</b> puts it on the Watch screen on the TV. Leave it and it waits here as a draft. <b>Hide</b> tucks it away.</div>
       <div id="reels-grid" class="reelgrid"></div>
     </div>
   </div>
