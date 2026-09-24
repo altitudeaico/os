@@ -43,6 +43,15 @@
   .panel { display:none; }
   .panel.active { display:block; }
 
+.reelgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:10px;}
+.reel{background:rgba(255,255,255,0.05);border:1px solid rgba(216,180,254,0.2);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;}
+.reel video{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;display:block;}
+.reel .rb{padding:10px;display:flex;flex-direction:column;gap:6px;}
+.reel .rt{font-weight:700;font-size:14px;}
+.reel .rd{font-size:12px;color:rgba(255,255,255,0.55);}
+.reel .pill{align-self:flex-start;font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;letter-spacing:0.03em;}
+.pill.draft{background:rgba(255,200,80,0.18);color:#ffd27a;}.pill.approved{background:rgba(48,209,88,0.18);color:#5fe08a;}.pill.hidden{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);}
+.reel .ra{display:flex;gap:6px;flex-wrap:wrap;}
 .uploadzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
   padding:26px 16px;border:2px dashed rgba(139,92,246,0.5);border-radius:14px;cursor:pointer;
   background:rgba(139,92,246,0.06);transition:all 0.15s;text-align:center;}
@@ -80,12 +89,13 @@
 <div class="wrap">
   <a href="/hub/control.html" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:rgba(255,255,255,0.75);font:600 13px/-apple-system,BlinkMacSystemFont,sans-serif;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:8px 14px;margin-bottom:16px;-webkit-tap-highlight-color:transparent;">← Central Control</a>
   <h1>Elsie's World</h1>
-  <div class="sub">Manage artwork, photos, cheer, music, latest and the Home card — all live to the TV.</div>
+  <div class="sub">Manage reels, artwork, photos, cheer, music, latest and the Home card — all live to the TV.</div>
   <div class="status" id="status"></div>
 
   <div class="tabs">
     <div class="tab active" data-panel="artwork">Artwork</div>
     <div class="tab" data-panel="photos">Photos</div>
+    <div class="tab" data-panel="reels">My Reels</div>
     <div class="tab" data-panel="cheer">Cheer</div>
     <div class="tab" data-panel="music">Music</div>
     <div class="tab" data-panel="latest">Latest</div>
@@ -118,6 +128,15 @@
       <input type="file" id="photo-file" accept="image/*,video/*" multiple style="display:none" onchange="bulkUpload()">
       <div id="upload-progress"></div>
       <div id="photos-grid" class="mediagrid"></div>
+    </div>
+  </div>
+
+  <!-- MY REELS (finished edits, Elsie approves what goes to Watch) -->
+  <div class="panel" id="panel-reels">
+    <div class="section">
+      <h2>My Reels</h2>
+      <div class="hint">Finished edits made from your photos and videos. You're the creator: watch each one, then choose. <b>Approve</b> puts it on the Watch screen on the TV. <b>Not yet</b> keeps it here as a draft. <b>Hide</b> tucks it away.</div>
+      <div id="reels-grid" class="reelgrid"></div>
     </div>
   </div>
 
@@ -419,8 +438,43 @@ async function refreshCardPicker() {
   ).join('');
 }
 
+// ── MY REELS ──
+const ELSIE_PERSON_ID = 'c8ef8444-295f-4c9f-86b4-8ed5c1dafbc2';
+const REEL_LABEL = { draft: 'Waiting for you', approved: 'On Watch', hidden: 'Hidden' };
+async function loadReels() {
+  const { data, error } = await sb.from('content_items')
+    .select('id,title,description,source_view_url,poster_url,lifecycle_status,duration_seconds,created_at')
+    .eq('primary_person_id', ELSIE_PERSON_ID).eq('content_type', 'edit')
+    .order('created_at', { ascending: false });
+  const grid = document.getElementById('reels-grid');
+  if (error) { grid.innerHTML = '<div class="hint">Could not load reels: ' + error.message + '</div>'; return; }
+  if (!data || !data.length) { grid.innerHTML = '<div class="hint">No reels yet. New edits land here first.</div>'; return; }
+  grid.innerHTML = data.map(r => {
+    const st = REEL_LABEL[r.lifecycle_status] ? r.lifecycle_status : 'draft';
+    const btn = (to, label, bg) => '<button class="small" style="background:' + bg + ';" onclick="setReelStatus(\'' + r.id + '\',\'' + to + '\')">' + label + '</button>';
+    const actions = st === 'approved'
+      ? btn('draft', 'Take off Watch', 'rgba(255,255,255,0.15)') + btn('hidden', 'Hide', 'rgba(255,255,255,0.08)')
+      : st === 'hidden'
+        ? btn('draft', 'Bring back', 'rgba(255,255,255,0.15)')
+        : btn('approved', '\u2713 Approve', '#8b5cf6') + btn('hidden', 'Hide', 'rgba(255,255,255,0.08)');
+    return '<div class="reel">' +
+      '<video src="' + r.source_view_url + '"' + (r.poster_url ? ' poster="' + r.poster_url + '"' : '') + ' controls playsinline preload="none"></video>' +
+      '<div class="rb"><div class="rt">' + (r.title || 'Untitled') + '</div>' +
+      (r.description ? '<div class="rd">' + r.description + '</div>' : '') +
+      '<span class="pill ' + st + '">' + REEL_LABEL[st] + '</span>' +
+      '<div class="ra">' + actions + '</div></div></div>';
+  }).join('');
+}
+async function setReelStatus(id, to) {
+  const patch = { lifecycle_status: to, creator_approved_at: to === 'approved' ? new Date().toISOString() : null };
+  const { error } = await sb.from('content_items').update(patch).eq('id', id);
+  if (error) { showStatus('Could not update: ' + error.message, false); return; }
+  showStatus(to === 'approved' ? 'Approved. It is on Watch now.' : to === 'hidden' ? 'Hidden.' : 'Back to draft. Off Watch.', true);
+  loadReels();
+}
+
 // Load all
-loadArtwork(); loadPhotos(); loadCheer(); loadMusic(); loadLatest(); loadCard();
+loadArtwork(); loadPhotos(); loadReels(); loadCheer(); loadMusic(); loadLatest(); loadCard();
 </script>
 <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
   <span class="close" onclick="closeLightbox(event,true)">\u00d7</span>

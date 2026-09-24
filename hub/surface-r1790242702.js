@@ -1,3 +1,7 @@
+
+
+function __D(m){}  // diagnostics removed
+
 try{var _p=document.getElementById('fos-probe');if(_p)_p.textContent='v9';}catch(e){}
 (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='surface.js: LOADED';})();
 /**
