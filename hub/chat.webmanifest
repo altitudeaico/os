@@ -1,0 +1,25 @@
+{
+  "name": "Family Chat",
+  "short_name": "Family Chat",
+  "description": "Olatoye Family Chat",
+  "start_url": "/hub/chat.html",
+  "scope": "/hub/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b141a",
+  "theme_color": "#202c33",
+  "icons": [
+    {
+      "src": "https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
