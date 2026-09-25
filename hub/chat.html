@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Family Chat</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  :root{--safe-t:env(safe-area-inset-top,0);--safe-b:env(safe-area-inset-bottom,0);}
+  html,body{height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0b141a;color:#e9edef;height:100%;overflow:hidden;}
+  #app{display:flex;flex-direction:column;height:100%;}
+  .gate{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:#8696a0;padding:24px;text-align:center;}
+  /* header */
+  .hdr{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--safe-t)) 14px 10px;background:#202c33;flex:0 0 auto;}
+  .hdr .back{font-size:22px;cursor:pointer;display:none;color:#e9edef;}
+  .hdr .who{font-weight:700;font-size:16px;flex:1;}
+  .hdr .sub{font-size:12px;color:#8696a0;font-weight:400;}
+  .av{width:38px;height:38px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:15px;}
+  /* list */
+  .list{flex:1;overflow-y:auto;background:#0b141a;}
+  .conv{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);}
+  .conv:active{background:#202c33;}
+  .conv .meta{flex:1;min-width:0;}
+  .conv .nm{font-weight:600;font-size:16px;display:flex;justify-content:space-between;}
+  .conv .nm .t{font-size:11px;color:#8696a0;font-weight:400;}
+  .conv .last{font-size:14px;color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+  .conv .badge{background:#00a884;color:#fff;font-size:11px;font-weight:700;border-radius:12px;padding:1px 7px;margin-left:8px;}
+  /* thread */
+  .thread{flex:1;display:none;flex-direction:column;height:100%;}
+  .thread.active{display:flex;}
+  .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:6px;
+    background:#0b141a;}
+  .msg{max-width:78%;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1.35;word-wrap:break-word;position:relative;}
+  .msg .who{font-size:12px;font-weight:700;margin-bottom:2px;}
+  .msg .tm{font-size:10px;color:rgba(255,255,255,0.5);text-align:right;margin-top:2px;}
+  .msg.me{align-self:flex-end;background:#005c4b;}
+  .msg.them{align-self:flex-start;background:#202c33;}
+  .composer{display:flex;gap:8px;padding:10px 12px calc(10px + var(--safe-b));background:#202c33;flex:0 0 auto;align-items:flex-end;}
+  .composer textarea{flex:1;background:#2a3942;color:#e9edef;border:none;border-radius:20px;padding:10px 14px;font-size:15px;font-family:inherit;resize:none;max-height:100px;line-height:1.3;}
+  .composer button{background:#00a884;border:none;width:44px;height:44px;border-radius:50%;color:#fff;font-size:20px;cursor:pointer;flex:0 0 auto;}
+  .listview.hidden{display:none;}
+  /* toast */
+  .toast{position:fixed;top:calc(10px + var(--safe-t));left:50%;transform:translateX(-50%) translateY(-120%);
+    background:#202c33;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 16px;z-index:999;
+    max-width:88vw;transition:transform 0.3s;box-shadow:0 6px 24px rgba(0,0,0,0.5);cursor:pointer;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast .tt{font-weight:700;font-size:14px;}
+  .toast .tb{font-size:13px;color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80vw;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="gate" id="gate">Loading Family Chat…</div>
+
+  <!-- Conversation list -->
+  <div class="listview" id="listview" style="display:none;height:100%;flex-direction:column;">
+    <div class="hdr">
+      <div class="av" id="me-av"></div>
+      <div class="who">Family Chat<div class="sub" id="me-name"></div></div>
+    </div>
+    <div class="list" id="conv-list"></div>
+  </div>
+
+  <!-- Thread -->
+  <div class="thread" id="thread">
+    <div class="hdr">
+      <div class="back" id="back">‹</div>
+      <div class="av" id="th-av"></div>
+      <div class="who" id="th-name"></div>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Message" oninput="autoGrow(this)"></textarea>
+      <button onclick="send()">➤</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" onclick="toastClick()">
+  <div class="tt" id="toast-t"></div>
+  <div class="tb" id="toast-b"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL='https://fypwabbhxnnwcpfjwrda.supabase.co';
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const sb=supabase.createClient(SUPABASE_URL,ANON_KEY);
+
+var ME=null, MEMBERS={}, CONVS=[], CUR=null, lastToastId=null;
+
+function qs(k){return new URLSearchParams(location.search).get(k);}
+function initials(n){return (n||'?').trim().charAt(0).toUpperCase();}
+function timeShort(iso){var d=new Date(iso);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
+function autoGrow(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight,100)+'px';}
+
+async function boot(){
+  const token=qs('t');
+  if(!token){ document.getElementById('gate').textContent='No family link. Ask a parent for your chat link.'; return; }
+  // Identify me
+  const {data:me}=await sb.from('chat_members').select('*').eq('link_token',token).maybeSingle();
+  if(!me){ document.getElementById('gate').textContent='This link is not recognised.'; return; }
+  ME=me;
+  // Load all members
+  const {data:mem}=await sb.from('chat_members').select('*');
+  (mem||[]).forEach(function(m){ MEMBERS[m.id]=m; });
+  document.getElementById('gate').style.display='none';
+  document.getElementById('listview').style.display='flex';
+  document.getElementById('me-name').textContent=ME.name;
+  var av=document.getElementById('me-av'); av.textContent=initials(ME.name); av.style.background=ME.colour;
+  await loadConversations();
+  subscribeRealtime();
+  document.getElementById('back').onclick=closeThread;
+  askNotifyPermission();
+}
+
+async function loadConversations(){
+  // conversations I'm in
+  const {data:parts}=await sb.from('chat_participants').select('conversation_id,last_read_at').eq('member_id',ME.id);
+  const ids=(parts||[]).map(function(p){return p.conversation_id;});
+  const lastRead={}; (parts||[]).forEach(function(p){lastRead[p.conversation_id]=p.last_read_at;});
+  if(!ids.length){ document.getElementById('conv-list').innerHTML='<div style="padding:20px;color:#8696a0;">No conversations yet.</div>'; return; }
+  const {data:convs}=await sb.from('chat_conversations').select('*').in('id',ids);
+  // participants for direct-chat naming
+  const {data:allParts}=await sb.from('chat_participants').select('conversation_id,member_id').in('conversation_id',ids);
+  // last message per conversation
+  const {data:msgs}=await sb.from('chat_messages').select('conversation_id,body,created_at,sender_id').in('conversation_id',ids).order('created_at',{ascending:false});
+  var lastByConv={}, unread={};
+  (msgs||[]).forEach(function(m){
+    if(!lastByConv[m.conversation_id]) lastByConv[m.conversation_id]=m;
+    var lr=lastRead[m.conversation_id];
+    if(m.sender_id!==ME.id && (!lr || new Date(m.created_at)>new Date(lr))) unread[m.conversation_id]=(unread[m.conversation_id]||0)+1;
+  });
+  CONVS=(convs||[]).map(function(c){
+    var members=(allParts||[]).filter(function(p){return p.conversation_id===c.id;}).map(function(p){return p.member_id;});
+    var title=c.title;
+    if(c.kind==='direct'){ var other=members.find(function(id){return id!==ME.id;}); title=(MEMBERS[other]||{}).name||'Chat'; c._other=other; }
+    return {id:c.id,kind:c.kind,title:title,other:c._other,last:lastByConv[c.id],unread:unread[c.id]||0};
+  });
+  // sort by last message time desc, group first if no messages
+  CONVS.sort(function(a,b){ var ta=a.last?new Date(a.last.created_at):0; var tb=b.last?new Date(b.last.created_at):0; return tb-ta; });
+  renderConvList();
+}
+
+function renderConvList(){
+  document.getElementById('conv-list').innerHTML=CONVS.map(function(c){
+    var col = c.kind==='group' ? '#00a884' : (MEMBERS[c.other]||{}).colour || '#8696a0';
+    var lastTxt = c.last ? ((c.last.sender_id===ME.id?'You: ':'')+c.last.body) : 'Tap to start chatting';
+    var lastTm = c.last ? timeShort(c.last.created_at) : '';
+    return '<div class="conv" onclick="openThread(\''+c.id+'\')">'+
+      '<div class="av" style="background:'+col+'">'+(c.kind==='group'?'👪':initials(c.title))+'</div>'+
+      '<div class="meta"><div class="nm">'+c.title+'<span class="t">'+lastTm+'</span></div>'+
+      '<div class="last">'+esc(lastTxt)+(c.unread?'<span class="badge">'+c.unread+'</span>':'')+'</div></div></div>';
+  }).join('');
+}
+function esc(s){return (s||'').replace(/</g,'&lt;');}
+
+async function openThread(convId){
+  CUR=CONVS.find(function(c){return c.id===convId;});
+  document.getElementById('listview').classList.add('hidden');
+  document.getElementById('thread').classList.add('active');
+  document.getElementById('back').style.display='block';
+  document.getElementById('th-name').textContent=CUR.title;
+  var av=document.getElementById('th-av');
+  av.textContent=CUR.kind==='group'?'👪':initials(CUR.title);
+  av.style.background=CUR.kind==='group'?'#00a884':((MEMBERS[CUR.other]||{}).colour||'#8696a0');
+  await loadMessages();
+  markRead();
+}
+function closeThread(){
+  document.getElementById('thread').classList.remove('active');
+  document.getElementById('listview').classList.remove('hidden');
+  document.getElementById('back').style.display='none';
+  CUR=null; loadConversations();
+}
+
+async function loadMessages(){
+  const {data}=await sb.from('chat_messages').select('*').eq('conversation_id',CUR.id).order('created_at');
+  var box=document.getElementById('msgs');
+  box.innerHTML=(data||[]).map(renderMsg).join('');
+  box.scrollTop=box.scrollHeight;
+}
+function renderMsg(m){
+  var mine=m.sender_id===ME.id;
+  var sender=MEMBERS[m.sender_id]||{};
+  return '<div class="msg '+(mine?'me':'them')+'">'+
+    (!mine && CUR && CUR.kind==='group' ? '<div class="who" style="color:'+(sender.colour||'#8696a0')+'">'+(sender.name||'')+'</div>' : '')+
+    esc(m.body)+'<div class="tm">'+timeShort(m.created_at)+'</div></div>';
+}
+
+async function send(){
+  var inp=document.getElementById('input'); var body=inp.value.trim();
+  if(!body || !CUR) return;
+  inp.value=''; autoGrow(inp);
+  await sb.from('chat_messages').insert({conversation_id:CUR.id,sender_id:ME.id,body:body});
+  // realtime will append; but append optimistically too
+}
+
+function markRead(){
+  if(!CUR) return;
+  sb.from('chat_participants').update({last_read_at:new Date().toISOString()}).eq('conversation_id',CUR.id).eq('member_id',ME.id);
+}
+
+function subscribeRealtime(){
+  sb.channel('chat').on('postgres_changes',{event:'INSERT',schema:'public',table:'chat_messages'},function(payload){
+    var m=payload.new;
+    // Is this a conversation I'm in?
+    var inConv=CONVS.find(function(c){return c.id===m.conversation_id;});
+    if(!inConv) { loadConversations(); return; }
+    if(CUR && m.conversation_id===CUR.id){
+      var box=document.getElementById('msgs');
+      box.insertAdjacentHTML('beforeend', renderMsg(m));
+      box.scrollTop=box.scrollHeight;
+      markRead();
+    } else if(m.sender_id!==ME.id){
+      notify(m);
+    }
+    loadConversations();
+  }).subscribe();
+}
+
+function notify(m){
+  var sender=MEMBERS[m.sender_id]||{};
+  // in-app toast
+  showToast(sender.name||'New message', m.body, m.conversation_id);
+  // browser notification if permitted
+  if('Notification' in window && Notification.permission==='granted'){
+    try{ new Notification(sender.name||'Family Chat', {body:m.body, icon:'https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png'}); }catch(e){}
+  }
+}
+var toastTimer=null, toastConv=null;
+function showToast(t,b,conv){
+  document.getElementById('toast-t').textContent=t;
+  document.getElementById('toast-b').textContent=b;
+  toastConv=conv;
+  var el=document.getElementById('toast'); el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(function(){el.classList.remove('show');},4500);
+}
+function toastClick(){ document.getElementById('toast').classList.remove('show'); if(toastConv) openThread(toastConv); }
+
+function askNotifyPermission(){
+  if('Notification' in window && Notification.permission==='default'){
+    setTimeout(function(){ Notification.requestPermission(); }, 2000);
+  }
+}
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter' && !e.shiftKey && document.activeElement && document.activeElement.id==='input'){
+    e.preventDefault(); send();
+  }
+});
+
+boot();
+</script>
+</body>
+</html>
