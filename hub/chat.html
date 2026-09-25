@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="/hub/chat.webmanifest">
+<meta name="theme-color" content="#202c33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Family Chat">
+<link rel="apple-touch-icon" href="https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Family Chat</title>
@@ -78,6 +84,7 @@
   </div>
 </div>
 
+<button id="installBtn" onclick="chatInstall()" style="display:none;position:fixed;bottom:90px;right:16px;z-index:998;background:#00a884;color:#fff;border:none;border-radius:22px;padding:11px 18px;font-weight:700;font-size:13px;cursor:pointer;align-items:center;gap:6px;box-shadow:0 4px 16px rgba(0,0,0,0.5);">⬇ Install app</button>
 <div class="toast" id="toast" onclick="toastClick()">
   <div class="tt" id="toast-t"></div>
   <div class="tb" id="toast-b"></div>
@@ -92,12 +99,17 @@ const sb=supabase.createClient(SUPABASE_URL,ANON_KEY);
 var ME=null, MEMBERS={}, CONVS=[], CUR=null, lastToastId=null;
 
 function qs(k){return new URLSearchParams(location.search).get(k);}
+function getToken(){
+  var t = qs('t');
+  if (t){ try{ localStorage.setItem('fos_chat_token', t); }catch(e){} return t; }
+  try{ return localStorage.getItem('fos_chat_token'); }catch(e){ return null; }
+}
 function initials(n){return (n||'?').trim().charAt(0).toUpperCase();}
 function timeShort(iso){var d=new Date(iso);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
 function autoGrow(t){t.style.height='auto';t.style.height=Math.min(t.scrollHeight,100)+'px';}
 
 async function boot(){
-  const token=qs('t');
+  const token=getToken();
   if(!token){ document.getElementById('gate').textContent='No family link. Ask a parent for your chat link.'; return; }
   // Identify me
   const {data:me}=await sb.from('chat_members').select('*').eq('link_token',token).maybeSingle();
@@ -252,6 +264,10 @@ document.addEventListener('keydown',function(e){
   }
 });
 
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/hub/chat-sw.js',{scope:'/hub/'}).catch(function(){}); }
+var _dp=null;
+window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); _dp=e; var b=document.getElementById('installBtn'); if(b) b.style.display='flex'; });
+function chatInstall(){ if(_dp){ _dp.prompt(); _dp=null; var b=document.getElementById('installBtn'); if(b) b.style.display='none'; } else { alert('To install: open the browser menu and choose Add to Home screen / Install app.'); } }
 boot();
 </script>
 </body>
