@@ -10,16 +10,16 @@
   "theme_color": "#202c33",
   "icons": [
     {
-      "src": "https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png",
+      "src": "https://olatoyefamily.com/hub/assets/icons/family-chat-icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "https://olatoyefamily.com/brand/logo/Olatoye_Family_OS_master.png",
+      "src": "https://olatoyefamily.com/hub/assets/icons/family-chat-icon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }
