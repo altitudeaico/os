@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Family Chat — Control</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0b141a;color:#e9edef;min-height:100vh;padding:18px;}
+  .wrap{max-width:680px;margin:0 auto;}
+  .backlink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:rgba(255,255,255,0.75);font-weight:600;font-size:13px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:8px 14px;margin-bottom:16px;}
+  h1{font-size:22px;color:#00a884;margin-bottom:4px;}
+  .sub{color:#8696a0;font-size:13px;margin-bottom:18px;}
+  .section{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-bottom:16px;}
+  .section h2{font-size:13px;color:#00a884;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;}
+  .member{display:flex;align-items:center;gap:11px;padding:10px;background:rgba(0,0,0,0.25);border-radius:10px;margin-bottom:8px;}
+  .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex:0 0 auto;}
+  .member .info{flex:1;min-width:0;}
+  .member .nm{font-weight:600;}
+  .member .lk{font-size:11px;color:#8696a0;word-break:break-all;}
+  .member button{background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;}
+  .conv{padding:11px;background:rgba(0,0,0,0.25);border-radius:10px;margin-bottom:8px;cursor:pointer;}
+  .conv:active{background:rgba(255,255,255,0.06);}
+  .conv .t{font-weight:600;display:flex;justify-content:space-between;}
+  .conv .t .c{font-size:11px;color:#8696a0;font-weight:400;}
+  .conv .l{font-size:13px;color:#8696a0;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .thread{display:none;}
+  .thread.active{display:block;}
+  .msg{max-width:80%;padding:7px 11px;border-radius:8px;font-size:14px;margin-bottom:5px;}
+  .msg .who{font-size:11px;font-weight:700;margin-bottom:1px;}
+  .msg .tm{font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px;}
+  .msgbox{max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:4px;}
+  .status{padding:9px;border-radius:8px;font-size:12px;margin-bottom:10px;display:none;}
+  .status.show{display:block;background:rgba(0,168,132,0.2);color:#00a884;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="backlink" href="/hub/control.html">← Central Control</a>
+  <h1>Family Chat</h1>
+  <div class="sub">Oversight of all family conversations. Copy each member's private link to give them access.</div>
+  <div class="status" id="status"></div>
+
+  <div class="section" id="members-sec">
+    <h2>Members &amp; links</h2>
+    <div id="members"></div>
+  </div>
+
+  <div class="section" id="convs-sec">
+    <h2>All conversations</h2>
+    <div id="convs"></div>
+  </div>
+
+  <div class="section thread" id="thread-sec">
+    <h2 id="thread-title">Conversation</h2>
+    <div class="msgbox" id="thread-msgs"></div>
+    <button onclick="closeThread()" style="margin-top:12px;background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:9px 15px;font-weight:700;cursor:pointer;">← Back to conversations</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL='https://fypwabbhxnnwcpfjwrda.supabase.co';
+const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const sb=supabase.createClient(SUPABASE_URL,ANON_KEY);
+var MEMBERS={};
+function initials(n){return (n||'?').charAt(0).toUpperCase();}
+function tm(iso){var d=new Date(iso);return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
+function esc(s){return (s||'').replace(/</g,'&lt;');}
+function showStatus(m){var el=document.getElementById('status');el.textContent=m;el.className='status show';setTimeout(()=>el.classList.remove('show'),3000);}
+
+async function load(){
+  const {data:mem}=await sb.from('chat_members').select('*').order('role');
+  (mem||[]).forEach(m=>MEMBERS[m.id]=m);
+  document.getElementById('members').innerHTML=(mem||[]).map(function(m){
+    var link=location.origin+'/hub/chat.html?t='+m.link_token;
+    return '<div class="member"><div class="av" style="background:'+m.colour+'">'+initials(m.name)+'</div>'+
+      '<div class="info"><div class="nm">'+m.name+' <span style="color:#8696a0;font-weight:400;font-size:12px;">('+m.role+')</span></div>'+
+      '<div class="lk">'+link+'</div></div>'+
+      '<button onclick="copyLink(\''+link+'\')">Copy</button></div>';
+  }).join('');
+  await loadConvs();
+}
+function copyLink(l){ navigator.clipboard.writeText(l).then(function(){showStatus('Link copied');}); }
+
+async function loadConvs(){
+  const {data:convs}=await sb.from('chat_conversations').select('*');
+  const {data:parts}=await sb.from('chat_participants').select('conversation_id,member_id');
+  const {data:msgs}=await sb.from('chat_messages').select('conversation_id,body,created_at,sender_id').order('created_at',{ascending:false});
+  var lastBy={}; (msgs||[]).forEach(function(m){ if(!lastBy[m.conversation_id]) lastBy[m.conversation_id]=m; });
+  var enriched=(convs||[]).map(function(c){
+    var ids=(parts||[]).filter(p=>p.conversation_id===c.id).map(p=>p.member_id);
+    var names=ids.map(id=>(MEMBERS[id]||{}).name).filter(Boolean);
+    var title=c.kind==='group'?(c.title||'Group'):names.join(' & ');
+    return {id:c.id,kind:c.kind,title:title,last:lastBy[c.id],count:0};
+  });
+  enriched.sort(function(a,b){var ta=a.last?new Date(a.last.created_at):0;var tb=b.last?new Date(b.last.created_at):0;return tb-ta;});
+  document.getElementById('convs').innerHTML=enriched.map(function(c){
+    var last=c.last?((MEMBERS[c.last.sender_id]||{}).name+': '+c.last.body):'No messages yet';
+    var lt=c.last?tm(c.last.created_at):'';
+    return '<div class="conv" onclick="openThread(\''+c.id+'\',\''+esc(c.title).replace(/'/g,"")+'\')">'+
+      '<div class="t">'+(c.kind==='group'?'👪 ':'')+esc(c.title)+'<span class="c">'+lt+'</span></div>'+
+      '<div class="l">'+esc(last)+'</div></div>';
+  }).join('');
+}
+
+async function openThread(id,title){
+  document.getElementById('members-sec').style.display='none';
+  document.getElementById('convs-sec').style.display='none';
+  document.getElementById('thread-sec').classList.add('active');
+  document.getElementById('thread-title').textContent=title;
+  const {data}=await sb.from('chat_messages').select('*').eq('conversation_id',id).order('created_at');
+  document.getElementById('thread-msgs').innerHTML=(data||[]).map(function(m){
+    var s=MEMBERS[m.sender_id]||{};
+    return '<div class="msg" style="background:rgba(255,255,255,0.06);align-self:flex-start;">'+
+      '<div class="who" style="color:'+(s.colour||'#8696a0')+'">'+(s.name||'?')+'</div>'+
+      esc(m.body)+'<div class="tm">'+tm(m.created_at)+'</div></div>';
+  }).join('')||'<div style="color:#8696a0;padding:12px;">No messages yet.</div>';
+}
+function closeThread(){
+  document.getElementById('thread-sec').classList.remove('active');
+  document.getElementById('members-sec').style.display='';
+  document.getElementById('convs-sec').style.display='';
+}
+load();
+</script>
+</body>
+</html>
