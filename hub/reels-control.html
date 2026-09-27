@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Reels — Control</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root { --bg:#F2F2F7; --card:#fff; --border:rgba(60,60,67,0.12); --text:#1C1C1E; --text-2:#8A8A8E;
+          --purple:#8B5CF6; --pink:#EC4899; --green:#22A559; --shadow:0 1px 2px rgba(0,0,0,0.04),0 10px 24px -10px rgba(0,0,0,0.14); }
+  body { font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text);
+         padding:calc(20px + env(safe-area-inset-top,0)) 16px calc(120px + env(safe-area-inset-bottom,0)); -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:560px; margin:0 auto; }
+  .top { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+  .back { text-decoration:none; color:var(--purple); font-weight:600; font-size:15px; }
+  h1 { font-size:28px; font-weight:700; letter-spacing:-0.02em; margin:10px 0 4px; }
+  .sub { color:var(--text-2); font-size:14px; line-height:1.4; margin-bottom:18px; }
+  .filters { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .f { border:1px solid var(--border); background:var(--card); border-radius:20px; padding:7px 14px; font-size:14px; font-weight:600; color:var(--text); }
+  .f.on { background:var(--text); color:#fff; border-color:var(--text); }
+  .reel { display:flex; gap:12px; background:var(--card); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); padding:12px; margin-bottom:12px; }
+  .thumb { width:72px; height:128px; border-radius:12px; background:#1d1430 center/cover no-repeat; flex:0 0 auto; position:relative; }
+  .thumb span { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:22px; text-shadow:0 2px 8px rgba(0,0,0,0.6); }
+  .body { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .t { font-size:16px; font-weight:700; }
+  .m { font-size:13px; color:var(--text-2); margin-top:2px; }
+  .note { font-size:12px; color:#B45309; margin-top:6px; line-height:1.35; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:10px; }
+  .c { border:1.5px solid var(--border); background:#fff; border-radius:16px; padding:6px 11px; font-size:13px; font-weight:600; color:var(--text-2); }
+  .c.elsie.on { background:var(--purple); border-color:var(--purple); color:#fff; }
+  .c.emma.on { background:var(--pink); border-color:var(--pink); color:#fff; }
+  .c.live.on { background:var(--green); border-color:var(--green); color:#fff; }
+  .c:disabled { opacity:0.5; }
+  .bulk { position:fixed; left:0; right:0; bottom:0; background:rgba(255,255,255,0.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+          border-top:1px solid var(--border); padding:12px 16px calc(12px + env(safe-area-inset-bottom,0)); }
+  .bulk .in { max-width:560px; margin:0 auto; }
+  .bulk .lbl { font-size:12px; color:var(--text-2); font-weight:600; margin-bottom:8px; }
+  .bulk .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .b { border:none; border-radius:14px; padding:10px 14px; font-size:14px; font-weight:700; color:#fff; }
+  .b.elsie { background:var(--purple); } .b.emma { background:var(--pink); } .b.off { background:rgba(60,60,67,0.12); color:var(--text); }
+  .toast { position:fixed; left:50%; top:calc(16px + env(safe-area-inset-top,0)); transform:translateX(-50%) translateY(-120%); background:var(--text); color:#fff;
+           padding:10px 16px; border-radius:14px; font-size:14px; font-weight:600; transition:transform 0.25s; z-index:10; max-width:90vw; text-align:center; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .empty { text-align:center; color:var(--text-2); padding:40px 0; }
+  .pv { position:fixed; inset:0; background:rgba(0,0,0,0.92); display:none; align-items:center; justify-content:center; z-index:20; }
+  .pv video { max-width:100%; max-height:100%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="back" href="/hub/control.html">‹ Control</a></div>
+  <h1>Reels</h1>
+  <div class="sub">Tap a World to push a reel to it or take it off. Pushing a draft makes it live, which also puts it on Watch. New reels go to their own person's World automatically.</div>
+  <div class="filters" id="filters"></div>
+  <div id="list"><div class="empty">Loading…</div></div>
+</div>
+<div class="bulk"><div class="in">
+  <div class="lbl" id="bulk-lbl">All shown</div>
+  <div class="row">
+    <button class="b elsie" onclick="bulk('elsie',true)">Push to Elsie</button>
+    <button class="b emma" onclick="bulk('emma',true)">Push to Emma</button>
+    <button class="b off" onclick="bulk('emma',false)">Off Emma</button>
+    <button class="b off" onclick="bulk('elsie',false)">Off Elsie</button>
+  </div>
+</div></div>
+<div class="toast" id="toast"></div>
+<div class="pv" id="pv" onclick="closePv()"><video id="pv-v" playsinline controls></video></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5cHdhYmJoeG5ud2NwZmp3cmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NDg3ODUsImV4cCI6MjEwNDEyNDc4NX0.BwzgTd8_-lxENXnTu9ukxnHsgh3diguZbJPnzzC7XD4';
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const WORLDS = [{ k: 'elsie', label: "Elsie's World" }, { k: 'emma', label: "Emma's World" }];
+let reels = [], filter = 'all';
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function toast(t) { const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200); }
+const isLive = r => !['draft', 'hidden', 'archived'].includes(r.lifecycle_status || '');
+
+async function load() {
+  const { data, error } = await sb.from('content_items')
+    .select('id,title,description,source_view_url,poster_url,duration_seconds,lifecycle_status,worlds,people_notes,captured_at,created_at,people:primary_person_id(name),events:event_id(title)')
+    .eq('content_type', 'edit').neq('lifecycle_status', 'archived')
+    .order('captured_at', { ascending: false, nullsFirst: false });
+  if (error) { document.getElementById('list').innerHTML = '<div class="empty">Could not load reels: ' + esc(error.message) + '</div>'; return; }
+  reels = data || [];
+  renderFilters(); render();
+}
+
+function shown() { return reels.filter(r => filter === 'all' || (r.people && r.people.name === filter) || (r.events && r.events.title === filter)); }
+
+function renderFilters() {
+  const people = [...new Set(reels.map(r => r.people && r.people.name).filter(Boolean))];
+  const opts = ['all', ...people];
+  document.getElementById('filters').innerHTML = opts.map(o =>
+    '<button class="f' + (o === filter ? ' on' : '') + '" onclick="setFilter(\'' + esc(o) + '\')">' + (o === 'all' ? 'All reels' : esc(o) + "'s reels") + '</button>').join('');
+}
+function setFilter(f) { filter = f; renderFilters(); render(); }
+
+function render() {
+  const list = shown();
+  document.getElementById('bulk-lbl').textContent = 'All ' + list.length + ' shown';
+  if (!list.length) { document.getElementById('list').innerHTML = '<div class="empty">No reels here yet.</div>'; return; }
+  document.getElementById('list').innerHTML = list.map(r => {
+    const w = r.worlds || [];
+    const meta = [r.people && r.people.name, r.events && r.events.title, r.duration_seconds ? Math.round(r.duration_seconds) + 's' : ''].filter(Boolean).join(' · ');
+    const guests = r.people_notes && /guest|other children|parents/i.test(r.people_notes);
+    return '<div class="reel">' +
+      '<div class="thumb" style="background-image:url(' + esc(r.poster_url || '') + ')" onclick="preview(\'' + r.id + '\')"><span>▶</span></div>' +
+      '<div class="body">' +
+        '<div class="t">' + esc(r.title) + '</div>' +
+        '<div class="m">' + esc(meta) + '</div>' +
+        (guests ? '<div class="note">Guests in shot: family screens only</div>' : '') +
+        '<div class="chips">' +
+          WORLDS.map(x => '<button class="c ' + x.k + (w.includes(x.k) && isLive(r) ? ' on' : '') + '" onclick="toggleWorld(\'' + r.id + '\',\'' + x.k + '\')">' + x.label + '</button>').join('') +
+          '<button class="c live' + (isLive(r) ? ' on' : '') + '" onclick="toggleLive(\'' + r.id + '\')">' + (isLive(r) ? 'Live on Watch' : 'Draft') + '</button>' +
+        '</div>' +
+      '</div></div>';
+  }).join('');
+}
+
+async function save(r, patch, msg) {
+  const { error } = await sb.from('content_items').update(patch).eq('id', r.id);
+  if (error) { toast('Could not save: ' + error.message); return false; }
+  Object.assign(r, patch); render(); if (msg) toast(msg); return true;
+}
+
+async function toggleWorld(id, k) {
+  const r = reels.find(x => x.id === id); if (!r) return;
+  const w = new Set(r.worlds || []);
+  const label = WORLDS.find(x => x.k === k).label;
+  const on = w.has(k) && isLive(r);
+  if (on) { w.delete(k); return save(r, { worlds: [...w] }, 'Taken off ' + label); }
+  w.add(k);
+  const patch = { worlds: [...w] };
+  if (!isLive(r)) { patch.lifecycle_status = 'approved'; patch.creator_approved_at = new Date().toISOString(); }
+  return save(r, patch, 'Pushed to ' + label);
+}
+
+async function toggleLive(id) {
+  const r = reels.find(x => x.id === id); if (!r) return;
+  if (isLive(r)) return save(r, { lifecycle_status: 'draft' }, 'Back to draft: off the TV');
+  return save(r, { lifecycle_status: 'approved', creator_approved_at: new Date().toISOString() }, 'Live on Watch');
+}
+
+async function bulk(k, on) {
+  const list = shown(); if (!list.length) return;
+  const label = WORLDS.find(x => x.k === k).label;
+  if (!confirm((on ? 'Push ' : 'Take ') + list.length + ' reels ' + (on ? 'to ' : 'off ') + label + '?')) return;
+  let ok = 0;
+  for (const r of list) {
+    const w = new Set(r.worlds || []);
+    on ? w.add(k) : w.delete(k);
+    const patch = { worlds: [...w] };
+    if (on && !isLive(r)) { patch.lifecycle_status = 'approved'; patch.creator_approved_at = new Date().toISOString(); }
+    const { error } = await sb.from('content_items').update(patch).eq('id', r.id);
+    if (!error) { Object.assign(r, patch); ok++; }
+  }
+  render(); toast(ok + ' of ' + list.length + (on ? ' pushed to ' : ' taken off ') + label);
+}
+
+function preview(id) {
+  const r = reels.find(x => x.id === id); if (!r) return;
+  const v = document.getElementById('pv-v'); v.src = r.source_view_url; v.poster = r.poster_url || '';
+  document.getElementById('pv').style.display = 'flex'; v.play().catch(() => {});
+}
+function closePv() { const v = document.getElementById('pv-v'); v.pause(); v.removeAttribute('src'); v.load(); document.getElementById('pv').style.display = 'none'; }
+
+load();
+</script>
+</body>
+</html>
