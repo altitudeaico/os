@@ -33,7 +33,7 @@
     '.fev-filters{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}' +
     '.fev-f{padding:6px 11px;border-radius:16px;background:rgba(255,255,255,0.08);font-size:12px;cursor:pointer;color:#fff;}' +
     '.fev-f.on{background:rgba(139,92,246,0.85);}' +
-    '.fev-up{display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px;border:1.5px dashed rgba(139,92,246,0.55);border-radius:14px;cursor:pointer;margin-bottom:12px;text-align:center;}' +
+    '.fev-up{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px;border:1.5px dashed rgba(139,92,246,0.55);border-radius:14px;cursor:pointer;margin-bottom:12px;text-align:center;}' +
     '.fev-up b{font-size:14px;color:#fff;}.fev-up span{font-size:11px;color:rgba(255,255,255,0.5);}' +
     '.fev-prog{font-size:12px;color:rgba(255,255,255,0.7);margin:-4px 0 10px;}' +
     '.fev-prog div{padding:3px 0;}' +
@@ -83,6 +83,90 @@
       });
     });
   }
+
+  /* Photos: re-encode on the phone to a fresh JPEG (max 2560px). Gives a real,
+     readable blob on iPhone, turns HEIC into something every screen can show,
+     and cuts a 5-7 MB iPhone photo to ~1 MB for faster uploads. */
+  function toJpeg(file) {
+    return new Promise(function (res) {
+      var u = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        try {
+          var w = img.naturalWidth, h = img.naturalHeight, sc = Math.min(1, 2560 / Math.max(w, h));
+          var c = document.createElement('canvas'); c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          c.toBlob(function (b) { URL.revokeObjectURL(u); res(b && b.size ? { blob: b, w: c.width, h: c.height } : null); }, 'image/jpeg', 0.86);
+        } catch (e) { URL.revokeObjectURL(u); res(null); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(u); res(null); };
+      img.src = u;
+    });
+  }
+  /* Capture time from the photo's EXIF (DateTimeOriginal), so iPhone photos sort by
+     when they were taken, not when they were uploaded. */
+  function exifDate(file) {
+    return readBytes(file.slice(0, 262144)).then(function (buf) {
+      if (!buf || buf.byteLength < 12) return null;
+      var v = new DataView(buf);
+      if (v.getUint16(0) !== 0xFFD8) return null;
+      var o = 2;
+      while (o + 4 < v.byteLength) {
+        var mk = v.getUint16(o), len = v.getUint16(o + 2);
+        if (mk === 0xFFE1 && v.getUint32(o + 4) === 0x45786966) {
+          var t = o + 10, le = v.getUint16(t) === 0x4949;
+          var g16 = function (p) { return v.getUint16(t + p, le); }, g32 = function (p) { return v.getUint32(t + p, le); };
+          var findTag = function (ifd, tag) {
+            var n = g16(ifd);
+            for (var i = 0; i < n; i++) { var e = ifd + 2 + i * 12; if (g16(e) === tag) return e; }
+            return -1;
+          };
+          var ifd0 = g32(4), ex = findTag(ifd0, 0x8769);
+          if (ex < 0) return null;
+          var sub = g32(ex + 8), dt = findTag(sub, 0x9003);
+          if (dt < 0) return null;
+          var off = g32(dt + 8), str = '';
+          for (var k = 0; k < 19; k++) str += String.fromCharCode(v.getUint8(t + off + k));
+          var m = /^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)$/.exec(str);
+          return m ? new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]).toISOString() : null;
+        }
+        o += 2 + len;
+      }
+      return null;
+    }).catch(function () { return null; });
+  }
+  /* Big files (videos) go up in 6 MB resumable chunks instead of one request:
+     no whole-file copy in the phone's memory, and a dropped signal resumes. */
+  var tusLoading = null;
+  function loadTus() {
+    if (window.tus) return Promise.resolve();
+    if (!tusLoading) tusLoading = new Promise(function (res, rej) {
+      var sc = document.createElement('script'); sc.src = 'https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js';
+      sc.onload = res; sc.onerror = function () { tusLoading = null; rej(new Error('Could not load the uploader. Check the connection and try again.')); };
+      document.head.appendChild(sc);
+    });
+    return tusLoading;
+  }
+  function resumableUpload(sb, bucket, path, file, type, onProgress) {
+    var url = sb.supabaseUrl || (typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '');
+    var key = sb.supabaseKey || (typeof ANON_KEY !== 'undefined' ? ANON_KEY : '');
+    return loadTus().then(function () {
+      return new Promise(function (res, rej) {
+        var up = new window.tus.Upload(file, {
+          endpoint: url + '/storage/v1/upload/resumable',
+          retryDelays: [0, 3000, 5000, 10000, 20000],
+          headers: { authorization: 'Bearer ' + key, apikey: key, 'x-upsert': 'false' },
+          uploadDataDuringCreation: true, removeFingerprintOnSuccess: true,
+          metadata: { bucketName: bucket, objectName: path, contentType: type, cacheControl: '3600' },
+          chunkSize: 6 * 1024 * 1024,
+          onError: function (e) { rej(e); },
+          onProgress: function (a, b) { if (onProgress && b) onProgress(a / b); },
+          onSuccess: function () { res(); }
+        });
+        up.findPreviousUploads().then(function (p) { if (p.length) up.resumeFromPreviousUpload(p[0]); up.start(); });
+      });
+    });
+  }
+
   function guessType(name) {
     var ext = String(name || '').toLowerCase().split('.').pop();
     return { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', heic: 'image/heic', heif: 'image/heif', webp: 'image/webp', gif: 'image/gif',
@@ -197,8 +281,8 @@
       }).join('') + '</div>';
 
       var target = uploadTarget();
-      html += '<label class="fev-up"><input type="file" id="fev-file" accept="image/*,video/*" multiple style="display:none"><b>+ Add photos &amp; videos</b><span>to ' + esc(target.title) + '</span></label>';
-      html += '<div class="fev-prog" id="fev-prog"></div>';
+      html += '<label class="fev-up"><input type="file" id="fev-file" accept="image/*,video/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;"><b>+ Add photos &amp; videos</b><span>to ' + esc(target.title) + '</span></label>';
+      html += '<div class="fev-prog" id="fev-prog">' + (st.progHtml || '') + '</div>';
 
       if (!shown.length) {
         html += '<div class="fev-empty">Nothing here yet.' + (st.day !== 'all' ? ' Add photos and videos for this day above.' : '') + '</div>';
@@ -304,12 +388,24 @@
         var f = files[i], line = root.querySelector('#fev-p' + i);
         var isVid = /^video\//.test(f.type) || /\.(mov|mp4|m4v|webm)$/i.test(f.name);
         try {
+          if (!f.size) throw new Error('The phone handed over an empty file. If it is stored in iCloud, open it in Photos so it downloads, then try again.');
+          line.textContent = '\u2022 ' + f.name + ' \u2026 preparing';
+          var body = f, ctype = f.type || guessType(f.name), outName = f.name, meta = null, taken = null;
+          if (!isVid) {
+            taken = await exifDate(f);
+            var jp = await toJpeg(f);
+            if (jp) { body = jp.blob; ctype = 'image/jpeg'; outName = f.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg'; meta = { w: jp.w, h: jp.h }; }
+          }
+          var base = safeName(personName || 'family') + '/' + target.id + '/' + Date.now() + '-' + safeName(outName);
           line.textContent = '\u2022 ' + f.name + ' \u2026 uploading';
-          var base = safeName(personName || 'family') + '/' + target.id + '/' + Date.now() + '-' + safeName(f.name);
-          var up = await sb.storage.from(BUCKET).upload(base, f, { contentType: f.type || guessType(f.name), upsert: false });
-          if (up.error) throw up.error;
+          if (body.size > 25e6) {
+            await resumableUpload(sb, BUCKET, base, body, ctype, function (p) { line.textContent = '\u2022 ' + f.name + ' \u2026 uploading ' + Math.round(p * 100) + '%'; });
+          } else {
+            var up = await sb.storage.from(BUCKET).upload(base, body, { contentType: ctype, upsert: false });
+            if (up.error) throw up.error;
+          }
           var url = sb.storage.from(BUCKET).getPublicUrl(base).data.publicUrl;
-          var meta = isVid ? await probeVideo(f) : await probeImage(f);
+          if (!meta) meta = isVid ? await probeVideo(f) : await probeImage(f);
           var poster = isVid ? null : url;
           if (isVid && meta && meta.poster) {
             var pp = base.replace(/\.[a-z0-9]+$/, '') + '-poster.jpg';
@@ -319,9 +415,9 @@
           var row = {
             title: f.name, content_type: isVid ? 'raw_video' : 'raw_photo', event_id: target.id, primary_person_id: personId,
             storage_path: BUCKET + '/' + base, source_provider: 'upload', source_ref: f.name, source_view_url: url, poster_url: poster,
-            file_size_bytes: f.size, duration_seconds: isVid && meta && meta.dur ? Math.round(meta.dur * 10) / 10 : null,
+            file_size_bytes: body.size, duration_seconds: isVid && meta && meta.dur ? Math.round(meta.dur * 10) / 10 : null,
             orientation: meta && meta.w ? (meta.h > meta.w ? 'portrait' : 'landscape') : null,
-            captured_at: f.lastModified ? new Date(f.lastModified).toISOString() : null,
+            captured_at: taken || (f.lastModified ? new Date(f.lastModified).toISOString() : null),
             visibility: 'household', lifecycle_status: 'captured', reveal_trigger: 'immediate', inspection_status: 'pending'
           };
           var ins = await sb.from('content_items').insert(row).select('id').single();
@@ -330,9 +426,10 @@
           line.textContent = '\u2713 ' + f.name;
           ok++;
         } catch (e) {
-          line.textContent = '\u2717 ' + f.name + ' \u2014 ' + (e && e.message ? e.message : 'upload failed') + (f.size > 50e6 ? ' (file is ' + Math.round(f.size / 1e6) + ' MB; the upload limit is 50 MB)' : '');
+          line.textContent = '\u2717 ' + f.name + ' \u2014 ' + (e && e.message ? e.message : 'upload failed') + '';
         }
       }
+      st.progHtml = prog.innerHTML;
       say(ok + ' of ' + files.length + ' added to ' + target.title + '.', ok === files.length);
       await loadItems();
     }
