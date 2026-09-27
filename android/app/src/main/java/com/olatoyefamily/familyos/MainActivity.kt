@@ -76,6 +76,10 @@ class MainActivity : Activity() {
                 // Cache — use default (network when available, cache as fallback)
                 cacheMode = WebSettings.LOAD_NO_CACHE  // always fresh — web layer is the product
 
+                // Let Watch start videos with sound without a fresh key press
+                // (idle roll-on, "Play on TV" from master control, auto-advance).
+                mediaPlaybackRequiresUserGesture = false
+
                 // TV display — no zoom
                 builtInZoomControls = false
                 displayZoomControls = false
@@ -162,7 +166,15 @@ class MainActivity : Activity() {
             KeyEvent.KEYCODE_DPAD_LEFT,
             KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_CENTER,
-            KeyEvent.KEYCODE_ENTER -> {
+            KeyEvent.KEYCODE_ENTER,
+            // Remote media buttons: Watch uses these for pause/play, seek and next/previous.
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+            KeyEvent.KEYCODE_MEDIA_PLAY,
+            KeyEvent.KEYCODE_MEDIA_PAUSE,
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+            KeyEvent.KEYCODE_MEDIA_REWIND,
+            KeyEvent.KEYCODE_MEDIA_NEXT,
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                 webView.dispatchKeyEvent(event)
                 return true
             }
