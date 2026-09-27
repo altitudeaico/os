@@ -42,6 +42,17 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
+      - name: Load Family OS signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.TV_SIGNING_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::TV_SIGNING_KEYSTORE_B64 secret is missing. Refusing to build an APK with a throwaway key."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/familyos-tv.p12"
+          echo "TV_SIGNING_STORE_FILE=$RUNNER_TEMP/familyos-tv.p12" >> "$GITHUB_ENV"
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
@@ -49,6 +60,16 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
           SURFACE_PROVISIONING_GRANT: ${{ secrets.SURFACE_PROVISIONING_GRANT }}
+          TV_SIGNING_STORE_PASSWORD: ${{ secrets.TV_SIGNING_STORE_PASSWORD }}
+          TV_SIGNING_KEY_ALIAS: ${{ secrets.TV_SIGNING_KEY_ALIAS }}
+          TV_SIGNING_KEY_PASSWORD: ${{ secrets.TV_SIGNING_KEY_PASSWORD }}
+
+      - name: Verify APK carries the Family OS signing key
+        run: |
+          CERT=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs android/app/build/outputs/apk/debug/app-debug.apk | grep 'certificate SHA-256 digest' | head -1 | awk '{print $NF}')
+          echo "Signed with SHA-256 $CERT"
+          [ "$CERT" = "e36d0c4e5ef44659efcaa830af6ffd3fd9a125d53dff37eef130f9cb36969d9f" ] || { echo "::error::APK is not signed with the Family OS key"; exit 1; }
+          rm -f "$RUNNER_TEMP/familyos-tv.p12"
 
       - name: Publish APK to downloads folder
         run: |

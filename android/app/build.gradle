@@ -3,6 +3,12 @@ plugins {
     id 'kotlin-android'
 }
 
+// Fixed signing identity for the TV app, supplied by the build workflow from
+// GitHub secrets (never stored in the repo). With it, every new APK installs
+// over the old one in place. Local builds without it fall back to the default
+// debug key.
+def tvStoreFile = System.getenv('TV_SIGNING_STORE_FILE')
+
 android {
     namespace 'com.olatoyefamily.familyos'
     compileSdk 34
@@ -11,8 +17,20 @@ android {
         applicationId "com.olatoyefamily.familyos"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "0.1.0-phase0b"
+        versionCode 2
+        versionName "0.2.0-media"
+    }
+
+    signingConfigs {
+        if (tvStoreFile) {
+            familyos {
+                storeFile file(tvStoreFile)
+                storeType 'pkcs12'
+                storePassword System.getenv('TV_SIGNING_STORE_PASSWORD')
+                keyAlias System.getenv('TV_SIGNING_KEY_ALIAS')
+                keyPassword System.getenv('TV_SIGNING_KEY_PASSWORD')
+            }
+        }
     }
 
     buildFeatures {
@@ -26,6 +44,7 @@ android {
         }
         debug {
             debuggable true
+            if (tvStoreFile) signingConfig signingConfigs.familyos
         }
     }
 
