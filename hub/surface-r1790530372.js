@@ -1,7 +1,3 @@
-
-
-function __D(m){}  // diagnostics removed
-
 try{var _p=document.getElementById('fos-probe');if(_p)_p.textContent='v9';}catch(e){}
 (function(){var p=document.getElementById('fos-probe');if(p)p.textContent='surface.js: LOADED';})();
 /**
@@ -376,6 +372,7 @@ const WORLD_KEY_HANDLERS = [
   { viewId: 'view-emma',  handlerFn: 'emmaHandleKey' },
   { viewId: 'view-elsie', handlerFn: 'elsieHandleKey' },
   { viewId: 'view-academy', handlerFn: 'acadHandleKey' },
+  { viewId: 'view-watch', handlerFn: 'watchHandleKey' },
 ];
 
 // Hide every World view so a fresh destination always starts from a clean
@@ -384,11 +381,15 @@ const WORLD_KEY_HANDLERS = [
 // World to another (as a pushed navigate command does, bypassing Home)
 // leaves the previous World's screen visible underneath the new one.
 function closeAllWorlds() {
-  ['view-emma', 'view-elsie', 'view-academy', 'view-destination'].forEach(function (id) {
+  ['view-emma', 'view-elsie', 'view-academy', 'view-watch', 'view-destination'].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
   if (typeof emmaCleanup === 'function') { try { emmaCleanup(); } catch (e) {} }
+  if (typeof elsieCleanup === 'function') { try { elsieCleanup(); } catch (e) {} }
+  if (typeof watchCleanup === 'function') { try { watchCleanup(); } catch (e) {} }
+  // Hidden Worlds can still have a reel or film playing: silence them.
+  document.querySelectorAll('#view-emma video, #view-elsie video, #view-academy video, #view-watch video').forEach(function (v) { try { v.pause(); } catch (e) {} });
   _inDestination = false;
 }
 
@@ -489,6 +490,7 @@ function openDestinationNow(dest, label, opts) {
   if (dest === 'emma') { openEmmaWorld(opts); return; }
   if (dest === 'elsie') { openElsieWorld(opts); return; }
   if (dest === 'academy') { openAcademyWorld(opts); return; }
+  if (dest === 'watch') { openWatch(opts); return; }
   // Other destinations — placeholder for now
   showDestinationPlaceholder(label);
 }
@@ -509,6 +511,14 @@ function onEmmaExit() {
   _navZone = 'cards';
   const idx = (typeof window._returnCardIdx === 'number') ? window._returnCardIdx : 0;
   // Restore focus to the card, and its hero (user has already been navigating)
+  setCardFocus(idx, true);
+}
+
+// Called by fos-watch when Watch exits back to Home
+function onWatchExit() {
+  _inDestination = false;
+  _navZone = 'cards';
+  const idx = (typeof window._returnCardIdx === 'number') ? window._returnCardIdx : 0;
   setCardFocus(idx, true);
 }
 
@@ -806,6 +816,33 @@ function stopHeroCycle() {
   _heroCycleImages = [];
 }
 
+/* Portrait-aware image fill. Landscape images keep the full-bleed cover look.
+   Portrait images are fitted to full height (nothing cropped) over a blurred,
+   darkened copy of themselves, so the frame is never letterboxed in black. */
+function fosSetFitBg(el, url, loadedImg) {
+  if (!el || !url) return;
+  function apply(w, h) {
+    var portrait = h > w * 1.05;
+    el.style.setProperty('--fit-bg', 'url("' + url + '")');
+    el.classList.toggle('fit-portrait', portrait);
+    el.style.backgroundImage = 'url(' + url + ')';
+  }
+  if (loadedImg && loadedImg.naturalWidth) { apply(loadedImg.naturalWidth, loadedImg.naturalHeight); return; }
+  var i = new Image();
+  i.onload = function () { apply(i.naturalWidth, i.naturalHeight); };
+  i.onerror = function () { el.style.backgroundImage = 'url(' + url + ')'; };
+  i.src = url;
+}
+function fosFitScan(nodes) {
+  Array.prototype.forEach.call(nodes || [], function (n) {
+    if (n.getAttribute('data-fit')) return;
+    var m = /url\(["']?(.*?)["']?\)/.exec(n.style.backgroundImage || '');
+    if (!m) return;
+    n.setAttribute('data-fit', '1');
+    fosSetFitBg(n, m[1]);
+  });
+}
+
 // Crossfade the hidden layer in over the visible one, then swap which is "top".
 function crossfadeHeroTo(url) {
   const a = document.getElementById('home-hero-bg');
@@ -815,7 +852,7 @@ function crossfadeHeroTo(url) {
   const hidden  = (_heroTopLayer === 'a') ? b : a;
   const img = new Image();
   img.onload = () => {
-    hidden.style.backgroundImage = 'url(' + url + ')';
+    fosSetFitBg(hidden, url, img);
     hidden.style.opacity = '1';
     showing.style.opacity = '0';
     _heroTopLayer = (_heroTopLayer === 'a') ? 'b' : 'a';
@@ -845,7 +882,7 @@ function updateHeroForCard(idx) {
       heroBg.style.opacity = '0.55';
       const img = new Image();
       img.onload = () => {
-        heroBg.style.backgroundImage = 'url(' + images[0] + ')';
+        fosSetFitBg(heroBg, images[0], img);
         heroBg.style.opacity = '1';
         if (images.length > 1) {
           _heroCycleImages = images;
@@ -1129,6 +1166,14 @@ async function handleHubCommand(cmd) {
       await runRefreshCommand(cmd.target_id);
     } else if (cmd.command_type === 'navigate') {
       openDestination(cmd.target_id || 'home');
+    } else if (cmd.command_type === 'play_reel') {
+      // Master control "Play on TV": close whatever is showing, open Watch on that reel.
+      closeAllWorlds();
+      window._returnCardIdx = _cardIdx;
+      stopHeroCycle();
+      _inDestination = true;
+      const found = await openWatch({ playId: (cmd.payload || {}).content_id || cmd.target_id });
+      if (!found) { ok = false; errMsg = 'reel not live on Watch'; }
     } else {
       ok = false; errMsg = 'unknown command_type: ' + cmd.command_type;
     }
