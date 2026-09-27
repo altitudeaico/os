@@ -363,5 +363,39 @@ html, body {
 <script src="/hub/fos-academy-r1789733885.js"></script>
 <script src="/hub/fos-watch-r1790517617.js"></script>
 <script src="/hub/surface-r1790285830.js"></script>
+<script>
+/* Self-update: the TV reloads itself when a new build is published.
+   FOS_BUILD is stamped by scripts/tv-release.sh together with hub/version.json.
+   It never reloads mid-video or mid-song, or while someone is pressing keys. */
+var FOS_BUILD = '20260927141354';
+(function () {
+  var CHECK_MS = 120000, QUIET_MS = 30000, lastKey = Date.now(), pending = null;
+  document.addEventListener('keydown', function () { lastKey = Date.now(); }, true);
+  function busy() {
+    var media = document.querySelectorAll('video, audio');
+    for (var i = 0; i < media.length; i++) { var m = media[i]; if (!m.paused && !m.ended && m.currentTime > 0 && !m.muted) return true; }
+    if (window.elsieState && elsieState.playing) return true;
+    return Date.now() - lastKey < QUIET_MS;
+  }
+  function tryReload() {
+    if (!pending || busy()) return;
+    var key = 'fos-reload-' + pending, n = 0;
+    try { n = +(sessionStorage.getItem(key) || 0); sessionStorage.setItem(key, n + 1); } catch (e) {}
+    if (n >= 2) return; // loop guard: tried twice for this build already
+    var u = location.pathname + '?build=' + encodeURIComponent(pending) + location.hash;
+    location.replace(u); // new URL, so the TV cannot serve its old saved copy
+  }
+  function check() {
+    fetch('/hub/version.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.build && j.build !== FOS_BUILD && FOS_BUILD !== 'dev') pending = j.build; tryReload(); })
+      .catch(function () {});
+  }
+  setTimeout(check, 20000);
+  setInterval(check, CHECK_MS);
+  setInterval(tryReload, 15000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+})();
+</script>
 </body>
 </html>
