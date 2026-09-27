@@ -386,7 +386,10 @@ function closeAllWorlds() {
     if (el) el.style.display = 'none';
   });
   if (typeof emmaCleanup === 'function') { try { emmaCleanup(); } catch (e) {} }
+  if (typeof elsieCleanup === 'function') { try { elsieCleanup(); } catch (e) {} }
   if (typeof watchCleanup === 'function') { try { watchCleanup(); } catch (e) {} }
+  // Hidden Worlds can still have a reel or film playing: silence them.
+  document.querySelectorAll('#view-emma video, #view-elsie video, #view-academy video, #view-watch video').forEach(function (v) { try { v.pause(); } catch (e) {} });
   _inDestination = false;
 }
 
@@ -1163,6 +1166,14 @@ async function handleHubCommand(cmd) {
       await runRefreshCommand(cmd.target_id);
     } else if (cmd.command_type === 'navigate') {
       openDestination(cmd.target_id || 'home');
+    } else if (cmd.command_type === 'play_reel') {
+      // Master control "Play on TV": close whatever is showing, open Watch on that reel.
+      closeAllWorlds();
+      window._returnCardIdx = _cardIdx;
+      stopHeroCycle();
+      _inDestination = true;
+      const found = await openWatch({ playId: (cmd.payload || {}).content_id || cmd.target_id });
+      if (!found) { ok = false; errMsg = 'reel not live on Watch'; }
     } else {
       ok = false; errMsg = 'unknown command_type: ' + cmd.command_type;
     }
