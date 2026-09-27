@@ -93,7 +93,8 @@
   <div class="status" id="status"></div>
 
   <div class="tabs">
-    <div class="tab active" data-panel="artwork">Artwork</div>
+    <div class="tab active" data-panel="events">Events</div>
+    <div class="tab" data-panel="artwork">Artwork</div>
     <div class="tab" data-panel="photos">Photos</div>
     <div class="tab" data-panel="reels">My Reels</div>
     <div class="tab" data-panel="cheer">Cheer</div>
@@ -102,8 +103,17 @@
     <div class="tab" data-panel="card">Home Card</div>
   </div>
 
+  <!-- EVENTS: each event and its days, with every photo, video and reel -->
+  <div class="panel active" id="panel-events">
+    <div class="section">
+      <h2>Events</h2>
+      <div class="hint">Every photo, video and reel for each event, sorted by day. Tap a day to see just that day, add photos and videos straight into it, or tap any item to move it to a different day.</div>
+      <div id="events-root"></div>
+    </div>
+  </div>
+
   <!-- ARTWORK -->
-  <div class="panel active" id="panel-artwork">
+  <div class="panel" id="panel-artwork">
     <div class="section">
       <h2>My Gallery</h2>
       <div class="hint">Mark pieces &#9733; Featured to have them appear on the Family OS Home screen background when Elsie's card is in focus. More than one featured item fades between them.</div>
@@ -187,6 +197,7 @@
   </div>
 </div>
 
+<script src="/hub/fos-events-admin.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const SUPABASE_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
@@ -475,6 +486,7 @@ async function setReelStatus(id, to) {
 
 // Load all
 loadArtwork(); loadPhotos(); loadReels(); loadCheer(); loadMusic(); loadLatest(); loadCard();
+FOSEvents.mount(document.getElementById('events-root'), { sb: sb, personId: 'c8ef8444-295f-4c9f-86b4-8ed5c1dafbc2', personName: 'Elsie' });
 </script>
 <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
   <span class="close" onclick="closeLightbox(event,true)">\u00d7</span>

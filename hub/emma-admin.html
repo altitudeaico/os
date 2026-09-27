@@ -53,7 +53,8 @@
   <div class="status" id="status"></div>
 
   <div class="tabs">
-    <div class="tab active" data-panel="photos">Photos</div>
+    <div class="tab active" data-panel="events">Events</div>
+    <div class="tab" data-panel="photos">Photos</div>
     <div class="tab" data-panel="drive">Import from Drive</div>
     <div class="tab" data-panel="music">Music</div>
     <div class="tab" data-panel="schedule">Schedule</div>
@@ -61,8 +62,17 @@
     <div class="tab" data-panel="featured">Featured</div>
   </div>
 
+  <!-- EVENTS: each event and its days, with every photo, video and reel -->
+  <div class="panel active" id="panel-events">
+    <div class="section">
+      <h2>Events</h2>
+      <div class="hint">Every photo, video and reel for each event, sorted by day. Tap a day to see just that day, add photos and videos straight into it, or tap any item to move it to a different day.</div>
+      <div id="events-root"></div>
+    </div>
+  </div>
+
   <!-- PHOTOS -->
-  <div class="panel active" id="panel-photos">
+  <div class="panel" id="panel-photos">
     <div class="section">
       <h2>Photos</h2>
       <input type="file" id="photo-file" accept="image/*" multiple>
@@ -147,6 +157,7 @@
   </div>
 </div>
 
+<script src="/hub/fos-events-admin.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const SUPABASE_URL = 'https://fypwabbhxnnwcpfjwrda.supabase.co';
@@ -359,6 +370,7 @@ async function delFeatured(id) { await sb.from('spotlight').delete().eq('id', id
 
 // Load all
 loadPhotos(); loadMusic(); loadItinerary(); loadCard(); loadFeatured();
+FOSEvents.mount(document.getElementById('events-root'), { sb: sb, personId: 'cce814fd-8111-4e08-aa8c-471f0a193b97', personName: 'Emma' });
 </script>
 </body>
 </html>
