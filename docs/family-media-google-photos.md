@@ -16,14 +16,24 @@ no tokens, no signed URLs.
   "Phase C — verified findings"). The earlier redirect/callback sketch was wrong and
   has been corrected below.
 
-**Next action:**
-1. Owner confirms whether to proceed with Phase C on the corrected Picker-session model.
-2. One-time Google Cloud setup in the existing `olatoye-family-os` project (enable
-   Photos Picker API; configure OAuth consent + client) — exact steps to be issued
-   only once the corrected architecture is agreed.
-3. Then build Phase C: Picker session flow + copy-on-import worker + review UI.
+**Next action:** Owner approved proceeding. Phase C decisions are now SETTLED (below).
+Building the Family-OS side (Edge Functions + Media UI) that does not need live Google
+credentials, then issuing the short one-time Google Cloud steps to the owner.
 
-Do NOT begin Phase C implementation until the owner approves the corrected architecture.
+### Phase C decisions (SETTLED)
+1. **Token method:** server-side OAuth 2.0 authorization-code exchange. The client secret
+   lives ONLY in the Supabase Edge Function env (`GOOGLE_OAUTH_CLIENT_SECRET`), never in
+   frontend. The frontend holds only the public Client ID. No refresh tokens stored
+   (import is user-present and one-shot; access token covers the session + 60-min baseUrl fetches).
+2. **Worker model:** Supabase Edge Functions, no pgmq/pg_cron for v1. Functions:
+   `photos-auth` (OAuth start + code exchange), `photos-session` (create Picker session,
+   poll, list selected items → create queued jobs), `photos-import-worker` (claim queued
+   jobs, download each baseUrl into family-media, upsert content_items, mark job done),
+   `photos-retry` (re-queue failed jobs). Worker invoked on selection; job tables make it
+   resumable; a manual Retry endpoint covers failures. pgmq remains a future option (job
+   tables already shaped for it).
+3. **HEIC:** original always preserved in family-media; a browser-displayable derivative is
+   generated where the runtime can; if not, the original is kept and flagged for later.
 
 ---
 
