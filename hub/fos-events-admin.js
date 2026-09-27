@@ -63,9 +63,57 @@
     var s = document.createElement('style'); s.id = 'fev-css'; s.textContent = CSS; document.head.appendChild(s);
   }
 
+
+  /* iPhone fix: Safari on iOS can hand supabase-js a File that goes out as an
+     EMPTY multipart body (logs showed content-length 0 from every iPhone upload,
+     real sizes from Android). Reading the bytes ourselves and uploading the raw
+     ArrayBuffer avoids that path. Patched once on the storage prototype so every
+     uploader on the page (Events, Photos, Artwork, Cheer, Music) gets the fix. */
+  function readBytes(blob) {
+    var viaApi = (blob && typeof blob.arrayBuffer === 'function') ? blob.arrayBuffer().catch(function () { return null; }) : Promise.resolve(null);
+    return viaApi.then(function (buf) {
+      if (buf && buf.byteLength) return buf;
+      return new Promise(function (res) {
+        try {
+          var fr = new FileReader();
+          fr.onload = function () { res(fr.result); };
+          fr.onerror = function () { res(null); };
+          fr.readAsArrayBuffer(blob);
+        } catch (e) { res(null); }
+      });
+    });
+  }
+  function guessType(name) {
+    var ext = String(name || '').toLowerCase().split('.').pop();
+    return { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', heic: 'image/heic', heif: 'image/heif', webp: 'image/webp', gif: 'image/gif',
+             mov: 'video/quicktime', mp4: 'video/mp4', m4v: 'video/x-m4v', webm: 'video/webm', mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav' }[ext] || 'application/octet-stream';
+  }
+  function patchUploads(sb) {
+    try {
+      var proto = Object.getPrototypeOf(sb.storage.from('family-media'));
+      if (!proto || proto.__fosBytesPatch) return;
+      var orig = proto.upload;
+      proto.upload = function (path, body, opts) {
+        var self = this;
+        if (typeof Blob === 'undefined' || !(body instanceof Blob)) return orig.call(self, path, body, opts);
+        return readBytes(body).then(function (buf) {
+          if (!buf || !buf.byteLength) {
+            return { data: null, error: { message: 'The phone handed over an empty file. If it is stored in iCloud, open it in Photos so it downloads, then try again.' } };
+          }
+          var o = Object.assign({}, opts || {});
+          if (!o.contentType) o.contentType = body.type || guessType(body.name);
+          return orig.call(self, path, buf, o);
+        });
+      };
+      proto.__fosBytesPatch = true;
+    } catch (e) {}
+  }
+  window.FOSPatchUploads = patchUploads;
+
   function mount(root, opts) {
     injectCss();
     var sb = opts.sb, personId = opts.personId, personName = opts.personName || '';
+    patchUploads(sb);
     var st = { roots: [], allEvents: [], rootId: null, days: [], items: [], day: 'all', filter: 'all', addingDay: false };
 
     function say(msg, ok) {
@@ -258,7 +306,7 @@
         try {
           line.textContent = '\u2022 ' + f.name + ' \u2026 uploading';
           var base = safeName(personName || 'family') + '/' + target.id + '/' + Date.now() + '-' + safeName(f.name);
-          var up = await sb.storage.from(BUCKET).upload(base, f, { contentType: f.type || undefined, upsert: false });
+          var up = await sb.storage.from(BUCKET).upload(base, f, { contentType: f.type || guessType(f.name), upsert: false });
           if (up.error) throw up.error;
           var url = sb.storage.from(BUCKET).getPublicUrl(base).data.publicUrl;
           var meta = isVid ? await probeVideo(f) : await probeImage(f);
